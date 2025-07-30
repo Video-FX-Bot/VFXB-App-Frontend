@@ -30,6 +30,9 @@ import {
   Save,
   Settings
 } from 'lucide-react';
+import EnhancedVideoPlayer from '../components/video/EnhancedVideoPlayer';
+import EnhancedTimeline from '../components/timeline/EnhancedTimeline';
+import EffectsLibrary from '../components/effects/EffectsLibrary';
 
 const AIEditor = () => {
   const location = useLocation();
@@ -48,17 +51,99 @@ const AIEditor = () => {
   ]);
   const [newMessage, setNewMessage] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const [tracks, setTracks] = useState([
+    {
+      id: 'video-track-1',
+      type: 'video',
+      name: 'Main Video',
+      clips: uploadedVideo ? [{
+        id: 'clip-1',
+        name: uploadedVideo.name || 'Video Clip',
+        type: 'video',
+        startTime: 0,
+        duration: duration || 30,
+        thumbnail: uploadedVideo.thumbnail
+      }] : [],
+      muted: false,
+      locked: false,
+      visible: true,
+      volume: 1
+    },
+    {
+      id: 'audio-track-1',
+      type: 'audio',
+      name: 'Audio Track',
+      clips: uploadedVideo ? [{
+        id: 'audio-clip-1',
+        name: 'Audio',
+        type: 'audio',
+        startTime: 0,
+        duration: duration || 30
+      }] : [],
+      muted: false,
+      locked: false,
+      visible: true,
+      volume: 1
+    }
+  ]);
   const [videoRef, setVideoRef] = useState(null);
   const [projectName, setProjectName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Auto-save project when video is imported
+  const autoSaveProject = (video) => {
+    const videoName = video.name ? video.name.replace(/\.[^/.]+$/, '') : 'Untitled Video';
+    const projectData = {
+      id: Date.now(),
+      name: videoName,
+      video: video,
+      thumbnail: video.thumbnail || video.url,
+      duration: Math.floor((video.duration || 30) / 60) + ':' + Math.floor((video.duration || 30) % 60).toString().padStart(2, '0'),
+      lastModified: 'Just now',
+      status: 'editing',
+      createdAt: new Date().toISOString(),
+      chatHistory: []
+    };
+
+    // Get existing projects from localStorage
+    const existingProjects = JSON.parse(localStorage.getItem('vfxb_projects') || '[]');
+    
+    // Check if project with same video already exists
+    const existingProjectIndex = existingProjects.findIndex(p => p.video?.name === video.name);
+    
+    if (existingProjectIndex >= 0) {
+      // Update existing project
+      existingProjects[existingProjectIndex] = {
+        ...existingProjects[existingProjectIndex],
+        lastModified: 'Just now',
+        video: video
+      };
+    } else {
+      // Add new project
+      existingProjects.unshift(projectData);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('vfxb_projects', JSON.stringify(existingProjects));
+    
+    // Update recent projects in sidebar
+    const recentProjects = existingProjects.slice(0, 3);
+    localStorage.setItem('vfxb_recent_projects', JSON.stringify(recentProjects));
+    
+    // Set project name in state
+    setProjectName(videoName);
+  };
 
   // Get video from navigation state
   useEffect(() => {
     if (location.state?.video) {
       setUploadedVideo(location.state.video);
+      // Auto-save project when video is imported
+      autoSaveProject(location.state.video);
       setChatMessages(prev => [...prev, {
         type: 'ai',
-        content: `Perfect! I've loaded "${location.state.video.name}". I can help you with editing, effects, transitions, color grading, and more. What would you like to do first?`,
+        content: `Perfect! I've loaded "${location.state.video.name}" and automatically saved it as a project. I can help you with editing, effects, transitions, color grading, and more. What would you like to do first?`,
         timestamp: new Date().toISOString()
       }]);
     }
@@ -193,87 +278,32 @@ const AIEditor = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Main Editor Layout */}
-      <div className="flex h-screen">
+      <div className="flex flex-1 overflow-hidden">
         {/* Video Preview Section (2/3 width) */}
         <div className="flex-1 flex flex-col" style={{ width: '66.666%' }}>
-          {/* Video Player */}
-          <div className="flex-1 bg-black relative">
+          {/* Enhanced Video Player */}
+          <div className="flex-1 bg-black relative p-4">
             {uploadedVideo ? (
-              <>
-                <video
-                  ref={setVideoRef}
-                  className="w-full h-full object-contain"
-                  src={uploadedVideo.url}
-                  controls={false}
-                  muted={isMuted}
-                  preload="metadata"
-                  onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-                  onLoadedMetadata={(e) => setDuration(e.target.duration)}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                />
-                
-                {/* Video Controls Overlay */}
-                <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg p-4">
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={togglePlayPause}
-                      className="bg-blue-500 hover:bg-blue-600 p-2 rounded-full transition-colors"
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                    </button>
-                    
-                    <button onClick={skipBackward} className="p-2 hover:bg-gray-700 rounded transition-colors">
-                      <SkipBack className="w-4 h-4" />
-                    </button>
-                    
-                    <button onClick={skipForward} className="p-2 hover:bg-gray-700 rounded transition-colors">
-                      <SkipForward className="w-4 h-4" />
-                    </button>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={toggleMute}
-                        className="p-2 hover:bg-gray-700 rounded transition-colors"
-                      >
-                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </button>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={volume}
-                        onChange={handleVolumeChange}
-                        className="w-20"
-                      />
-                    </div>
-                    
-                    <div className="flex-1 mx-4">
-                      <div className="text-sm text-gray-300">
-                        {Math.floor(currentTime / 60)}:{Math.floor(currentTime % 60).toString().padStart(2, '0')} / 
-                        {Math.floor(duration / 60)}:{Math.floor(duration % 60).toString().padStart(2, '0')}
-                      </div>
-                    </div>
-                    
-                    <button className="p-2 hover:bg-gray-700 rounded transition-colors">
-                      <Maximize className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-600 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </>
+              <EnhancedVideoPlayer
+                ref={setVideoRef}
+                src={uploadedVideo.url}
+                poster={uploadedVideo.thumbnail}
+                currentTime={currentTime}
+                duration={duration}
+                onTimeUpdate={setCurrentTime}
+                onDurationChange={setDuration}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                className="w-full h-full"
+                showWaveform={true}
+                showThumbnailScrubbing={true}
+                enableKeyboardShortcuts={true}
+                showMinimap={true}
+                enableGestures={true}
+                enablePiP={true}
+              />
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center space-y-4">
@@ -289,63 +319,47 @@ const AIEditor = () => {
             )}
           </div>
           
-          {/* Timeline Editor */}
-          <div className="bg-gray-800 border-t border-gray-700 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Timeline</h3>
-              <div className="flex space-x-2">
-                <button className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm transition-colors">
-                  <Plus className="w-4 h-4 inline mr-1" />
-                  Add Layer
-                </button>
-                <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm transition-colors">
-                  <Layers className="w-4 h-4 inline mr-1" />
-                  Tracks
-                </button>
-              </div>
-            </div>
-            
-            {/* Timeline Tracks */}
-            <div className="space-y-2">
-              <div className="bg-gray-700 rounded p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Video Track</span>
-                  <div className="flex space-x-1">
-                    <button className="p-1 hover:bg-gray-600 rounded">
-                      <Eye className="w-3 h-3" />
-                    </button>
-                    <button className="p-1 hover:bg-gray-600 rounded">
-                      <Volume2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-blue-500/30 border border-blue-500 rounded h-8 flex items-center px-2">
-                  <span className="text-xs">{uploadedVideo?.name || 'No video loaded'}</span>
-                </div>
-              </div>
-              
-              <div className="bg-gray-700 rounded p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Audio Track</span>
-                  <div className="flex space-x-1">
-                    <button className="p-1 hover:bg-gray-600 rounded">
-                      <Volume2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-green-500/30 border border-green-500 rounded h-6">
-                  {/* Audio waveform placeholder */}
-                </div>
-              </div>
-            </div>
+          {/* Enhanced Timeline */}
+          <div className="bg-gray-800 border-t border-gray-700 p-4">
+            <EnhancedTimeline
+              tracks={tracks}
+              currentTime={currentTime}
+              duration={duration || 30}
+              zoom={timelineZoom}
+              isPlaying={isPlaying}
+              onTimeChange={(time) => {
+                setCurrentTime(time);
+                if (videoRef && videoRef.current) {
+                  videoRef.current.currentTime = time;
+                }
+              }}
+              onZoomChange={setTimelineZoom}
+              onTracksChange={setTracks}
+              onPlay={() => {
+                setIsPlaying(true);
+                if (videoRef && videoRef.current) {
+                  videoRef.current.play();
+                }
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+                if (videoRef && videoRef.current) {
+                  videoRef.current.pause();
+                }
+              }}
+              enableMagneticTimeline={true}
+              enableKeyframes={true}
+              enableMultiSelect={true}
+              className="h-64"
+            />
           </div>
         </div>
         
         {/* Chat Section (1/3 width) */}
-        <div className="bg-gray-800 border-l border-gray-700" style={{ width: '33.333%' }}>
+        <div className="bg-gray-800 border-l border-gray-700 p-4" style={{ width: '33.333%' }}>
           <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="pb-4 border-b border-gray-700 mb-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <Sparkles className="w-5 h-5 mr-2 text-blue-400" />
                 AI Assistant
@@ -354,7 +368,7 @@ const AIEditor = () => {
             </div>
             
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-4">
               {chatMessages.map((message, index) => (
                 <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] p-3 rounded-lg ${
@@ -381,7 +395,7 @@ const AIEditor = () => {
             </div>
             
             {/* Chat Input */}
-            <div className="p-4 border-t border-gray-700">
+            <div className="pt-4 border-t border-gray-700 mt-4">
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -404,64 +418,25 @@ const AIEditor = () => {
         </div>
       </div>
       
-      {/* Bottom Panel - Effects and Suggestions */}
+      {/* Bottom Panel - Enhanced Effects Library */}
       <div className="bg-gray-800 border-t border-gray-700 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Effects Panel */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Wand2 className="w-5 h-5 mr-2 text-purple-400" />
-              AI Effects
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {effects.map((effect, index) => {
-                const IconComponent = effect.icon;
-                return (
-                  <motion.button
-                    key={index}
-                    className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition-colors"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-center mb-2">
-                      <IconComponent className="w-5 h-5 mr-2 text-blue-400" />
-                      <span className="font-medium text-sm">{effect.name}</span>
-                    </div>
-                    <p className="text-xs text-gray-400">{effect.description}</p>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* AI Suggestions */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Lightbulb className="w-5 h-5 mr-2 text-yellow-400" />
-              AI Suggestions
-            </h3>
-            <div className="space-y-2">
-              {suggestions.map((suggestion, index) => (
-                <motion.button
-                  key={index}
-                  className="w-full bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-left text-sm transition-colors"
-                  whileHover={{ scale: 1.01 }}
-                >
-                  {suggestion}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <EffectsLibrary
+          onApplyEffect={(effect, params) => {
+            console.log('Applying effect:', effect, 'with params:', params);
+            // Handle effect application logic here
+          }}
+          selectedClips={tracks.flatMap(track => track.clips.filter(clip => clip.selected))}
+          className="mb-6"
+        />
         
         {/* Action Buttons */}
-        <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-700">
+        <div className="flex justify-between items-center pt-6 border-t border-gray-700">
           <div className="flex space-x-3">
-            <button className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
               <RotateCcw className="w-4 h-4 mr-2" />
               Undo
             </button>
-            <button className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </button>
@@ -473,7 +448,7 @@ const AIEditor = () => {
                value={projectName}
                onChange={(e) => setProjectName(e.target.value)}
                placeholder="Enter project name..."
-               className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+               className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
              />
              <button 
                onClick={saveProject}
@@ -487,7 +462,7 @@ const AIEditor = () => {
                <Save className="w-4 h-4 mr-2" />
                {isSaving ? 'Saving...' : 'Save Project'}
              </button>
-            <button className="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+            <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
               <Download className="w-4 h-4 mr-2" />
               Export Video
             </button>

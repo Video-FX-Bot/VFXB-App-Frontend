@@ -25,7 +25,8 @@ import {
   FileText,
   Archive,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  HardDrive
 } from 'lucide-react';
 import { Button, Card } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
@@ -495,8 +496,8 @@ const Projects = () => {
                     )}
                   </Card>
                 ) : (
-                  // List View
-                  <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  // Redesigned Compact List View
+                  <Card className="bg-gradient-to-r from-gray-800/90 to-gray-900/90 backdrop-blur-sm border border-gray-600/30 rounded-lg overflow-hidden hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 cursor-pointer group"
                         onClick={() => navigate('/ai-editor', { 
                           state: { 
                             uploadedVideo: project.video || {
@@ -508,58 +509,198 @@ const Projects = () => {
                             projectData: project
                           } 
                         })}>
-                    <div className="flex items-center gap-4">
-                      {/* Thumbnail */}
-                      <div className="w-20 h-12 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
-                        <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center">
+                    <div className="flex items-center gap-4 p-4">
+                      {/* Compact Thumbnail */}
+                      <div className="relative w-20 h-14 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-md overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                        <div className="w-full h-full flex items-center justify-center">
                           <Video className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                        
+                        {/* Play Button Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-white/30 backdrop-blur-sm rounded-full p-1.5">
+                            <Play className="w-3 h-3 text-white fill-current" />
+                          </div>
+                        </div>
+                        
+                        {/* Duration Badge */}
+                        <div className="absolute bottom-1 right-1">
+                          <span className="bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-white text-xs font-medium">
+                            {project.duration}
+                          </span>
                         </div>
                       </div>
                       
-                      {/* Content */}
+                      {/* Main Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                          <h3 className="font-semibold text-lg text-white truncate group-hover:text-purple-300 transition-colors">
                             {project.title}
                           </h3>
                           {project.favorite && (
                             <Star className="w-4 h-4 text-yellow-400 fill-current flex-shrink-0" />
                           )}
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)} flex-shrink-0`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(project.status)} flex-shrink-0`}>
                             {getStatusText(project.status)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate mb-1">
+                        
+                        <p className="text-gray-400 text-sm mb-2 line-clamp-1">
                           {project.description}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{project.duration}</span>
-                          <span>•</span>
-                          <span>{project.lastEdited}</span>
-                          <span>•</span>
-                          <span>Created {new Date(project.createdAt).toLocaleDateString()}</span>
+                        
+                        {/* Compact Stats Row */}
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{project.lastEdited}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            <span>{project.views}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                            <span>{project.rating}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <HardDrive className="w-3 h-3" />
+                            <span>{project.size}</span>
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Actions */}
+                      {/* Compact Actions */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Share2 className="w-4 h-4" />
-                        </Button>
-                        <button
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/ai-editor', { 
+                              state: { 
+                                uploadedVideo: project.video || {
+                                  name: project.title,
+                                  url: project.thumbnail,
+                                  size: 0,
+                                  type: 'video/mp4'
+                                },
+                                projectData: project
+                              } 
+                            });
+                          }}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-1.5 px-3 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </motion.button>
+                        
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Handle download
+                          }}
+                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          title="Download"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </motion.button>
+                        
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Handle share
+                          }}
+                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          title="Share"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </motion.button>
+                        
+                        <motion.button
                           onClick={(e) => {
                             e.stopPropagation();
                             setProjectMenuOpen(projectMenuOpen === project.id ? null : project.id);
                           }}
-                          className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200 relative"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          title="More options"
                         >
-                          <MoreVertical className="w-4 h-4 text-gray-500" />
-                        </button>
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </motion.button>
                       </div>
                     </div>
+                    
+                    {/* Project Menu for List View */}
+                    {projectMenuOpen === project.id && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute right-6 top-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectAction('open', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Play className="w-4 h-4" />
+                          Open
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectAction('rename', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Rename
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectAction('duplicate', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Duplicate
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectAction('favorite', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Star className="w-4 h-4" />
+                          {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                        </button>
+                        <hr className="border-gray-200 dark:border-gray-700 my-1" />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProjectAction('delete', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </motion.div>
+                    )}
                   </Card>
                 )}
               </motion.div>
