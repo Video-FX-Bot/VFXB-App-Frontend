@@ -69,8 +69,12 @@ export default function HomePage() {
 
   const startEditing = () => {
     if (videoFile && selectedCategory) {
-      navigate(`/Editor?id=1&category=${encodeURIComponent(selectedCategory)}`);
+      navigate(`/dashboard?id=1&category=${encodeURIComponent(selectedCategory)}`);
     }
+  };
+
+  const goToProjects = () => {
+    navigate('/projects');
   };
 
   return (
@@ -172,17 +176,25 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Start Editing Button */}
-      <button
-        onClick={startEditing}
-        className={`mt-10 mb-16 px-6 py-3 rounded-xl font-semibold transition-all ${
-          !videoFile || !selectedCategory || isUploading
-            ? "bg-gray-500 text-gray-300 cursor-not-allowed"
-            : "bg-pink-600 text-white hover:bg-pink-700"
-        }`}
-      >
-        Start Editing
-      </button>
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 mt-10 mb-16">
+        <button
+          onClick={startEditing}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            !videoFile || !selectedCategory || isUploading
+              ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+              : "bg-pink-600 text-white hover:bg-pink-700"
+          }`}
+        >
+          Start Editing
+        </button>
+        <button
+          onClick={goToProjects}
+          className="px-6 py-3 rounded-xl font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Go to Projects
+        </button>
+      </div>
     </div>
   );
 }
