@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../useAuth";
 import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -25,111 +26,99 @@ export default function Signup() {
   };
 
   return (
-    <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{
-        background: "rgba(30, 41, 59, 0.95)",
-        padding: 36,
-        borderRadius: 16,
-        boxShadow: "0 4px 32px 0 rgba(0,0,0,0.25)",
-        minWidth: 340,
-        width: "100%",
-        maxWidth: 400,
-        color: "#fff"
-      }}>
-        <h2 style={{ marginBottom: 24, textAlign: "center", fontWeight: 700, fontSize: 28, letterSpacing: 1 }}>Sign Up</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Email</label>
-            <input
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-slate-800/95 p-9 rounded-2xl shadow-2xl min-w-[340px] w-full max-w-md text-white"
+      >
+        <motion.h2 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0 }}
+          className="mb-6 text-center font-bold text-2xl tracking-wide bg-gradient-to-r from-pink-400 via-purple-500 to-cyan-500 bg-clip-text text-transparent"
+        >
+          Sign Up
+        </motion.h2>
+        <motion.form 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <label className="block mb-2 font-medium text-sm">Email</label>
+            <motion.input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #F472B6",
-                background: "#fff",
-                color: "#222",
-                fontSize: 16,
-                outline: "none",
-                transition: "border 0.2s",
-                boxSizing: "border-box"
-              }}
-              onFocus={e => e.target.style.border = '1.5px solid #8b5cf6'}
-              onBlur={e => e.target.style.border = '1px solid #F472B6'}
+              className="w-full px-3 py-2 rounded-lg border border-pink-400 bg-white text-gray-800 text-base outline-none transition-all duration-300 focus:border-purple-500 focus:shadow-lg focus:shadow-purple-500/25"
+              whileFocus={{ scale: 1.02 }}
               autoFocus
             />
-          </div>
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Password</label>
-            <input
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <label className="block mb-2 font-medium text-sm">Password</label>
+            <motion.input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #F472B6",
-                background: "#fff",
-                color: "#222",
-                fontSize: 16,
-                outline: "none",
-                transition: "border 0.2s",
-                boxSizing: "border-box"
-              }}
-              onFocus={e => e.target.style.border = '1.5px solid #8b5cf6'}
-              onBlur={e => e.target.style.border = '1px solid #F472B6'}
+              className="w-full px-3 py-2 rounded-lg border border-pink-400 bg-white text-gray-800 text-base outline-none transition-all duration-300 focus:border-purple-500 focus:shadow-lg focus:shadow-purple-500/25"
+              whileFocus={{ scale: 1.02 }}
             />
-          </div>
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Confirm Password</label>
-            <input
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <label className="block mb-2 font-medium text-sm">Confirm Password</label>
+            <motion.input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #F472B6",
-                background: "#fff",
-                color: "#222",
-                fontSize: 16,
-                outline: "none",
-                transition: "border 0.2s",
-                boxSizing: "border-box"
-              }}
-              onFocus={e => e.target.style.border = '1.5px solid #8b5cf6'}
-              onBlur={e => e.target.style.border = '1px solid #F472B6'}
+              className="w-full px-3 py-2 rounded-lg border border-pink-400 bg-white text-gray-800 text-base outline-none transition-all duration-300 focus:border-purple-500 focus:shadow-lg focus:shadow-purple-500/25"
+              whileFocus={{ scale: 1.02 }}
             />
-          </div>
-          {error && <div style={{ color: "#F472B6", marginBottom: 14, textAlign: "center", fontWeight: 500 }}>{error}</div>}
-          <button
+          </motion.div>
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-pink-400 mb-4 text-center font-medium"
+            >
+              {error}
+            </motion.div>
+          )}
+          <motion.button
             type="submit"
-            style={{
-              width: "100%",
-              padding: "12px 0",
-              background: "linear-gradient(90deg, #06b6d4, #8b5cf6)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 16,
-              marginTop: 4,
-              boxShadow: "0 2px 8px 0 rgba(139, 92, 246, 0.15)",
-              cursor: "pointer",
-              letterSpacing: 1
-            }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-none rounded-lg font-bold text-base mt-2 shadow-lg cursor-pointer tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/25"
           >
             Sign Up
-          </button>
-        </form>
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 15 }}>
-          Already have an account? <Link to="/login" style={{ color: "#8b5cf6", fontWeight: 600 }}>Login</Link>
-        </div>
-      </div>
+          </motion.button>
+        </motion.form>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="mt-5 text-center text-sm"
+        >
+          Already have an account? <motion.div className="inline-block"><Link to="/login" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors" whileHover={{ scale: 1.05 }}>Login</Link></motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 } 

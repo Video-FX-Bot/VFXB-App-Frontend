@@ -26,8 +26,6 @@ const AvatarFallback = ({ children }) => children;
 // 🛠 createPageUrl mock (just returns a path for now)
 const createPageUrl = (path) => (path === "Home" ? "/" : `/${path}`);
 
-// Sidebar component is now imported from components/layout/Sidebar.jsx
-
 const Header = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -73,7 +71,6 @@ const Header = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  // Close notifications on outside click
   useEffect(() => {
     if (!notificationsOpen) return;
     const handleClick = (e) => {
@@ -223,6 +220,8 @@ const Header = () => {
 };
 
 export default function Layout({ children }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
