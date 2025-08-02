@@ -27,6 +27,8 @@ const Sidebar = () => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [projectMenuOpen, setProjectMenuOpen] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editingProjectName, setEditingProjectName] = useState("");
 
   // Load recent projects from localStorage
   useEffect(() => {
@@ -165,6 +167,41 @@ const Sidebar = () => {
           });
         }
         break;
+      case "rename":
+        if (project) {
+          setEditingProjectId(projectId);
+          setEditingProjectName(project.name);
+        }
+        break;
+      case "duplicate":
+        if (project) {
+          const newProject = {
+            ...project,
+            id: Date.now(), // Generate new unique ID
+            name: `${project.name} (Copy)`,
+            lastModified: "Just now"
+          };
+          const updatedProjects = [newProject, ...projects];
+          setProjects(updatedProjects);
+          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+        }
+        break;
+      case "favorite":
+        if (project) {
+          const updatedProjects = projects.map(p => 
+            p.id === projectId ? { ...p, favorite: !p.favorite } : p
+          );
+          setProjects(updatedProjects);
+          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+        }
+        break;
+      case "delete":
+        if (project) {
+          const updatedProjects = projects.filter(p => p.id !== projectId);
+          setProjects(updatedProjects);
+          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+        }
+        break;
       default:
         console.log(`${action} project ${projectId}`);
     }
@@ -173,6 +210,23 @@ const Sidebar = () => {
 
   const handleCreateProject = () => {
     navigate("/");
+  };
+
+  const handleRenameSave = (projectId) => {
+    if (editingProjectName.trim() !== "") {
+      const updatedProjects = projects.map(p => 
+        p.id === projectId ? { ...p, name: editingProjectName.trim() } : p
+      );
+      setProjects(updatedProjects);
+      localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+    }
+    setEditingProjectId(null);
+    setEditingProjectName("");
+  };
+
+  const handleRenameCancel = () => {
+    setEditingProjectId(null);
+    setEditingProjectName("");
   };
 
   const getStatusColor = (status) => {
@@ -251,24 +305,49 @@ const Sidebar = () => {
                 >
                   <div className="flex items-start gap-3">
                     {/* Thumbnail */}
-                    <div className="relative flex-shrink-0">
-                      <div className="w-16 h-9 bg-gray-700 rounded-md overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center">
-                          <Play className="w-4 h-4 text-gray-400" />
-                        </div>
-                      </div>
-                      <div
-                        className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(
-                          project.status
-                        )}`}
-                      />
-                    </div>
+                     <div className="relative flex-shrink-0">
+                       <div className="w-16 h-9 bg-gray-700 rounded-md overflow-hidden">
+                         <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center">
+                           <Play className="w-4 h-4 text-gray-400" />
+                         </div>
+                       </div>
+                       <div
+                         className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(
+                           project.status
+                         )}`}
+                       />
+                                               {project.favorite && (
+                          <div className="absolute -top-1 -left-1">
+                            <Star className="w-3 h-3 text-yellow-400" />
+                          </div>
+                        )}
+                     </div>
 
                     {/* Project Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-white truncate">
-                        {project.name}
-                      </h4>
+                      {editingProjectId === project.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingProjectName}
+                            onChange={(e) => setEditingProjectName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameSave(project.id);
+                              } else if (e.key === 'Escape') {
+                                handleRenameCancel();
+                              }
+                            }}
+                            onBlur={() => handleRenameSave(project.id)}
+                            className="text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-pink-500 flex-1"
+                            autoFocus
+                          />
+                        </div>
+                                             ) : (
+                         <h4 className="text-sm font-medium text-white truncate">
+                           {project.name}
+                         </h4>
+                       )}
                       <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
                         <Clock className="w-3 h-3" />
                         <span>{project.duration}</span>
@@ -299,44 +378,57 @@ const Sidebar = () => {
                       className="absolute right-2 top-12 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
                     >
                       <button
-                        onClick={() => handleProjectAction("open", project.id)}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                      >
-                        <Play className="w-4 h-4" />
-                        Open
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleProjectAction("rename", project.id)
-                        }
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                        Rename
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleProjectAction("duplicate", project.id)
-                        }
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Duplicate
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleProjectAction("favorite", project.id)
-                        }
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                      >
-                        <Star className="w-4 h-4" />
-                        Add to Favorites
-                      </button>
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleProjectAction("open", project.id);
+                         }}
+                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                       >
+                         <Play className="w-4 h-4" />
+                         Open
+                       </button>
+                       <button
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleProjectAction("rename", project.id);
+                         }}
+                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                       >
+                         <Edit3 className="w-4 h-4" />
+                         Rename
+                       </button>
+                       <button
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleProjectAction("duplicate", project.id);
+                         }}
+                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                       >
+                         <Copy className="w-4 h-4" />
+                         Duplicate
+                       </button>
+                       <button
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleProjectAction("favorite", project.id);
+                         }}
+                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                       >
+                         <Star className="w-4 h-4" />
+                         {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                       </button>
                       <hr className="border-gray-700 my-1" />
                       <button
-                        onClick={() =>
-                          handleProjectAction("delete", project.id)
-                        }
+                        data-action="delete"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProjectAction("delete", project.id);
+                        }}
                         className="w-full px-3 py-2 text-left text-sm hover:bg-red-600 text-red-400 hover:text-white flex items-center gap-2"
                       >
                         <Trash2 className="w-4 h-4" />
