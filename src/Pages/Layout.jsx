@@ -81,22 +81,23 @@ const Header = () => {
   }, [notificationsOpen]);
   
   return (
-    <header className="h-16 header-bg-gray-900 text-gray-300 flex items-center justify-end px-6 border-b border-gray-700">
-      <div className="flex items-center gap-4">
+    <header className="h-14 sm:h-16 bg-gray-900 text-gray-300 flex items-center justify-end px-4 sm:px-6 border-b border-gray-700">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button
-          className="bg-gradient-to-r from-[#06b6d4] to-[#8b5cf6] text-white font-semibold border-0 shadow-none hover:from-[#22d3ee] hover:to-[#a78bfa]"
+          className="bg-gradient-to-r from-[#06b6d4] to-[#8b5cf6] text-white font-semibold border-0 shadow-none hover:from-[#22d3ee] hover:to-[#a78bfa] text-xs sm:text-sm px-2 sm:px-3 py-1"
         >
-          Upgrade
+          <span className="hidden sm:inline">Upgrade</span>
+          <span className="sm:hidden">+</span>
         </Button>
-        <button className="hover:text-white">
-          <History className="w-5 h-5" />
+        <button className="hover:text-white hidden sm:block">
+          <History className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
         <div className="relative flex items-center">
           <button 
             className="hover:text-white relative flex items-center justify-center"
             onClick={() => setNotificationsOpen(!notificationsOpen)}
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
             {unreadCount > 0 && (
               <span style={{
                 position: "absolute",
@@ -117,14 +118,10 @@ const Header = () => {
               </span>
             )}
           </button>
-          <div className="notifications-menu fixed bg-gray-800 border border-gray-700 rounded shadow-lg z-50 w-[380px] max-h-[500px] overflow-y-auto" style={{ 
-            top: '4rem', 
-            right: '1rem',
-            maxWidth: 'calc(100vw - 2rem)',
-            opacity: notificationsOpen ? 1 : 0,
-            transform: notificationsOpen ? 'translateY(0)' : 'translateY(-10px)',
-            transition: 'opacity 0.2s ease-in-out, transform 0.2s ease-in-out',
-            pointerEvents: notificationsOpen ? 'auto' : 'none'
+          <div className="notifications-menu fixed bg-gray-800 border border-gray-700 rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
+            display: notificationsOpen ? "block" : "none",
+            top: "56px",
+            right: "16px"
           }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid #374151" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -212,7 +209,7 @@ const Header = () => {
           className="hover:text-white"
           onClick={() => navigate("/profile")}
         >
-          <UserIcon className="w-5 h-5" />
+          <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </header>
@@ -248,7 +245,7 @@ export default function Layout({ children }) {
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <Header />
-          <main className="flex-1 p-6 overflow-y-auto">
+          <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
             <div className="w-full max-w-7xl mx-auto">{children}</div>
           </main>
         </div>
