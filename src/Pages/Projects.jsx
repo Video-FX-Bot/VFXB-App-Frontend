@@ -51,7 +51,7 @@ const Projects = () => {
         {
            id: 1,
            title: 'Summer Vacation Highlights',
-           thumbnail: 'https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=400',
+           thumbnail: null,
            duration: '2:45',
            createdAt: '2024-01-15',
            lastEdited: '2 hours ago',
@@ -66,7 +66,7 @@ const Projects = () => {
          {
            id: 2,
            title: 'Product Demo Video',
-           thumbnail: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400',
+           thumbnail: null,
            duration: '1:30',
            createdAt: '2024-01-14',
            lastEdited: '1 day ago',
@@ -81,7 +81,7 @@ const Projects = () => {
          {
             id: 3,
             title: 'Wedding Ceremony',
-            thumbnail: 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=400',
+            thumbnail: null,
             duration: '5:20',
             createdAt: '2024-01-12',
             lastEdited: '3 days ago',
@@ -96,7 +96,7 @@ const Projects = () => {
           {
             id: 4,
             title: 'Travel Adventure Vlog',
-            thumbnail: 'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=400',
+            thumbnail: null,
             duration: '4:15',
             createdAt: '2024-01-10',
             lastEdited: '5 days ago',
@@ -111,7 +111,7 @@ const Projects = () => {
           {
             id: 5,
             title: 'Corporate Training Module',
-            thumbnail: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=400',
+            thumbnail: null,
             duration: '6:30',
             createdAt: '2024-01-08',
             lastEdited: '1 week ago',
@@ -190,6 +190,8 @@ const Projects = () => {
   };
 
   const filteredProjects = projects.filter(project => {
+    if (!project || !project.title || !project.description) return false;
+    
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterBy === 'all' || 

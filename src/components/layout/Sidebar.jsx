@@ -349,7 +349,7 @@ const Sidebar = () => {
                             <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
                             <span className="text-xs">{project.duration}</span>
                             <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
-                            <span className={`text-xs ${getStatusColor(project.status)}`}>
+                            <span className={`text-xs text-white ${getStatusColor(project.status)} px-2 py-1 rounded-full`}>
                               {project.status}
                             </span>
                           </div>

@@ -91,59 +91,13 @@ const AIEditor = () => {
   const [projectName, setProjectName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Auto-save project when video is imported
-  const autoSaveProject = (video) => {
-    const videoName = video.name ? video.name.replace(/\.[^/.]+$/, '') : 'Untitled Video';
-    const projectData = {
-      id: Date.now(),
-      name: videoName,
-      video: video,
-      thumbnail: video.thumbnail || video.url,
-      duration: Math.floor((video.duration || 30) / 60) + ':' + Math.floor((video.duration || 30) % 60).toString().padStart(2, '0'),
-      lastModified: 'Just now',
-      status: 'editing',
-      createdAt: new Date().toISOString(),
-      chatHistory: []
-    };
-
-    // Get existing projects from localStorage
-    const existingProjects = JSON.parse(localStorage.getItem('vfxb_projects') || '[]');
-    
-    // Check if project with same video already exists
-    const existingProjectIndex = existingProjects.findIndex(p => p.video?.name === video.name);
-    
-    if (existingProjectIndex >= 0) {
-      // Update existing project
-      existingProjects[existingProjectIndex] = {
-        ...existingProjects[existingProjectIndex],
-        lastModified: 'Just now',
-        video: video
-      };
-    } else {
-      // Add new project
-      existingProjects.unshift(projectData);
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('vfxb_projects', JSON.stringify(existingProjects));
-    
-    // Update recent projects in sidebar
-    const recentProjects = existingProjects.slice(0, 3);
-    localStorage.setItem('vfxb_recent_projects', JSON.stringify(recentProjects));
-    
-    // Set project name in state
-    setProjectName(videoName);
-  };
-
   // Get video from navigation state
   useEffect(() => {
     if (location.state?.video) {
       setUploadedVideo(location.state.video);
-      // Auto-save project when video is imported
-      autoSaveProject(location.state.video);
       setChatMessages(prev => [...prev, {
         type: 'ai',
-        content: `Perfect! I've loaded "${location.state.video.name}" and automatically saved it as a project. I can help you with editing, effects, transitions, color grading, and more. What would you like to do first?`,
+        content: `Perfect! I've loaded "${location.state.video.name}". I can help you with editing, effects, transitions, color grading, and more. What would you like to do first?`,
         timestamp: new Date().toISOString()
       }]);
     }
