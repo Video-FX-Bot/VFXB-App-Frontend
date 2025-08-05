@@ -243,55 +243,57 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-80 bg-gray-900 text-gray-300 flex flex-col border-r border-gray-700 h-screen overflow-hidden">
+    <aside className="w-16 sm:w-20 lg:w-64 bg-gray-900 border-r border-gray-700 flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-700">
-        <Link
-          to="/"
-          className="text-2xl font-bold tracking-wider bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent"
-        >
-          VFXB
+      <div className="p-3 sm:p-4 lg:p-6 border-b border-gray-700">
+        <Link to="/" className="flex items-center space-x-2 lg:space-x-3">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <Video className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white" />
+          </div>
+          <span className="hidden lg:block text-lg lg:text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-500 bg-clip-text text-transparent">
+            VFXB
+          </span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-2">
+      <nav className="flex-1 p-2 sm:p-3 lg:p-4 overflow-y-auto">
+        <div className="space-y-1 sm:space-y-2">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                className={`flex items-center space-x-2 lg:space-x-3 px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 group justify-center lg:justify-start ${
                   item.active
-                    ? "bg-pink-600 text-white"
-                    : "hover:bg-gray-800 hover:text-white"
+                    ? "bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-white border border-pink-500/30"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <span className="hidden lg:block font-medium text-sm lg:text-base">{item.label}</span>
               </Link>
             );
           })}
         </div>
 
-        {/* Projects Section */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+        {/* Recent Projects */}
+        <div className="mt-4 lg:mt-8 hidden lg:block">
+          <div className="flex items-center justify-between mb-3 lg:mb-4">
+            <h3 className="text-xs lg:text-sm font-semibold text-gray-400 uppercase tracking-wider">
               Recent Projects
             </h3>
             <button
               onClick={handleCreateProject}
-              className="p-1 rounded-md hover:bg-gray-800 transition-colors"
+              className="p-1 text-gray-400 hover:text-white transition-colors"
               title="Create New Project"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3 lg:w-4 lg:h-4" />
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-1 lg:space-y-2">
             {projects.map((project) => (
               <motion.div
                 key={project.id}
@@ -305,55 +307,54 @@ const Sidebar = () => {
                 >
                   <div className="flex items-start gap-3">
                     {/* Thumbnail */}
-                     <div className="relative flex-shrink-0">
-                       <div className="w-16 h-9 bg-gray-700 rounded-md overflow-hidden">
-                         <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center">
-                           <Play className="w-4 h-4 text-gray-400" />
-                         </div>
-                       </div>
-                       <div
-                         className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(
-                           project.status
-                         )}`}
-                       />
-                                               {project.favorite && (
-                          <div className="absolute -top-1 -left-1">
-                            <Star className="w-3 h-3 text-yellow-400" />
-                          </div>
-                        )}
-                     </div>
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-700">
+                      <img
+                        src={project.thumbnail}
+                        alt={project.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div
+                      className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(
+                        project.status
+                      )}`}
+                    />
+                    {project.favorite && (
+                      <div className="absolute -top-1 -left-1">
+                        <Star className="w-3 h-3 text-yellow-400" />
+                      </div>
+                    )}
 
                     {/* Project Info */}
                     <div className="flex-1 min-w-0">
                       {editingProjectId === project.id ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={editingProjectName}
-                            onChange={(e) => setEditingProjectName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameSave(project.id);
-                              } else if (e.key === 'Escape') {
-                                handleRenameCancel();
-                              }
-                            }}
-                            onBlur={() => handleRenameSave(project.id)}
-                            className="text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-pink-500 flex-1"
-                            autoFocus
-                          />
-                        </div>
-                                             ) : (
-                         <h4 className="text-sm font-medium text-white truncate">
-                           {project.name}
-                         </h4>
-                       )}
-                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        <span>{project.duration}</span>
-                        <span>•</span>
-                        <span>{project.lastModified}</span>
-                      </div>
+                        <input
+                          type="text"
+                          value={editingProjectName}
+                          onChange={(e) => setEditingProjectName(e.target.value)}
+                          onBlur={() => handleRenameSave(project.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRenameSave(project.id);
+                            if (e.key === "Escape") handleRenameCancel();
+                          }}
+                          className="w-full bg-gray-700 text-white text-sm px-2 py-1 rounded border border-gray-600 focus:border-pink-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <h4 className="text-xs lg:text-sm font-medium text-white truncate group-hover:text-pink-300 transition-colors">
+                            {project.name}
+                          </h4>
+                          <div className="flex items-center space-x-1 lg:space-x-2 text-xs text-gray-400">
+                            <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
+                            <span className="text-xs">{project.duration}</span>
+                            <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                            <span className={`text-xs ${getStatusColor(project.status)}`}>
+                              {project.status}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Menu Button */}
@@ -378,49 +379,49 @@ const Sidebar = () => {
                       className="absolute right-2 top-12 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
                     >
                       <button
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleProjectAction("open", project.id);
-                         }}
-                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                       >
-                         <Play className="w-4 h-4" />
-                         Open
-                       </button>
-                       <button
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleProjectAction("rename", project.id);
-                         }}
-                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                       >
-                         <Edit3 className="w-4 h-4" />
-                         Rename
-                       </button>
-                       <button
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleProjectAction("duplicate", project.id);
-                         }}
-                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                       >
-                         <Copy className="w-4 h-4" />
-                         Duplicate
-                       </button>
-                       <button
-                         onClick={(e) => {
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleProjectAction("favorite", project.id);
-                         }}
-                         className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
-                       >
-                         <Star className="w-4 h-4" />
-                         {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                       </button>
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProjectAction("open", project.id);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Play className="w-4 h-4" />
+                        Open
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProjectAction("rename", project.id);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Rename
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProjectAction("duplicate", project.id);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Duplicate
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProjectAction("favorite", project.id);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Star className="w-4 h-4" />
+                        {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                      </button>
                       <hr className="border-gray-700 my-1" />
                       <button
                         data-action="delete"
@@ -444,21 +445,21 @@ const Sidebar = () => {
           {/* View All Projects */}
           <Link
             to="/projects"
-            className="block mt-4 text-center text-sm text-gray-400 hover:text-white transition-colors"
+            className="hidden lg:block mt-3 lg:mt-4 text-center text-xs lg:text-sm text-gray-400 hover:text-white transition-colors"
           >
             View All Projects →
           </Link>
         </div>
       </nav>
       {/* User Section */}
-      <div className="p-4 border-t border-gray-700">
+      <div className="p-2 sm:p-3 lg:p-4 border-t border-gray-700">
         {user ? (
-          <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">
-            <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
+          <div className="group flex items-center space-x-2 lg:space-x-3 p-1 lg:p-2 rounded-lg hover:bg-gray-800 transition-all duration-200 cursor-pointer relative">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+              <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+            <div className="flex-1 min-w-0 hidden lg:block">
+              <p className="text-xs lg:text-sm font-medium text-white truncate">
                 {user.name}
               </p>
               <p className="text-xs text-gray-400 truncate">{user.email}</p>
@@ -467,9 +468,10 @@ const Sidebar = () => {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="w-full px-4 py-2 text-sm font-medium bg-pink-600 text-white rounded-lg hover:bg-pink-500 transition"
+            className="w-full px-2 lg:px-4 py-2 text-xs lg:text-sm font-medium bg-pink-600 text-white rounded-lg hover:bg-pink-500 transition"
           >
-            Log In
+            <span className="hidden lg:inline">Log In</span>
+            <span className="lg:hidden">+</span>
           </button>
         )}
       </div>

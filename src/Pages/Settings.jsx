@@ -107,21 +107,21 @@ const Settings = () => {
   };
 
   const renderProfileTab = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Profile Picture */}
-      <div className="flex items-center space-x-6">
-        <div className="relative">
-          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+        <div className="relative flex-shrink-0">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold">
             {formData.firstName[0]}{formData.lastName[0]}
           </div>
-          <button className="absolute -bottom-2 -right-2 bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full transition-colors">
-            <Camera className="w-4 h-4" />
+          <button className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-purple-600 hover:bg-purple-700 text-white p-1.5 sm:p-2 rounded-full transition-colors">
+            <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
           </button>
         </div>
-        <div>
-          <h3 className="text-xl font-semibold text-white">{formData.firstName} {formData.lastName}</h3>
-          <p className="text-gray-400">@{formData.username}</p>
-          <button className="text-purple-400 hover:text-purple-300 text-sm mt-1 flex items-center space-x-1">
+        <div className="text-center sm:text-left">
+          <h3 className="text-lg sm:text-xl font-semibold text-white">{formData.firstName} {formData.lastName}</h3>
+          <p className="text-gray-400 text-sm sm:text-base">@{formData.username}</p>
+          <button className="text-purple-400 hover:text-purple-300 text-xs sm:text-sm mt-1 flex items-center justify-center sm:justify-start space-x-1">
             <Edit3 className="w-3 h-3" />
             <span>Change Photo</span>
           </button>
@@ -129,57 +129,57 @@ const Settings = () => {
       </div>
 
       {/* Profile Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <div className="sm:col-span-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">First Name</label>
           <input
             type="text"
             value={formData.firstName}
             onChange={(e) => handleInputChange(null, 'firstName', e.target.value)}
             disabled={!isEditing}
-            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 transition-colors"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+        <div className="sm:col-span-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">Last Name</label>
           <input
             type="text"
             value={formData.lastName}
             onChange={(e) => handleInputChange(null, 'lastName', e.target.value)}
             disabled={!isEditing}
-            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 transition-colors"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+        <div className="sm:col-span-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">Username</label>
           <input
             type="text"
             value={formData.username}
             onChange={(e) => handleInputChange(null, 'username', e.target.value)}
             disabled={!isEditing}
-            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 transition-colors"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+        <div className="sm:col-span-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">Email</label>
           <input
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange(null, 'email', e.target.value)}
             disabled={!isEditing}
-            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+            className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 transition-colors"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+        <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">Bio</label>
         <textarea
           value={formData.bio}
           onChange={(e) => handleInputChange(null, 'bio', e.target.value)}
           disabled={!isEditing}
-          rows={4}
-          className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 resize-none"
+          rows={3}
+          className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50 resize-none transition-colors sm:rows-4"
           placeholder="Tell us about yourself..."
         />
       </div>
@@ -469,41 +469,41 @@ const Settings = () => {
           <div className="lg:col-span-3">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
               {/* Tab Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">
                   {tabs.find(tab => tab.id === activeTab)?.name}
                 </h2>
                 {activeTab === 'profile' && (
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-3">
                     {isEditing ? (
                       <>
                         <motion.button
                           onClick={handleCancel}
-                          className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm sm:text-base"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>Cancel</span>
                         </motion.button>
                         <motion.button
                           onClick={handleSave}
-                          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm sm:text-base"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          <Check className="w-4 h-4" />
+                          <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>Save</span>
                         </motion.button>
                       </>
                     ) : (
                       <motion.button
                         onClick={() => setIsEditing(true)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm sm:text-base w-full sm:w-auto"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>Edit Profile</span>
                       </motion.button>
                     )}

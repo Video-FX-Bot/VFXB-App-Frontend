@@ -78,7 +78,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] text-center px-4 bg-gradient-to-b from-black via-gray-900 to-gray-800 overflow-visible">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-black via-gray-900 to-gray-800 overflow-visible py-8">
       <style>{`
         .gradient-text {
           background: linear-gradient(90deg, #06b6d4, #8b5cf6);
@@ -88,13 +88,13 @@ export default function HomePage() {
           color: transparent;
         }
       `}</style>
-      <h1 className="text-4xl font-bold mt-8 mb-6 gradient-text">
+      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-4 sm:mt-8 mb-4 sm:mb-6 gradient-text">
         Start Your Project
       </h1>
 
       {/* Upload Box */}
       <div
-        className={`relative w-full max-w-2xl h-64 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center transition-all ${
+        className={`relative w-full max-w-2xl h-48 sm:h-56 lg:h-64 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center transition-all ${
           dragActive ? "bg-gray-800/50 border-pink-500" : ""
         }`}
         onDragEnter={handleDrag}
@@ -112,7 +112,7 @@ export default function HomePage() {
         />
         <label
           htmlFor="file-upload"
-          className="cursor-pointer w-full h-full flex flex-col items-center justify-center px-6"
+          className="cursor-pointer w-full h-full flex flex-col items-center justify-center px-4 sm:px-6"
         >
           {isUploading ? (
             <div className="w-full">
@@ -132,11 +132,11 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              <Upload className="w-12 h-12 mb-4" />
-              <p className="font-semibold text-gray-300">
+              <Upload className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 mb-3 sm:mb-4" />
+              <p className="font-semibold text-gray-300 text-sm sm:text-base">
                 Click to upload or drag and drop
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 MP4, MOV, AVI, MKV (MAX. 500MB)
               </p>
             </>
@@ -145,10 +145,10 @@ export default function HomePage() {
       </div>
 
       {/* Video Category Section */}
-      <h2 className="text-xl font-semibold mt-10 mb-4 text-center gradient-text">
+      <h2 className="text-lg sm:text-xl font-semibold mt-6 sm:mt-8 lg:mt-10 mb-3 sm:mb-4 text-center gradient-text">
         Video Category
       </h2>
-      <div className="grid grid-cols-3 gap-4 w-full max-w-3xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-3xl mx-auto">
         {[
           { label: "Dance", icon: "🎵" },
           { label: "Singing", icon: "🎤" },
@@ -163,24 +163,24 @@ export default function HomePage() {
           <button
             key={index}
             onClick={() => setSelectedCategory(item.label)}
-            className={`flex flex-col items-center justify-center p-6 rounded-xl transition-all 
+            className={`flex flex-col items-center justify-center p-3 sm:p-4 lg:p-6 rounded-xl transition-all 
             ${
               selectedCategory === item.label
                 ? "bg-blue-600 text-white"
                 : "bg-gray-800 text-gray-300 hover:bg-gray-700"
             }`}
           >
-            <div className="text-2xl mb-2">{item.icon}</div>
-            <span className="font-medium">{item.label}</span>
+            <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{item.icon}</div>
+            <span className="font-medium text-xs sm:text-sm lg:text-base">{item.label}</span>
           </button>
         ))}
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-10 mb-16">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10 mb-8 sm:mb-12 lg:mb-16">
         <button
           onClick={startEditing}
-          className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base ${
             !videoFile || !selectedCategory || isUploading
               ? "bg-gray-500 text-gray-300 cursor-not-allowed"
               : "bg-pink-600 text-white hover:bg-pink-700"
@@ -190,7 +190,7 @@ export default function HomePage() {
         </button>
         <button
           onClick={goToProjects}
-          className="px-6 py-3 rounded-xl font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700"
+          className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700 text-sm sm:text-base"
         >
           Go to Projects
         </button>
