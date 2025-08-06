@@ -110,18 +110,18 @@ const Settings = () => {
     <div className="space-y-4 sm:space-y-6">
       {/* Profile Picture */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-        <div className="relative flex-shrink-0">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-primary rounded-full flex items-center justify-center text-primary-foreground text-lg sm:text-2xl font-bold">
-            {formData.firstName[0]}{formData.lastName[0]}
-          </div>
-          <button className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-primary hover:bg-primary/90 text-primary-foreground p-1.5 sm:p-2 rounded-full transition-colors">
-            <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
-          </button>
-        </div>
+                 <div className="relative flex-shrink-0">
+           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-primary rounded-full flex items-center justify-center text-primary-foreground text-lg sm:text-2xl font-bold border-2 border-white">
+             {formData.firstName[0]}{formData.lastName[0]}
+           </div>
+           <button className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-purple-600 hover:bg-purple-700 text-white p-1.5 sm:p-2 rounded-full transition-colors">
+             <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+           </button>
+         </div>
         <div className="text-center sm:text-left">
-          <h3 className="text-lg sm:text-xl font-semibold text-foreground">{formData.firstName} {formData.lastName}</h3>
-          <p className="text-muted-foreground text-sm sm:text-base">@{formData.username}</p>
-          <button className="text-primary hover:text-primary/80 text-xs sm:text-sm mt-1 flex items-center justify-center sm:justify-start space-x-1">
+          <h3 className="text-lg sm:text-xl font-semibold text-white">{formData.firstName} {formData.lastName}</h3>
+          <p className="text-gray-400 text-sm sm:text-base">@{formData.username}</p>
+          <button className="text-purple-400 hover:text-purple-300 text-xs sm:text-sm mt-1 flex items-center justify-center sm:justify-start space-x-1">
             <Edit3 className="w-3 h-3" />
             <span>Change Photo</span>
           </button>
@@ -260,53 +260,55 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="bg-muted rounded-lg p-4">
-        <h4 className="font-medium text-foreground mb-3">Two-Factor Authentication</h4>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground text-sm">Add an extra layer of security to your account</p>
-            <p className="text-muted-foreground text-xs mt-1">Not enabled</p>
-          </div>
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Enable 2FA
-          </button>
-        </div>
-      </div>
+             <div className="bg-muted rounded-lg p-4">
+         <h4 className="font-medium text-white mb-3">Two-Factor Authentication</h4>
+         <div className="flex items-center justify-between">
+           <div>
+             <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
+             <p className="text-gray-400 text-xs mt-1">Not enabled</p>
+           </div>
+           <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+             Enable 2FA
+           </button>
+         </div>
+       </div>
     </div>
   );
 
-  const renderNotificationsTab = () => (
-    <div className="space-y-6">
-      {Object.entries({
-        email: { label: 'Email Notifications', desc: 'Receive notifications via email', icon: Mail },
-        push: { label: 'Push Notifications', desc: 'Receive push notifications in browser', icon: Smartphone },
-        marketing: { label: 'Marketing Emails', desc: 'Receive promotional and marketing emails', icon: Globe },
-        updates: { label: 'Product Updates', desc: 'Get notified about new features and updates', icon: Zap }
-      }).map(([key, config]) => {
-        const IconComponent = config.icon;
-        return (
-          <div key={key} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div className="flex items-center space-x-3">
-              <IconComponent className="w-5 h-5 text-primary" />
-              <div>
-                <h4 className="font-medium text-foreground">{config.label}</h4>
-                <p className="text-muted-foreground text-sm">{config.desc}</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.notifications[key]}
-                onChange={(e) => handleInputChange('notifications', key, e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-muted-foreground/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
-        );
-      })}
-    </div>
-  );
+     const renderNotificationsTab = () => (
+     <div className="space-y-6">
+       {Object.entries({
+         email: { label: 'Email Notifications', desc: 'Receive notifications via email', icon: Mail },
+         push: { label: 'Push Notifications', desc: 'Receive push notifications in browser', icon: Smartphone },
+         marketing: { label: 'Marketing Emails', desc: 'Receive promotional and marketing emails', icon: Globe },
+         updates: { label: 'Product Updates', desc: 'Get notified about new features and updates', icon: Zap }
+       }).map(([key, config]) => {
+         const IconComponent = config.icon;
+         return (
+           <div key={key} className="flex items-center justify-between p-4 bg-muted rounded-lg">
+             <div className="flex items-center space-x-3">
+               <IconComponent className="w-5 h-5 text-white" />
+               <div>
+                 <h4 className="font-medium text-white">{config.label}</h4>
+                 <p className="text-gray-400 text-sm">{config.desc}</p>
+               </div>
+             </div>
+             <label className="relative inline-flex items-center cursor-pointer">
+               <input
+                 type="checkbox"
+                 checked={formData.notifications[key]}
+                 onChange={(e) => handleInputChange('notifications', key, e.target.checked)}
+                 className="sr-only peer"
+               />
+               <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-purple-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 relative">
+                 <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${formData.notifications[key] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+               </div>
+             </label>
+           </div>
+         );
+       })}
+     </div>
+   );
 
   const renderPreferencesTab = () => (
     <div className="space-y-6">
@@ -318,10 +320,10 @@ const Settings = () => {
             onChange={(e) => handleInputChange('preferences', 'language', e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           >
-            <option value="en">English</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
+            <option value="en" className="text-black">English</option>
+            <option value="es" className="text-black">Spanish</option>
+            <option value="fr" className="text-black">French</option>
+            <option value="de" className="text-black">German</option>
           </select>
         </div>
         <div>
@@ -331,10 +333,10 @@ const Settings = () => {
             onChange={(e) => handleInputChange('preferences', 'timezone', e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           >
-            <option value="UTC-5">Eastern Time (UTC-5)</option>
-            <option value="UTC-6">Central Time (UTC-6)</option>
-            <option value="UTC-7">Mountain Time (UTC-7)</option>
-            <option value="UTC-8">Pacific Time (UTC-8)</option>
+            <option value="UTC-5" className="text-black">Eastern Time (UTC-5)</option>
+            <option value="UTC-6" className="text-black">Central Time (UTC-6)</option>
+            <option value="UTC-7" className="text-black">Mountain Time (UTC-7)</option>
+            <option value="UTC-8" className="text-black">Pacific Time (UTC-8)</option>
           </select>
         </div>
       </div>
@@ -347,8 +349,8 @@ const Settings = () => {
         }).map(([key, config]) => (
           <div key={key} className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <div>
-              <h4 className="font-medium text-foreground">{config.label}</h4>
-              <p className="text-muted-foreground text-sm">{config.desc}</p>
+              <h4 className="font-medium text-white">{config.label}</h4>
+              <p className="text-gray-400 text-sm">{config.desc}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -360,7 +362,9 @@ const Settings = () => {
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-muted-foreground/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-purple-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 relative">
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${formData.preferences[key] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </div>
             </label>
           </div>
         ))}
@@ -378,8 +382,8 @@ const Settings = () => {
               <span className="text-foreground">Videos</span>
               <span className="text-muted-foreground">2.4 GB / 10 GB</span>
             </div>
-            <div className="w-full bg-muted-foreground/20 rounded-full h-2">
-              <div className="bg-primary h-2 rounded-full" style={{ width: '24%' }}></div>
+            <div className="w-full bg-gray-600 rounded-full h-2">
+              <div className="bg-purple-600 h-2 rounded-full" style={{ width: '24%' }}></div>
             </div>
           </div>
           <div>
@@ -387,7 +391,7 @@ const Settings = () => {
               <span className="text-foreground">Projects</span>
               <span className="text-muted-foreground">1.8 GB / 10 GB</span>
             </div>
-            <div className="w-full bg-muted-foreground/20 rounded-full h-2">
+            <div className="w-full bg-gray-600 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full" style={{ width: '18%' }}></div>
             </div>
           </div>
@@ -396,16 +400,16 @@ const Settings = () => {
               <span className="text-foreground">Cache</span>
               <span className="text-muted-foreground">512 MB</span>
             </div>
-            <div className="w-full bg-muted-foreground/20 rounded-full h-2">
+            <div className="w-full bg-gray-600 rounded-full h-2">
               <div className="bg-green-600 h-2 rounded-full" style={{ width: '5%' }}></div>
             </div>
           </div>
         </div>
         <div className="flex space-x-3 mt-6">
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105">
             Upgrade Storage
           </button>
-          <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button className="bg-gray-700 hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105">
             Clear Cache
           </button>
         </div>
@@ -448,7 +452,7 @@ const Settings = () => {
                     <motion.button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-1 ${
                         activeTab === tab.id
                           ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -487,25 +491,25 @@ const Settings = () => {
                           <span>Cancel</span>
                         </motion.button>
                         <motion.button
-                          onClick={handleSave}
-                          className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm sm:text-base"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Check className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span>Save</span>
-                        </motion.button>
+                           onClick={handleSave}
+                           className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-0 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm sm:text-base"
+                           whileHover={{ scale: 1.02 }}
+                           whileTap={{ scale: 0.98 }}
+                         >
+                           <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                           <span>Save</span>
+                         </motion.button>
                       </>
                     ) : (
                       <motion.button
-                        onClick={() => setIsEditing(true)}
-                        className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm sm:text-base w-full sm:w-auto"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span>Edit Profile</span>
-                      </motion.button>
+                         onClick={() => setIsEditing(true)}
+                         className="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm sm:text-base w-full sm:w-auto"
+                         whileHover={{ scale: 1.02 }}
+                         whileTap={{ scale: 0.98 }}
+                       >
+                         <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                         <span>Edit Profile</span>
+                       </motion.button>
                     )}
                   </div>
                 )}

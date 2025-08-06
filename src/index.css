@@ -53,10 +53,17 @@
     color: #9ca3af !important;
   }
   
-  /* Override gray text on hover for sidebar navigation */
-  .dark .text-muted-foreground:hover {
+  /* Override gray text on hover for sidebar navigation only */
+  .dark aside nav a.text-muted-foreground:hover {
     color: hsl(var(--foreground)) !important;
   }
+  
+  /* Allow header icons to light up on hover */
+  .dark button.text-muted-foreground:hover {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+
 }
 
 @layer base {

@@ -229,7 +229,7 @@ const Templates = () => {
                   onClick={() => setSelectedCategory(category.id)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
                     selectedCategory === category.id
-                      ? 'border-primary bg-primary/20 text-primary'
+                      ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
                       : 'border-border bg-card text-muted-foreground hover:border-border hover:bg-muted'
                   }`}
                   whileHover={{ scale: 1.05 }}

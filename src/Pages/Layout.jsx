@@ -101,7 +101,7 @@ const Header = () => {
         {/* Theme Toggle Button */}
         <button 
           onClick={toggleTheme}
-          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         >
           {theme === 'light' ? (
@@ -111,35 +111,40 @@ const Header = () => {
           )}
         </button>
         
-        <button className="hover:text-foreground text-muted-foreground hidden sm:block">
+        <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground hidden sm:block">
           <History className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
-        <div className="relative flex items-center">
-          <button 
-            className="hover:text-foreground text-muted-foreground relative flex items-center justify-center"
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-          >
-            <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+        
+        <button 
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground relative flex items-center justify-center"
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+        >
+          <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
             {unreadCount > 0 && (
               <span style={{
                 position: "absolute",
-                top: -6,
-                right: -6,
+                top: 0,
+                right: 0,
                 background: "#EF4444",
                 color: "white",
                 borderRadius: "50%",
                 width: 18,
                 height: 18,
-                fontSize: 11,
+                fontSize: 13,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: "bold"
+                fontWeight: "bold",
+                lineHeight: 1,
+                textAlign: "center",
+                padding: 0,
+                margin: 0
               }}>
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
+          
           <div className="notifications-menu fixed bg-popover border border-border rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
             display: notificationsOpen ? "block" : "none",
             top: "56px",
@@ -225,10 +230,11 @@ const Header = () => {
               )}
             </div>
           </div>
-        </div>
+        
         <div className="w-px h-6 bg-border" />
+        
         <button 
-          className="hover:text-foreground text-muted-foreground"
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           onClick={() => navigate("/profile")}
         >
           <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />

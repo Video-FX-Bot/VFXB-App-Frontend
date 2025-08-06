@@ -509,23 +509,23 @@ const EffectsLibrary = ({
           <div className="flex items-center space-x-2 overflow-x-auto pt-2 pb-4">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 ${
                 selectedCategory === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
+                  : 'bg-card text-muted-foreground hover:bg-muted border border-border'
               }`}
             >
               All
-            </button>
+            </button> 
             
             {categories.map(category => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 ${
                   selectedCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
+                    : 'bg-card text-muted-foreground hover:bg-muted border border-border'
                 }`}
               >
                 {category}

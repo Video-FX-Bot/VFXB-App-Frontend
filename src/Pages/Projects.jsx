@@ -234,7 +234,7 @@ const Projects = () => {
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
                 My Projects
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -256,19 +256,19 @@ const Projects = () => {
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none"
               />
             </div>
             
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="px-4 py-2 border border-border rounded-lg bg-card text-muted-foreground focus:outline-none"
             >
-              <option value="all">All Projects</option>
-              <option value="recent">Recent</option>
-              <option value="favorites">Favorites</option>
-              <option value="completed">Completed</option>
+              <option value="all" className="text-black">All Projects</option>
+              <option value="recent" className="text-black">Recent</option>
+              <option value="favorites" className="text-black">Favorites</option>
+              <option value="completed" className="text-black">Completed</option>
             </select>
 
             <div className="flex items-center gap-2 border border-border rounded-lg p-1">

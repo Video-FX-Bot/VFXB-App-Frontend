@@ -105,14 +105,7 @@ export const useUI = () => {
     body.style.setProperty('--card', card);
     body.style.setProperty('--card-foreground', cardForeground);
     
-    // Add notification
-    addNotification({
-      id: `theme_${Date.now()}`,
-      type: 'info',
-      title: 'Theme Changed',
-      message: `Switched to ${newTheme} theme`,
-      duration: 2000,
-    });
+
   }, [theme, setTheme, addNotification]);
 
   // Toggle sidebar
