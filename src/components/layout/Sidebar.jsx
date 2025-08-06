@@ -271,10 +271,10 @@ const Sidebar = () => {
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center space-x-2 lg:space-x-3 px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 group justify-center lg:justify-start ${
+                className={`flex items-center space-x-2 lg:space-x-3 px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 group justify-center lg:justify-start focus:outline-none ${
                   item.active
                     ? "bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:!text-foreground hover:bg-white/10"
                 }`}
               >
                 <Icon className="w-5 h-5" />

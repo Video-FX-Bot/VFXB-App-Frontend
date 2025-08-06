@@ -27,31 +27,41 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 220 45% 8%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 220 45% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 220 45% 10%;
     --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary-foreground: 220 45% 8%;
+    --secondary: 220 45% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 220 45% 15%;
+    --muted-foreground: 215 20.2% 20%;
+    --accent: 220 45% 15%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 215 20.2% 35%;
+    --input: 220 45% 15%;
     --ring: 224.3 76.3% 94.1%;
+  }
+  
+  /* Force muted text to be gray in dark mode */
+  .dark .text-muted-foreground {
+    color: #9ca3af !important;
+  }
+  
+  /* Override gray text on hover for sidebar navigation */
+  .dark .text-muted-foreground:hover {
+    color: hsl(var(--foreground)) !important;
   }
 }
 
 @layer base {
   * {
-    border-color: #e5e7eb;
+    border-color: hsl(var(--border));
   }
   body {
     background-color: hsl(var(--background));
@@ -59,6 +69,22 @@
     font-family: 'Inter', sans-serif;
     margin: 0;
     min-height: 100vh;
+  }
+  
+  .dark body {
+    background: linear-gradient(135deg, hsl(220 45% 8%) 0%, hsl(220 45% 15%) 50%, hsl(220 45% 12%) 100%);
+  }
+  
+  .dark .bg-background {
+    background: linear-gradient(135deg, hsl(220 45% 10%) 0%, 	hsl(216, 32%, 17%) 50%, hsl(220 45% 12%) 100%);
+  }
+  
+  .dark .bg-card {
+    background: linear-gradient(135deg, hsl(220 45% 10%) 0%, hsl(220 45% 12%) 50%, hsl(220 45% 14%) 100%);
+  }
+  
+  .dark .bg-muted {
+    background: linear-gradient(135deg, hsl(220 45% 15%) 0%, hsl(220 45% 22%) 50%, hsl(220 45% 19%) 100%);
   }
 }
 

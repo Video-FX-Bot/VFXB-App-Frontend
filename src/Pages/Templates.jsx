@@ -177,14 +177,14 @@ const Templates = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
             Video Templates
           </h1>
-          <p className="text-gray-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Professional templates to jumpstart your video creation
           </p>
         </div>
@@ -194,13 +194,13 @@ const Templates = () => {
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search templates..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -209,13 +209,13 @@ const Templates = () => {
               <select
                 value={selectedFilter}
                 onChange={(e) => setSelectedFilter(e.target.value)}
-                className="bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 appearance-none pr-10"
+                className="bg-card border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none pr-10"
               >
                 {filters.map(filter => (
                   <option key={filter.id} value={filter.id}>{filter.name}</option>
                 ))}
               </select>
-              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 pointer-events-none" />
             </div>
           </div>
 
@@ -229,15 +229,15 @@ const Templates = () => {
                   onClick={() => setSelectedCategory(category.id)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
                     selectedCategory === category.id
-                      ? 'border-purple-500 bg-purple-500/20 text-purple-300'
-                      : 'border-gray-700 bg-gray-800/30 text-gray-300 hover:border-gray-600 hover:bg-gray-800/50'
+                      ? 'border-primary bg-primary/20 text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:border-border hover:bg-muted'
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <IconComponent className="w-4 h-4" />
                   <span className="font-medium">{category.name}</span>
-                  <span className="text-xs bg-gray-700 px-2 py-1 rounded-full">{category.count}</span>
+                  <span className="text-xs bg-muted px-2 py-1 rounded-full">{category.count}</span>
                 </motion.button>
               );
             })}
@@ -249,7 +249,7 @@ const Templates = () => {
           {filteredTemplates.map((template, index) => (
             <motion.div
               key={template.id}
-              className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 group"
+              className="bg-card backdrop-blur-sm border border-border rounded-xl overflow-hidden hover:border-border transition-all duration-300 group"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -268,7 +268,7 @@ const Templates = () => {
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <motion.button
                     onClick={() => useTemplate(template.id)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 shadow-lg"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 shadow-lg text-white"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -287,14 +287,14 @@ const Templates = () => {
                       </span>
                     )}
                   </div>
-                  <span className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium">
+                  <span className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium text-white">
                     {template.duration}
                   </span>
                 </div>
 
                 {/* Bottom stats */}
                 <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                  <div className="flex items-center space-x-3 text-sm">
+                  <div className="flex items-center space-x-3 text-sm text-white">
                     <div className="flex items-center space-x-1">
                       <Eye className="w-4 h-4" />
                       <span>{template.views}</span>
@@ -304,7 +304,7 @@ const Templates = () => {
                       <span>{template.likes}</span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded">
+                  <div className="flex items-center space-x-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-white">
                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
                     <span className="text-sm font-medium">{template.rating}</span>
                   </div>
@@ -313,15 +313,15 @@ const Templates = () => {
 
               {/* Content */}
               <div className="p-5">
-                <h3 className="font-bold text-lg text-white mb-2 line-clamp-1">{template.title}</h3>
-                <p className="text-gray-400 text-sm mb-3 line-clamp-2">{template.description}</p>
+                <h3 className="font-bold text-lg text-foreground mb-2 line-clamp-1">{template.title}</h3>
+                <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{template.description}</p>
                 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   {template.tags.slice(0, 3).map(tag => (
                     <span
                       key={tag}
-                      className="bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs font-medium"
+                      className="bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-medium"
                     >
                       #{tag}
                     </span>
@@ -340,7 +340,7 @@ const Templates = () => {
                     <span>Use</span>
                   </motion.button>
                   <motion.button
-                    className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-all duration-200"
+                    className="bg-muted hover:bg-muted/80 text-foreground p-2 rounded-lg transition-all duration-200"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -356,7 +356,7 @@ const Templates = () => {
         {filteredTemplates.length > 0 && (
           <div className="text-center mt-12">
             <motion.button
-              className="bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 hover:border-gray-600 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200"
+              className="bg-card hover:bg-muted border border-border hover:border-border text-foreground px-8 py-3 rounded-lg font-medium transition-all duration-200"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -368,9 +368,9 @@ const Templates = () => {
         {/* No Results */}
         {filteredTemplates.length === 0 && (
           <div className="text-center py-16">
-            <Video className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">No templates found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+            <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-muted-foreground mb-2">No templates found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
           </div>
         )}
       </div>

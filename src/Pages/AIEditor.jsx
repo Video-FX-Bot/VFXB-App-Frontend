@@ -232,7 +232,7 @@ const AIEditor = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Main Editor Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Video Preview Section (2/3 width) */}
@@ -261,12 +261,12 @@ const AIEditor = () => {
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center space-y-4">
-                  <div className="bg-gray-800 w-24 h-24 rounded-full flex items-center justify-center mx-auto">
-                    <Play className="w-12 h-12 text-gray-400" />
+                  <div className="bg-muted w-24 h-24 rounded-full flex items-center justify-center mx-auto">
+                    <Play className="w-12 h-12 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-300 mb-2">No Video Loaded</h3>
-                    <p className="text-gray-500">Upload a video from the Dashboard to start editing</p>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Video Loaded</h3>
+                    <p className="text-muted-foreground">Upload a video from the Dashboard to start editing</p>
                   </div>
                 </div>
               </div>
@@ -274,7 +274,7 @@ const AIEditor = () => {
           </div>
           
           {/* Enhanced Timeline */}
-          <div className="bg-gray-800 border-t border-gray-700 p-4">
+          <div className="bg-card border-t border-border p-4">
             <EnhancedTimeline
               tracks={tracks}
               currentTime={currentTime}
@@ -310,15 +310,15 @@ const AIEditor = () => {
         </div>
         
         {/* Chat Section (1/3 width) */}
-        <div className="bg-gray-800 border-l border-gray-700 p-4" style={{ width: '33.333%' }}>
+        <div className="bg-card border-l border-border p-4" style={{ width: '33.333%' }}>
           <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div className="pb-4 border-b border-gray-700 mb-4">
+            <div className="pb-4 border-b border-border mb-4">
               <h3 className="text-lg font-semibold flex items-center">
-                <Sparkles className="w-5 h-5 mr-2 text-blue-400" />
+                <Sparkles className="w-5 h-5 mr-2 text-primary" />
                 AI Assistant
               </h3>
-              <p className="text-sm text-gray-400">Ask me anything about video editing</p>
+              <p className="text-sm text-muted-foreground">Ask me anything about video editing</p>
             </div>
             
             {/* Chat Messages */}
@@ -327,8 +327,8 @@ const AIEditor = () => {
                 <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] p-3 rounded-lg ${
                     message.type === 'user' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-700 text-gray-100'
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground'
                   }`}>
                     <p className="text-sm">{message.content}</p>
                   </div>
@@ -337,11 +337,11 @@ const AIEditor = () => {
               
               {isChatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-700 p-3 rounded-lg">
+                  <div className="bg-muted p-3 rounded-lg">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -349,7 +349,7 @@ const AIEditor = () => {
             </div>
             
             {/* Chat Input */}
-            <div className="pt-4 border-t border-gray-700 mt-4">
+            <div className="pt-4 border-t border-border mt-4">
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -357,12 +357,12 @@ const AIEditor = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Ask me to edit your video..."
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed p-2 rounded-lg transition-colors"
+                  className="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed p-2 rounded-lg transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -373,7 +373,7 @@ const AIEditor = () => {
       </div>
       
       {/* Bottom Panel - Enhanced Effects Library */}
-      <div className="bg-gray-800 border-t border-gray-700 p-6">
+      <div className="bg-card border-t border-border p-6">
         <EffectsLibrary
           onApplyEffect={(effect, params) => {
             console.log('Applying effect:', effect, 'with params:', params);
@@ -384,13 +384,13 @@ const AIEditor = () => {
         />
         
         {/* Action Buttons */}
-        <div className="flex justify-between items-center pt-6 border-t border-gray-700">
+        <div className="flex justify-between items-center pt-6 border-t border-border">
           <div className="flex space-x-3">
-            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
               <RotateCcw className="w-4 h-4 mr-2" />
               Undo
             </button>
-            <button className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </button>
@@ -402,21 +402,21 @@ const AIEditor = () => {
                value={projectName}
                onChange={(e) => setProjectName(e.target.value)}
                placeholder="Enter project name..."
-               className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+               className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
              />
              <button 
                onClick={saveProject}
                disabled={isSaving || !uploadedVideo}
                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center ${
                  isSaving || !uploadedVideo
-                   ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                   ? 'bg-muted text-muted-foreground cursor-not-allowed'
                    : 'bg-green-500 hover:bg-green-600 text-white'
                }`}
              >
                <Save className="w-4 h-4 mr-2" />
                {isSaving ? 'Saving...' : 'Save Project'}
              </button>
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+            <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
               <Download className="w-4 h-4 mr-2" />
               Export Video
             </button>
