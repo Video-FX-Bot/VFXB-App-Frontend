@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { Bell, User as UserIcon, History } from "lucide-react";
+import { Bell, User as UserIcon, History, Sun, Moon } from "lucide-react";
 import { useAuth } from "../useAuth";
 import { useUI } from "../hooks/useUI";
 import Sidebar from "../components/layout/Sidebar";
@@ -29,6 +29,7 @@ const createPageUrl = (path) => (path === "Home" ? "/" : `/${path}`);
 const Header = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useUI();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([
     {
@@ -81,7 +82,14 @@ const Header = () => {
   }, [notificationsOpen]);
   
   return (
-    <header className="h-14 sm:h-16 bg-gray-900 text-gray-300 flex items-center justify-end px-4 sm:px-6 border-b border-gray-700">
+    <header 
+      className="h-14 sm:h-16 bg-card text-foreground flex items-center justify-end px-4 sm:px-6 border-b border-border"
+      style={{
+        background: `hsl(var(--card))`,
+        color: `hsl(var(--foreground))`,
+        borderBottom: `1px solid hsl(var(--border))`
+      }}
+    >
       <div className="flex items-center gap-2 sm:gap-4">
         <Button
           className="bg-gradient-to-r from-[#06b6d4] to-[#8b5cf6] text-white font-semibold border-0 shadow-none hover:from-[#22d3ee] hover:to-[#a78bfa] text-xs sm:text-sm px-2 sm:px-3 py-1"
@@ -89,12 +97,26 @@ const Header = () => {
           <span className="hidden sm:inline">Upgrade</span>
           <span className="sm:hidden">+</span>
         </Button>
-        <button className="hover:text-white hidden sm:block">
+        
+        {/* Theme Toggle Button */}
+        <button 
+          onClick={toggleTheme}
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+          {theme === 'light' ? (
+            <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+          ) : (
+            <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
+          )}
+        </button>
+        
+        <button className="hover:text-foreground text-muted-foreground hidden sm:block">
           <History className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
         <div className="relative flex items-center">
           <button 
-            className="hover:text-white relative flex items-center justify-center"
+            className="hover:text-foreground text-muted-foreground relative flex items-center justify-center"
             onClick={() => setNotificationsOpen(!notificationsOpen)}
           >
             <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -118,14 +140,14 @@ const Header = () => {
               </span>
             )}
           </button>
-          <div className="notifications-menu fixed bg-gray-800 border border-gray-700 rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
+          <div className="notifications-menu fixed bg-popover border border-border rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
             display: notificationsOpen ? "block" : "none",
             top: "56px",
             right: "16px"
           }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #374151" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid hsl(var(--border))" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontWeight: 600, fontSize: 16 }}>Notifications</h3>
+                <h3 style={{ fontWeight: 600, fontSize: 16, color: "hsl(var(--foreground))" }}>Notifications</h3>
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
@@ -145,7 +167,7 @@ const Header = () => {
             </div>
             <div>
               {notifications.length === 0 ? (
-                <div style={{ padding: "24px", textAlign: "center", color: "#9CA3AF" }}>
+                <div style={{ padding: "24px", textAlign: "center", color: "hsl(var(--muted-foreground))" }}>
                   No notifications
                 </div>
               ) : (
@@ -155,7 +177,7 @@ const Header = () => {
                     onClick={() => handleNotificationClick(notification.id)}
                     style={{
                       padding: "16px 20px",
-                      borderBottom: "1px solid #374151",
+                      borderBottom: "1px solid hsl(var(--border))",
                       cursor: "pointer",
                       background: notification.read ? "transparent" : "rgba(139, 92, 246, 0.1)",
                       transition: "background 0.15s ease-in-out"
@@ -168,13 +190,13 @@ const Header = () => {
                           fontWeight: notification.read ? 400 : 600,
                           fontSize: 15,
                           marginBottom: 6,
-                          color: notification.read ? "#9CA3AF" : "white"
+                          color: notification.read ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))"
                         }}>
                           {notification.title}
                         </div>
                         <div style={{ 
                           fontSize: 13,
-                          color: "#9CA3AF",
+                          color: "hsl(var(--muted-foreground))",
                           lineHeight: 1.5
                         }}>
                           {notification.message}
@@ -193,7 +215,7 @@ const Header = () => {
                     </div>
                     <div style={{ 
                       fontSize: 12,
-                      color: "#6B7280",
+                      color: "hsl(var(--muted-foreground))",
                       marginTop: 6
                     }}>
                       {notification.time}
@@ -204,9 +226,9 @@ const Header = () => {
             </div>
           </div>
         </div>
-        <div className="w-px h-6 bg-gray-700" />
+        <div className="w-px h-6 bg-border" />
         <button 
-          className="hover:text-white"
+          className="hover:text-foreground text-muted-foreground"
           onClick={() => navigate("/profile")}
         >
           <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -219,17 +241,21 @@ const Header = () => {
 export default function Layout({ children }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useUI();
 
   return (
     <>
       <style>{`
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          background: linear-gradient(-45deg, hsl(0 0% 5%), hsl(0 0% 15%), hsl(0 0% 5%), hsl(0 0% 15%));
-          background-size: 400% 400%;
-          color: #E0E0E0;
+          background: hsl(var(--background)) !important;
+          color: hsl(var(--foreground)) !important;
+          transition: background-color 0.3s ease, color 0.3s ease;
         }
-        .pink-glow { color: #F472B6; text-shadow: 0 0 8px #F472B6, 0 0 16px #F472B6; }
+        .pink-glow { 
+          color: #F472B6; 
+          text-shadow: 0 0 8px #F472B6, 0 0 16px #F472B6; 
+        }
         .gradient-text {
           background: linear-gradient(90deg, #06b6d4, #8b5cf6);
           -webkit-background-clip: text;
@@ -240,12 +266,27 @@ export default function Layout({ children }) {
         .notification-item:hover {
           background: rgba(139, 92, 246, 0.05) !important;
         }
+        .dark .notification-item:hover {
+          background: rgba(139, 92, 246, 0.1) !important;
+        }
       `}</style>
-      <div className="h-screen flex text-white overflow-hidden">
+      <div 
+        className="h-screen flex text-foreground bg-background overflow-hidden"
+        style={{
+          background: `hsl(var(--background))`,
+          color: `hsl(var(--foreground))`
+        }}
+      >
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
+          <main 
+            className="flex-1 p-4 sm:p-6 overflow-y-auto bg-background"
+            style={{
+              background: `hsl(var(--background))`,
+              color: `hsl(var(--foreground))`
+            }}
+          >
             <div className="w-full max-w-7xl mx-auto">{children}</div>
           </main>
         </div>

@@ -125,14 +125,14 @@ const NewDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-2">
             Welcome to VFXB Studio
           </h1>
-          <p className="text-gray-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Create stunning videos with AI-powered editing tools
           </p>
         </div>
@@ -140,13 +140,13 @@ const NewDashboard = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <motion.div 
-            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6"
+            className="bg-card backdrop-blur-sm border border-border rounded-xl p-6"
             whileHover={{ scale: 1.02 }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Projects</p>
-                <p className="text-2xl font-bold text-white">24</p>
+                <p className="text-muted-foreground text-sm">Total Projects</p>
+                <p className="text-2xl font-bold text-foreground">24</p>
               </div>
               <div className="bg-blue-500/20 p-3 rounded-lg">
                 <Video className="w-6 h-6 text-blue-400" />
@@ -155,13 +155,13 @@ const NewDashboard = () => {
           </motion.div>
 
           <motion.div 
-            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6"
+            className="bg-card backdrop-blur-sm border border-border rounded-xl p-6"
             whileHover={{ scale: 1.02 }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Hours Saved</p>
-                <p className="text-2xl font-bold text-white">156</p>
+                <p className="text-muted-foreground text-sm">Hours Saved</p>
+                <p className="text-2xl font-bold text-foreground">156</p>
               </div>
               <div className="bg-green-500/20 p-3 rounded-lg">
                 <Clock className="w-6 h-6 text-green-400" />
@@ -170,13 +170,13 @@ const NewDashboard = () => {
           </motion.div>
 
           <motion.div 
-            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6"
+            className="bg-card backdrop-blur-sm border border-border rounded-xl p-6"
             whileHover={{ scale: 1.02 }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">AI Enhancements</p>
-                <p className="text-2xl font-bold text-white">89</p>
+                <p className="text-muted-foreground text-sm">AI Enhancements</p>
+                <p className="text-2xl font-bold text-foreground">89</p>
               </div>
               <div className="bg-purple-500/20 p-3 rounded-lg">
                 <Zap className="w-6 h-6 text-purple-400" />
@@ -185,13 +185,13 @@ const NewDashboard = () => {
           </motion.div>
 
           <motion.div 
-            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6"
+            className="bg-card backdrop-blur-sm border border-border rounded-xl p-6"
             whileHover={{ scale: 1.02 }}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Export Quality</p>
-                <p className="text-2xl font-bold text-white">4K</p>
+                <p className="text-muted-foreground text-sm">Export Quality</p>
+                <p className="text-2xl font-bold text-foreground">4K</p>
               </div>
               <div className="bg-orange-500/20 p-3 rounded-lg">
                 <Star className="w-6 h-6 text-orange-400" />
@@ -209,7 +209,7 @@ const NewDashboard = () => {
               className={`lg:col-span-2 relative border-2 border-dashed rounded-xl transition-all duration-300 ${
                 dragActive 
                   ? 'border-blue-400 bg-blue-500/10' 
-                  : 'border-gray-600 bg-gray-800/30 hover:border-gray-500 hover:bg-gray-800/50'
+                  : 'border-border bg-muted/30 hover:border-border hover:bg-muted/50'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -231,10 +231,10 @@ const NewDashboard = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold mb-2">Upload Your Videos</h3>
-                      <p className="text-gray-400 mb-4">
+                      <p className="text-muted-foreground mb-4">
                         Drag and drop your video files here, or click to browse
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Supports MP4, MOV, AVI, WebM • Max 500MB per file
                       </p>
                     </div>
@@ -247,18 +247,18 @@ const NewDashboard = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">Uploading Video...</h3>
-                    <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
+                    <div className="w-full bg-muted rounded-full h-3 mb-4">
                       <div 
                         className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
                     </div>
-                    <p className="text-gray-400">{Math.round(uploadProgress)}% complete</p>
+                    <p className="text-muted-foreground">{Math.round(uploadProgress)}% complete</p>
                   </div>
                 </div>
               ) : (
                 <div className="p-4">
-                  <div className="bg-gray-900 rounded-lg overflow-hidden mb-4">
+                  <div className="bg-card rounded-lg overflow-hidden mb-4">
                     <video 
                       src={uploadedVideo.url} 
                       className="w-full h-80 object-cover"
@@ -269,8 +269,8 @@ const NewDashboard = () => {
                   </div>
                   <div className="text-center space-y-2">
                     <h3 className="text-lg font-semibold text-green-400">✓ Upload Complete</h3>
-                    <p className="text-gray-400 text-sm">{uploadedVideo.name}</p>
-                    <p className="text-gray-500 text-xs">{(uploadedVideo.size / (1024 * 1024)).toFixed(1)} MB</p>
+                    <p className="text-muted-foreground text-sm">{uploadedVideo.name}</p>
+                    <p className="text-muted-foreground text-xs">{(uploadedVideo.size / (1024 * 1024)).toFixed(1)} MB</p>
                   </div>
                 </div>
               )}
@@ -289,7 +289,7 @@ const NewDashboard = () => {
                       className={`flex items-center p-4 rounded-lg border transition-all duration-200 ${
                         selectedCategory === category.id
                           ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
+                          : 'border-border bg-card/30 hover:border-border hover:bg-card/50'
                       }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -312,7 +312,7 @@ const NewDashboard = () => {
                 className={`w-full font-semibold py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
                   uploadComplete && uploadedVideo
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white cursor-pointer'
-                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
                 }`}
                 whileHover={uploadComplete && uploadedVideo ? { scale: 1.02 } : {}}
                 whileTap={uploadComplete && uploadedVideo ? { scale: 0.98 } : {}}
@@ -326,13 +326,13 @@ const NewDashboard = () => {
 
         {/* Recent Projects */}
         <motion.div
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6"
+          className="bg-card backdrop-blur-sm border border-border rounded-xl p-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-foreground flex items-center space-x-2">
               <Clock className="w-5 h-5 text-purple-400" />
               <span>Recent Projects</span>
             </h2>
@@ -352,7 +352,7 @@ const NewDashboard = () => {
             ].map((project) => (
               <motion.div
                 key={project.id}
-                className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border border-gray-600/50 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-purple-500/10"
+                className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-purple-500/10"
                 whileHover={{ scale: 1.02, y: -5 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -391,10 +391,10 @@ const NewDashboard = () => {
                 
                 {/* Project Info */}
                 <div className="p-4">
-                  <h3 className="font-semibold text-white mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
+                  <h3 className="font-semibold text-foreground mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
                     {project.title}
                   </h3>
-                  <p className="text-gray-400 text-sm mb-3 flex items-center space-x-1">
+                  <p className="text-muted-foreground text-sm mb-3 flex items-center space-x-1">
                     <Clock className="w-3 h-3" />
                     <span>Last edited {project.lastEdited}</span>
                   </p>
@@ -405,7 +405,7 @@ const NewDashboard = () => {
                        <Edit className="w-3 h-3" />
                        <span>Continue Editing</span>
                      </button>
-                     <button className="text-gray-400 hover:text-white transition-colors p-1">
+                     <button className="text-muted-foreground hover:text-foreground transition-colors p-1">
                        <MoreHorizontal className="w-4 h-4" />
                      </button>
                    </div>
