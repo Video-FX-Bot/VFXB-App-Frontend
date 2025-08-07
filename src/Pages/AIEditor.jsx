@@ -234,11 +234,11 @@ const AIEditor = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Main Editor Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4">
         {/* Video Preview Section (2/3 width) */}
         <div className="flex-1 flex flex-col" style={{ width: '66.666%' }}>
           {/* Enhanced Video Player */}
-          <div className="flex-1 bg-black relative p-4">
+          <div className="flex-1 bg-black relative p-4 rounded-lg shadow-elevation-2">
             {uploadedVideo ? (
               <EnhancedVideoPlayer
                 ref={setVideoRef}
@@ -261,11 +261,11 @@ const AIEditor = () => {
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center space-y-4">
-                  <div className="bg-muted w-24 h-24 rounded-full flex items-center justify-center mx-auto">
-                    <Play className="w-12 h-12 text-muted-foreground" />
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-elevation-2">
+                    <Play className="w-12 h-12 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No Video Loaded</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-2 text-white">No Video Loaded</h3>
                     <p className="text-muted-foreground">Upload a video from the Dashboard to start editing</p>
                   </div>
                 </div>
@@ -274,46 +274,48 @@ const AIEditor = () => {
           </div>
           
           {/* Enhanced Timeline */}
-          <div className="bg-card border-t border-border p-4">
-            <EnhancedTimeline
-              tracks={tracks}
-              currentTime={currentTime}
-              duration={duration || 30}
-              zoom={timelineZoom}
-              isPlaying={isPlaying}
-              onTimeChange={(time) => {
-                setCurrentTime(time);
-                if (videoRef && videoRef.current) {
-                  videoRef.current.currentTime = time;
-                }
-              }}
-              onZoomChange={setTimelineZoom}
-              onTracksChange={setTracks}
-              onPlay={() => {
-                setIsPlaying(true);
-                if (videoRef && videoRef.current) {
-                  videoRef.current.play();
-                }
-              }}
-              onPause={() => {
-                setIsPlaying(false);
-                if (videoRef && videoRef.current) {
-                  videoRef.current.pause();
-                }
-              }}
-              enableMagneticTimeline={true}
-              enableKeyframes={true}
-              enableMultiSelect={true}
-              className="h-64"
-            />
+          <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg mt-4 overflow-hidden">
+            <div className="overflow-y-auto max-h-48">
+              <EnhancedTimeline
+                tracks={tracks}
+                currentTime={currentTime}
+                duration={duration || 30}
+                zoom={timelineZoom}
+                isPlaying={isPlaying}
+                onTimeChange={(time) => {
+                  setCurrentTime(time);
+                  if (videoRef && videoRef.current) {
+                    videoRef.current.currentTime = time;
+                  }
+                }}
+                onZoomChange={setTimelineZoom}
+                onTracksChange={setTracks}
+                onPlay={() => {
+                  setIsPlaying(true);
+                  if (videoRef && videoRef.current) {
+                    videoRef.current.play();
+                  }
+                }}
+                onPause={() => {
+                  setIsPlaying(false);
+                  if (videoRef && videoRef.current) {
+                    videoRef.current.pause();
+                  }
+                }}
+                enableMagneticTimeline={true}
+                enableKeyframes={true}
+                enableMultiSelect={true}
+                className="h-48"
+              />
+            </div>
           </div>
         </div>
         
         {/* Chat Section (1/3 width) */}
-        <div className="bg-card border-l border-border p-4" style={{ width: '33.333%' }}>
+        <div className="bg-card border-2 border-border p-4 shadow-elevation-2 rounded-lg" style={{ width: '33.333%' }}>
           <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div className="pb-4 border-b border-border mb-4">
+            <div className="pb-4 border-b-2 border-border mb-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <Sparkles className="w-5 h-5 mr-2 text-primary" />
                 AI Assistant
@@ -325,10 +327,10 @@ const AIEditor = () => {
             <div className="flex-1 overflow-y-auto space-y-4">
               {chatMessages.map((message, index) => (
                 <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-lg ${
+                  <div className={`max-w-[80%] p-3 rounded-lg shadow-elevation-1 ${
                     message.type === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-elevation-2' 
+                      : 'bg-muted text-muted-foreground border-2 border-border'
                   }`}>
                     <p className="text-sm">{message.content}</p>
                   </div>
@@ -337,7 +339,7 @@ const AIEditor = () => {
               
               {isChatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted p-3 rounded-lg">
+                  <div className="bg-muted p-3 rounded-lg border-2 border-border shadow-elevation-1">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -349,7 +351,7 @@ const AIEditor = () => {
             </div>
             
             {/* Chat Input */}
-            <div className="pt-4 border-t border-border mt-4">
+            <div className="pt-4 border-t-2 border-border mt-4">
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -357,14 +359,14 @@ const AIEditor = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Ask me to edit your video..."
-                  className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                  className="flex-1 bg-card border-2 border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed p-2 rounded-lg transition-colors"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-2 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4 text-white" />
                 </button>
               </div>
             </div>
@@ -373,7 +375,7 @@ const AIEditor = () => {
       </div>
       
       {/* Bottom Panel - Enhanced Effects Library */}
-      <div className="bg-card border-t border-border p-6">
+      <div className="bg-card border-2 border-border shadow-elevation-2 rounded-lg mx-4 mb-4">
         <EffectsLibrary
           onApplyEffect={(effect, params) => {
             console.log('Applying effect:', effect, 'with params:', params);
@@ -383,40 +385,42 @@ const AIEditor = () => {
           className="mb-6"
         />
         
-        {/* Action Buttons */}
-        <div className="flex justify-between items-center pt-6 border-t border-border">
+        {/* Action Buttons - Original Layout */}
+        <div className="flex justify-between items-center p-4 border-t-2 border-border px-6">
+          {/* Left Side - Utility Buttons */}
           <div className="flex space-x-3">
-            <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
               <RotateCcw className="w-4 h-4 mr-2" />
               Undo
             </button>
-            <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm transition-colors flex items-center">
+            <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </button>
           </div>
           
+          {/* Right Side - Input and Action Buttons */}
           <div className="flex items-center space-x-3">
-             <input
-               type="text"
-               value={projectName}
-               onChange={(e) => setProjectName(e.target.value)}
-               placeholder="Enter project name..."
-               className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
-             />
-             <button 
-               onClick={saveProject}
-               disabled={isSaving || !uploadedVideo}
-               className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                 isSaving || !uploadedVideo
-                   ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                   : 'bg-green-500 hover:bg-green-600 text-white'
-               }`}
-             >
-               <Save className="w-4 h-4 mr-2" />
-               {isSaving ? 'Saving...' : 'Save Project'}
-             </button>
-            <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Enter project name..."
+              className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-elevation-1 transition-all duration-200 w-48"
+            />
+            <button 
+              onClick={saveProject}
+              disabled={isSaving || !uploadedVideo}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 ${
+                isSaving || !uploadedVideo
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
+                  : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500'
+              }`}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Project'}
+            </button>
+            <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-blue-500">
               <Download className="w-4 h-4 mr-2" />
               Export Video
             </button>

@@ -70,6 +70,23 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          hover: "hsl(var(--surface-hover))",
+          active: "hsl(var(--surface-active))",
+        },
+        success: {
+          light: "hsl(var(--success-light))",
+          bg: "hsl(var(--success-bg))",
+        },
+        warning: {
+          light: "hsl(var(--warning-light))",
+          bg: "hsl(var(--warning-bg))",
+        },
+        info: {
+          light: "hsl(var(--info-light))",
+          bg: "hsl(var(--info-bg))",
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -89,6 +106,12 @@ export default {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+      },
+      boxShadow: {
+        'elevation-1': 'var(--elevation-1)',
+        'elevation-2': 'var(--elevation-2)',
+        'elevation-3': 'var(--elevation-3)',
+        'elevation-4': 'var(--elevation-4)',
       },
     },
   },

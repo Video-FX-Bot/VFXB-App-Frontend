@@ -212,7 +212,7 @@ const Templates = () => {
                 className="bg-card border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none pr-10"
               >
                 {filters.map(filter => (
-                  <option key={filter.id} value={filter.id}>{filter.name}</option>
+                  <option key={filter.id} value={filter.id} className="text-black">{filter.name}</option>
                 ))}
               </select>
               <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 pointer-events-none" />

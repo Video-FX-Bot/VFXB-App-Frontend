@@ -241,7 +241,10 @@ const Projects = () => {
                 Manage and organize your video projects
               </p>
             </div>
-            <Button onClick={handleCreateProject} className="flex items-center gap-2">
+            <Button 
+              onClick={handleCreateProject} 
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+            >
               <Plus className="w-4 h-4" />
               New Project
             </Button>
@@ -302,7 +305,7 @@ const Projects = () => {
       <div className="p-6">
         {filteredProjects.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+            <div className="w-24 h-24 mx-auto mb-4 bg-card rounded-full flex items-center justify-center">
               <FolderOpen className="w-12 h-12 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
@@ -315,7 +318,10 @@ const Projects = () => {
               }
             </p>
             {(!searchTerm && filterBy === 'all') && (
-              <Button onClick={handleCreateProject}>
+              <Button 
+                onClick={handleCreateProject}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Project
               </Button>

@@ -145,10 +145,12 @@ const Header = () => {
             )}
           </button>
           
-          <div className="notifications-menu fixed bg-popover border border-border rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
+          <div className="notifications-menu fixed border border-border rounded shadow-lg z-50 w-[280px] sm:w-[380px] max-h-[400px] sm:max-h-[500px] overflow-y-auto" style={{ 
             display: notificationsOpen ? "block" : "none",
             top: "56px",
-            right: "16px"
+            right: "16px",
+            background: "hsl(var(--card))",
+            backdropFilter: "blur(10px)"
           }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid hsl(var(--border))" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -191,19 +193,23 @@ const Header = () => {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ 
-                          fontWeight: notification.read ? 400 : 600,
-                          fontSize: 15,
-                          marginBottom: 6,
-                          color: notification.read ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))"
-                        }}>
+                        <div 
+                          className={`notification-title ${notification.read ? 'read' : ''}`}
+                          style={{ 
+                            fontWeight: notification.read ? 400 : 600,
+                            fontSize: 15,
+                            marginBottom: 6
+                          }}
+                        >
                           {notification.title}
                         </div>
-                        <div style={{ 
-                          fontSize: 13,
-                          color: "hsl(var(--muted-foreground))",
-                          lineHeight: 1.5
-                        }}>
+                        <div 
+                          className="notification-description"
+                          style={{ 
+                            fontSize: 13,
+                            lineHeight: 1.5
+                          }}
+                        >
                           {notification.message}
                         </div>
                       </div>
@@ -218,11 +224,11 @@ const Header = () => {
                         }} />
                       )}
                     </div>
-                    <div style={{ 
-                      fontSize: 12,
-                      color: "hsl(var(--muted-foreground))",
-                      marginTop: 6
-                    }}>
+                      <div style={{ 
+                       fontSize: 12,
+                       color: "#9CA3AF",
+                       marginTop: 6
+                     }}>
                       {notification.time}
                     </div>
                   </div>
@@ -274,6 +280,26 @@ export default function Layout({ children }) {
         }
         .dark .notification-item:hover {
           background: rgba(139, 92, 246, 0.1) !important;
+        }
+        /* Dark theme notification text colors */
+        .dark .notification-title {
+          color:rgb(229, 235, 229) !important;
+        }
+        .dark .notification-title.read {
+          color: #6B7280 !important;
+        }
+        .dark .notification-description {
+          color: #6B7280 !important;
+        }
+        /* Light theme notification text colors */
+        .notification-title {
+          color: #374151 !important;
+        }
+        .notification-title.read {
+          color: #6B7280 !important;
+        }
+        .notification-description {
+          color: #1F2937 !important;
         }
       `}</style>
       <div 

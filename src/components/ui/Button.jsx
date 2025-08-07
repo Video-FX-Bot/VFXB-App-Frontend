@@ -18,7 +18,7 @@ const Button = ({
     primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
     secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white focus:ring-secondary-500',
     outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500',
-    ghost: 'text-white hover:bg-gray-700 hover:bg-opacity-80 focus:ring-gray-500',
+    ghost: 'text-foreground ghost-button-light focus:ring-gray-500',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
   };
   

@@ -400,10 +400,10 @@ const EffectsLibrary = ({
         return (
           <div key={param.name} className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-gray-300 capitalize">
+              <label className="text-sm font-medium text-foreground capitalize">
                 {param.name.replace(/([A-Z])/g, ' $1')}
               </label>
-              <span className="text-xs text-gray-400">{value}</span>
+              <span className="text-xs text-muted-foreground">{value}</span>
             </div>
             <input
               type="range"
@@ -412,7 +412,7 @@ const EffectsLibrary = ({
               step={param.step || (param.max - param.min) / 100}
               value={value}
               onChange={(e) => handleParameterChange(param.name, parseFloat(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer slider"
             />
           </div>
         );
@@ -420,16 +420,16 @@ const EffectsLibrary = ({
       case 'select':
         return (
           <div key={param.name} className="space-y-2">
-            <label className="text-sm font-medium text-gray-300 capitalize">
+            <label className="text-sm font-medium text-foreground capitalize">
               {param.name.replace(/([A-Z])/g, ' $1')}
             </label>
             <select
               value={value}
               onChange={(e) => handleParameterChange(param.name, e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-card border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {param.options.map(option => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option} className="text-black">{option}</option>
               ))}
             </select>
           </div>
@@ -438,7 +438,7 @@ const EffectsLibrary = ({
       case 'color':
         return (
           <div key={param.name} className="space-y-2">
-            <label className="text-sm font-medium text-gray-300 capitalize">
+            <label className="text-sm font-medium text-foreground capitalize">
               {param.name.replace(/([A-Z])/g, ' $1')}
             </label>
             <div className="flex items-center space-x-2">
@@ -446,13 +446,13 @@ const EffectsLibrary = ({
                 type="color"
                 value={value}
                 onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                className="w-8 h-8 rounded border border-gray-600 cursor-pointer"
+                className="w-8 h-8 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
                 value={value}
                 onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 bg-card border border-border rounded px-2 py-1 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -464,18 +464,20 @@ const EffectsLibrary = ({
   };
   
   return (
-    <div className={`bg-gray-900 border border-gray-700 rounded-lg ${className}`}>
+    <div className={`bg-card border-2 border-border rounded-lg ${className}`}>
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4">
+      <div className="bg-muted border-b-2 border-border p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Effects Library</h3>
+          <h3 className="text-lg font-semibold text-foreground">Effects Library</h3>
           
           <div className="flex items-center space-x-2">
             <Button
               variant={previewMode ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setPreviewMode(!previewMode)}
-              className="text-white"
+              className={`text-foreground border border-border shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 transition-all duration-200 ${
+                previewMode ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-muted text-foreground'
+              }`}
             >
               <Eye className="w-4 h-4 mr-1" />
               Preview
@@ -485,7 +487,11 @@ const EffectsLibrary = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowPremiumOnly(!showPremiumOnly)}
-              className={`text-white ${showPremiumOnly ? 'bg-yellow-600' : ''}`}
+              className={`border border-border shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 transition-all duration-200 ${
+                showPremiumOnly 
+                  ? 'bg-warning-light text-warning-light border-warning-light' 
+                  : 'bg-card hover:bg-muted text-foreground'
+              }`}
             >
               <Star className="w-4 h-4 mr-1" />
               Premium
@@ -496,13 +502,13 @@ const EffectsLibrary = ({
         {/* Search and Filters */}
         <div className="space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search effects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-700 border-gray-600 text-white"
+              className="pl-10 bg-card border-border text-foreground"
             />
           </div>
           
@@ -511,7 +517,7 @@ const EffectsLibrary = ({
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 ${
                 selectedCategory === 'all'
-                  ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
+                  ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-foreground border border-blue-500/30'
                   : 'bg-card text-muted-foreground hover:bg-muted border border-border'
               }`}
             >
@@ -524,7 +530,7 @@ const EffectsLibrary = ({
                 onClick={() => setSelectedCategory(category)}
                 className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-all duration-200 ${
                   selectedCategory === category
-                    ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-foreground border border-pink-500/30'
+                    ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-foreground border border-blue-500/30'
                     : 'bg-card text-muted-foreground hover:bg-muted border border-border'
                 }`}
               >
@@ -547,21 +553,21 @@ const EffectsLibrary = ({
               return (
                 <motion.div
                   key={effect.id}
-                  className={`relative bg-gray-800 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
-                    isSelected ? 'border-blue-500' : 'border-transparent hover:border-gray-600'
+                  className={`relative bg-card rounded-lg overflow-hidden cursor-pointer border-2 transition-all shadow-elevation-1 hover:shadow-elevation-2 ${
+                    isSelected ? 'border-primary' : 'border-border hover:border-primary/50'
                   }`}
                   onClick={() => handleEffectSelect(effect)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {/* Preview Image */}
-                  <div className="aspect-video bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center relative overflow-hidden">
+                  <div className="aspect-video bg-gradient-to-br from-muted to-card flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
-                    <Icon className="w-8 h-8 text-blue-400 z-10" />
+                    <Icon className="w-8 h-8 text-primary z-10" />
                     
                     {/* Premium Badge */}
                     {effect.premium && (
-                      <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-bold">
+                      <div className="absolute top-2 right-2 bg-warning-light text-warning-light text-xs px-2 py-1 rounded-full font-bold">
                         PRO
                       </div>
                     )}
@@ -573,7 +579,7 @@ const EffectsLibrary = ({
                         toggleFavorite(effect.id);
                       }}
                       className={`absolute top-2 left-2 p-1 rounded-full ${
-                        isFavorite ? 'bg-yellow-500 text-black' : 'bg-black bg-opacity-50 text-white'
+                        isFavorite ? 'bg-warning-light text-warning-light' : 'bg-black/50 text-white'
                       }`}
                     >
                       <Star className="w-3 h-3" fill={isFavorite ? 'currentColor' : 'none'} />
@@ -582,8 +588,8 @@ const EffectsLibrary = ({
                   
                   {/* Effect Info */}
                   <div className="p-3">
-                    <h4 className="text-white font-medium text-sm mb-1">{effect.name}</h4>
-                    <p className="text-gray-400 text-xs line-clamp-2">{effect.description}</p>
+                    <h4 className="text-foreground font-medium text-sm mb-1">{effect.name}</h4>
+                    <p className="text-muted-foreground text-xs line-clamp-2">{effect.description}</p>
                   </div>
                 </motion.div>
               );
@@ -592,81 +598,80 @@ const EffectsLibrary = ({
           
           {filteredEffects.length === 0 && (
             <div className="text-center py-12">
-              <Wand2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No effects found matching your criteria</p>
+              <Wand2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No effects found matching your criteria</p>
             </div>
           )}
         </div>
         
         {/* Effect Controls Panel */}
         {selectedEffect && (
-          <div className="w-80 bg-gray-800 border-l border-gray-700 p-4 overflow-y-auto">
+          <div className="w-80 bg-muted border-l-2 border-border p-4 overflow-y-auto">
             <div className="space-y-4">
               {/* Effect Header */}
-              <div className="border-b border-gray-700 pb-4">
+                             <div className="border-b-2 border-border pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3">
-                    <selectedEffect.icon className="w-6 h-6 text-blue-400" />
+                    <selectedEffect.icon className="w-6 h-6 text-primary" />
                     <div>
-                      <h4 className="text-white font-semibold">{selectedEffect.name}</h4>
-                      <p className="text-gray-400 text-sm">{selectedEffect.category}</p>
+                      <h4 className="text-foreground font-semibold">{selectedEffect.name}</h4>
+                      <p className="text-muted-foreground text-sm">{selectedEffect.category}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedEffect(null)}
-                    className="p-1 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                    className="p-1 rounded-full hover:bg-card text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-gray-300 text-sm">{selectedEffect.description}</p>
+                <p className="text-muted-foreground text-sm">{selectedEffect.description}</p>
               </div>
               
               {/* Parameters */}
               <div className="space-y-4">
-                <h5 className="text-white font-medium">Parameters</h5>
+                <h5 className="text-foreground font-medium">Parameters</h5>
                 {selectedEffect.parameters.map(renderParameterControl)}
               </div>
               
               {/* Actions */}
-              <div className="space-y-2 pt-4 border-t border-gray-700">
-                <Button
-                  onClick={handleApplyEffect}
-                  disabled={!selectedClip}
-                  className="w-full"
-                >
-                  Apply Effect
-                </Button>
-                
+              <div className="space-y-2 pt-4 border-t-2 border-border">
+                  <Button
+                   onClick={handleApplyEffect}
+                   disabled={!selectedClip}
+                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 hover:scale-105 transition-all duration-200 border-2 border-blue-400/30"
+                 >
+                   Apply Effect
+                 </Button>
                 <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1 text-white"
-                    onClick={() => {
-                      // Reset parameters to defaults
-                      const params = {};
-                      selectedEffect.parameters.forEach(param => {
-                        params[param.name] = param.default;
-                      });
-                      setEffectParameters(params);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1 text-white"
-                    onClick={() => {
-                      // Save as preset
-                      console.log('Save preset:', { effect: selectedEffect, parameters: effectParameters });
-                    }}
-                  >
-                    Save Preset
-                  </Button>
-                </div>
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="flex-1 border border-border"
+                     onClick={() => {
+                       // Reset parameters to defaults
+                       const params = {};
+                       selectedEffect.parameters.forEach(param => {
+                         params[param.name] = param.default;
+                       });
+                       setEffectParameters(params);
+                     }}
+                   >
+                     Reset
+                   </Button>
+                   
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="flex-1 border border-border"
+                     onClick={() => {
+                       // Save as preset
+                       console.log('Save preset:', { effect: selectedEffect, parameters: effectParameters });
+                     }}
+                   >
+                     Save Preset
+                   </Button>
+                 </div>
               </div>
             </div>
           </div>

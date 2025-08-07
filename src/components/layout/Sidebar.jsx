@@ -47,7 +47,7 @@ const Sidebar = () => {
               "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
             duration: "2:45",
             lastModified: "2 hours ago",
-            status: "editing",
+            status: "draft",
           },
           {
             id: 2,
@@ -74,7 +74,7 @@ const Sidebar = () => {
               "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
             duration: "4:15",
             lastModified: "5 days ago",
-            status: "editing",
+            status: "draft",
           },
           {
             id: 5,
@@ -231,7 +231,7 @@ const Sidebar = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "editing":
+      case "draft":
         return "bg-yellow-500";
       case "completed":
         return "bg-green-500";
@@ -308,9 +308,9 @@ const Sidebar = () => {
                 className="group relative"
               >
                 <div
-                  onClick={() => handleProjectAction("open", project.id)}
-                  className="bg-muted rounded-lg p-3 hover:bg-muted/80 transition-colors cursor-pointer"
-                >
+                   onClick={() => handleProjectAction("open", project.id)}
+                   className="bg-muted rounded-lg p-3 hover:bg-muted/80 transition-colors cursor-pointer relative"
+                 >
                   <div className="flex items-start gap-3">
                     {/* Thumbnail */}
                     <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
@@ -321,12 +321,12 @@ const Sidebar = () => {
                       />
                     </div>
                     <div
-                      className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(
-                        project.status
-                      )}`}
-                    />
+                       className={`absolute -top-1 -right-1 w-3 h-3 rounded-full z-10 ${getStatusColor(
+                         project.status
+                       )}`}
+                     />
                     {project.favorite && (
-                      <div className="absolute -top-1 -left-1">
+                      <div className="absolute -top-1 -left-1 z-10">
                         <Star className="w-3 h-3 text-yellow-400" />
                       </div>
                     )}
@@ -351,14 +351,23 @@ const Sidebar = () => {
                           <h4 className="text-xs lg:text-sm font-medium text-foreground truncate group-hover:text-pink-300 transition-colors">
                             {project.name}
                           </h4>
-                          <div className="flex items-center space-x-1 lg:space-x-2 text-xs text-muted-foreground">
-                            <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
-                            <span className="text-xs">{project.duration}</span>
-                            <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
-                            <span className={`text-xs text-foreground ${getStatusColor(project.status)} px-2 py-1 rounded-full`}>
-                              {project.status}
-                            </span>
-                          </div>
+                            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                             <div className="flex items-center space-x-1 lg:space-x-2">
+                               <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
+                               <span className="text-xs">{project.duration}</span>
+                             </div>
+                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                               project.status === 'completed' 
+                                 ? 'bg-success-light text-success-light border border-green-500/30' 
+                                 : project.status === 'draft'
+                                 ? 'bg-warning-light text-warning-light border border-yellow-500/30'
+                                 : project.status === 'processing'
+                                 ? 'bg-info-light text-info-light border border-blue-500/30'
+                                 : 'bg-muted text-muted-foreground border border-border'
+                             }`}>
+                               {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                             </span>
+                           </div>
                         </>
                       )}
                     </div>
@@ -382,7 +391,7 @@ const Sidebar = () => {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="absolute right-2 top-12 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
+                      className="absolute right-2 top-12 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px] bg-card"
                     >
                       <button
                         onClick={(e) => {
@@ -474,7 +483,7 @@ const Sidebar = () => {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="w-full px-2 lg:px-4 py-2 text-xs lg:text-sm font-medium bg-pink-600 text-white rounded-lg hover:bg-pink-500 transition"
+            className="w-full px-2 lg:px-4 py-2 text-xs lg:text-sm font-medium bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all duration-200 hover:shadow-elevation-2"
           >
             <span className="hidden lg:inline">Log In</span>
             <span className="lg:hidden">+</span>

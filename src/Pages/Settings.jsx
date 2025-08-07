@@ -110,8 +110,8 @@ const Settings = () => {
     <div className="space-y-4 sm:space-y-6">
       {/* Profile Picture */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-                 <div className="relative flex-shrink-0">
-           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-primary rounded-full flex items-center justify-center text-primary-foreground text-lg sm:text-2xl font-bold border-2 border-white">
+        <div className="relative flex-shrink-0">
+           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-primary rounded-full flex items-center justify-center text-primary-foreground text-lg sm:text-2xl font-bold border-2 border-border shadow-elevation-2">
              {formData.firstName[0]}{formData.lastName[0]}
            </div>
            <button className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-purple-600 hover:bg-purple-700 text-white p-1.5 sm:p-2 rounded-full transition-colors">
@@ -119,7 +119,7 @@ const Settings = () => {
            </button>
          </div>
         <div className="text-center sm:text-left">
-          <h3 className="text-lg sm:text-xl font-semibold text-white">{formData.firstName} {formData.lastName}</h3>
+          <h3 className="text-lg sm:text-xl font-semibold text-foreground">{formData.firstName} {formData.lastName}</h3>
           <p className="text-gray-400 text-sm sm:text-base">@{formData.username}</p>
           <button className="text-purple-400 hover:text-purple-300 text-xs sm:text-sm mt-1 flex items-center justify-center sm:justify-start space-x-1">
             <Edit3 className="w-3 h-3" />
@@ -259,19 +259,18 @@ const Settings = () => {
           </div>
         </div>
       </div>
-
-             <div className="bg-muted rounded-lg p-4">
-         <h4 className="font-medium text-white mb-3">Two-Factor Authentication</h4>
-         <div className="flex items-center justify-between">
-           <div>
-             <p className="text-gray-400 text-sm">Add an extra layer of security to your account</p>
-             <p className="text-gray-400 text-xs mt-1">Not enabled</p>
-           </div>
-           <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-             Enable 2FA
-           </button>
-         </div>
-       </div>
+        <div className="bg-muted rounded-lg p-6 border-2 border-border shadow-elevation-2">
+          <h4 className="font-medium text-foreground mb-4 text-lg">Two-Factor Authentication</h4>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-muted-foreground text-sm mb-2">Add an extra layer of security to your account</p>
+              <p className="text-muted-foreground text-xs">Not enabled</p>
+            </div>
+            <button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 shadow-elevation-2 hover:shadow-elevation-3">
+              Enable 2FA
+            </button>
+          </div>
+        </div>
     </div>
   );
 
@@ -285,14 +284,16 @@ const Settings = () => {
        }).map(([key, config]) => {
          const IconComponent = config.icon;
          return (
-           <div key={key} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-             <div className="flex items-center space-x-3">
-               <IconComponent className="w-5 h-5 text-white" />
-               <div>
-                 <h4 className="font-medium text-white">{config.label}</h4>
-                 <p className="text-gray-400 text-sm">{config.desc}</p>
-               </div>
-             </div>
+          <div key={key} className="flex items-center justify-between p-6 bg-muted rounded-lg border-2 border-border shadow-elevation-2 hover:shadow-elevation-3 transition-all duration-200">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-background rounded-lg border border-border">
+                  <IconComponent className="w-5 h-5 text-foreground" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground text-base">{config.label}</h4>
+                  <p className="text-muted-foreground text-sm">{config.desc}</p>
+                </div>
+              </div>
              <label className="relative inline-flex items-center cursor-pointer">
                <input
                  type="checkbox"
@@ -347,11 +348,11 @@ const Settings = () => {
           highQuality: { label: 'High Quality Previews', desc: 'Use higher quality for video previews (uses more bandwidth)' },
           darkMode: { label: 'Dark Mode', desc: 'Use dark theme throughout the application' }
         }).map(([key, config]) => (
-          <div key={key} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <h4 className="font-medium text-white">{config.label}</h4>
-              <p className="text-gray-400 text-sm">{config.desc}</p>
-            </div>
+          <div key={key} className="flex items-center justify-between p-6 bg-muted rounded-lg border-2 border-border shadow-elevation-2 hover:shadow-elevation-3 transition-all duration-200">
+             <div>
+               <h4 className="font-semibold text-foreground text-base">{config.label}</h4>
+               <p className="text-muted-foreground text-sm">{config.desc}</p>
+             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -372,10 +373,10 @@ const Settings = () => {
     </div>
   );
 
-  const renderStorageTab = () => (
+    const renderStorageTab = () => (
     <div className="space-y-6">
-      <div className="bg-muted rounded-lg p-6">
-        <h4 className="font-medium text-foreground mb-4">Storage Usage</h4>
+      <div className="bg-muted rounded-lg p-8 border-2 border-border shadow-elevation-2 hover:shadow-elevation-3 transition-all duration-200">
+        <h4 className="font-semibold text-foreground mb-6 text-lg">Storage Usage</h4>
         <div className="space-y-4">
           <div>
             <div className="flex justify-between text-sm mb-2">
@@ -405,11 +406,11 @@ const Settings = () => {
             </div>
           </div>
         </div>
-        <div className="flex space-x-3 mt-6">
-          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105">
+           <div className="flex space-x-4 mt-8">
+          <button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 shadow-elevation-2 hover:shadow-elevation-3">
             Upgrade Storage
           </button>
-          <button className="bg-gray-700 hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105">
+          <button className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 shadow-elevation-2 hover:shadow-elevation-3">
             Clear Cache
           </button>
         </div>
