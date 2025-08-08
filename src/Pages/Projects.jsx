@@ -152,7 +152,7 @@ const Projects = () => {
     setProjectMenuOpen(null);
     
     switch (action) {
-      case 'open':
+      case 'open': {
         const project = projects.find(p => p.id === projectId);
         if (project) {
           navigate('/ai-editor', { 
@@ -168,6 +168,7 @@ const Projects = () => {
           });
         }
         break;
+      }
       case 'rename':
         // Implement rename functionality
         break;
@@ -227,20 +228,23 @@ const Projects = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-card border-b border-border">
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
                 My Projects
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Manage and organize your video projects
               </p>
             </div>
-            <Button onClick={handleCreateProject} className="flex items-center gap-2">
+            <Button 
+              onClick={handleCreateProject} 
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+            >
               <Plus className="w-4 h-4" />
               New Project
             </Button>
@@ -249,37 +253,37 @@ const Projects = () => {
           {/* Search and Filters */}
           <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none"
               />
             </div>
             
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="px-4 py-2 border border-border rounded-lg bg-card text-muted-foreground focus:outline-none"
             >
-              <option value="all">All Projects</option>
-              <option value="recent">Recent</option>
-              <option value="favorites">Favorites</option>
-              <option value="completed">Completed</option>
+              <option value="all" className="text-black">All Projects</option>
+              <option value="recent" className="text-black">Recent</option>
+              <option value="favorites" className="text-black">Favorites</option>
+              <option value="completed" className="text-black">Completed</option>
             </select>
 
-            <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-lg p-1">
+            <div className="flex items-center gap-2 border border-border rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-pink-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${viewMode === 'list' ? 'bg-pink-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -287,7 +291,7 @@ const Projects = () => {
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <span>{filteredProjects.length} projects</span>
             <span>•</span>
             <span>{projects.filter(p => p.status === 'Completed').length} completed</span>
@@ -301,20 +305,23 @@ const Projects = () => {
       <div className="p-6">
         {filteredProjects.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              <FolderOpen className="w-12 h-12 text-gray-400" />
+            <div className="w-24 h-24 mx-auto mb-4 bg-card rounded-full flex items-center justify-center">
+              <FolderOpen className="w-12 h-12 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {searchTerm || filterBy !== 'all' ? 'No projects found' : 'No projects yet'}
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               {searchTerm || filterBy !== 'all' 
                 ? 'Try adjusting your search or filter criteria'
                 : 'Create your first video project to get started'
               }
             </p>
             {(!searchTerm && filterBy === 'all') && (
-              <Button onClick={handleCreateProject}>
+              <Button 
+                onClick={handleCreateProject}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Project
               </Button>
@@ -334,12 +341,12 @@ const Projects = () => {
                 className="group relative"
               >
                 {viewMode === 'grid' ? (
-                  <Card className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border border-gray-600/50 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-purple-500/10"
+                  <Card className="bg-card backdrop-blur-sm border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-primary/10"
                        onClick={() => navigate(`/dashboard?project=${project.id}`)}>
                     {/* Thumbnail */}
                     <div className="relative overflow-hidden">
-                      <div className="w-full h-48 bg-gradient-to-br from-pink-500/20 to-purple-600/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                        <Video className="w-12 h-12 text-gray-400" />
+                      <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                        <Video className="w-12 h-12 text-muted-foreground" />
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       
@@ -382,12 +389,12 @@ const Projects = () => {
                     
                     {/* Content */}
                     <div className="p-5">
-                      <h3 className="font-bold text-lg text-white mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
+                      <h3 className="font-bold text-lg text-foreground mb-2 line-clamp-1 group-hover:text-primary transition-colors">
                         {project.title}
                       </h3>
-                      <p className="text-white text-sm mb-3 line-clamp-2">{project.description}</p>
+                      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{project.description}</p>
                       
-                      <div className="flex items-center justify-between text-sm text-white mb-4">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                         <div className="flex items-center space-x-1">
                           <Clock className="w-3 h-3" />
                           <span>{project.lastEdited}</span>
@@ -415,7 +422,7 @@ const Projects = () => {
                                } 
                              });
                            }}
-                           className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-2 px-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
+                           className="flex-1 bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 text-primary-foreground py-2 px-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 text-sm"
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
                          >
@@ -427,7 +434,7 @@ const Projects = () => {
                             e.stopPropagation();
                             setProjectMenuOpen(projectMenuOpen === project.id ? null : project.id);
                           }}
-                          className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-all duration-200"
+                          className="bg-muted hover:bg-muted/80 text-foreground p-2 rounded-lg transition-all duration-200"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -441,14 +448,14 @@ const Projects = () => {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="absolute right-4 top-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
+                        className="absolute right-4 top-16 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
                       >
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleProjectAction('open', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Play className="w-4 h-4" />
                           Open
@@ -458,7 +465,7 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('rename', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Edit3 className="w-4 h-4" />
                           Rename
@@ -468,7 +475,7 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('duplicate', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Copy className="w-4 h-4" />
                           Duplicate
@@ -478,18 +485,18 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('favorite', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Star className="w-4 h-4" />
                           {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                         </button>
-                        <hr className="border-gray-200 dark:border-gray-700 my-1" />
+                        <hr className="border-border my-1" />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleProjectAction('delete', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-destructive/10 text-destructive flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
@@ -499,7 +506,7 @@ const Projects = () => {
                   </Card>
                 ) : (
                   // Redesigned Compact List View
-                  <Card className="bg-gradient-to-r from-gray-800/90 to-gray-900/90 backdrop-blur-sm border border-gray-600/30 rounded-lg overflow-hidden hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 cursor-pointer group"
+                  <Card className="bg-card backdrop-blur-sm border border-border rounded-lg overflow-hidden hover:border-primary/60 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 cursor-pointer group"
                         onClick={() => navigate('/ai-editor', { 
                           state: { 
                             uploadedVideo: project.video || {
@@ -513,9 +520,9 @@ const Projects = () => {
                         })}>
                     <div className="flex items-center gap-4 p-4">
                       {/* Compact Thumbnail */}
-                      <div className="relative w-20 h-14 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-md overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                      <div className="relative w-20 h-14 bg-gradient-to-br from-primary/20 to-primary/20 rounded-md overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
                         <div className="w-full h-full flex items-center justify-center">
-                          <Video className="w-6 h-6 text-gray-400" />
+                          <Video className="w-6 h-6 text-muted-foreground" />
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         
@@ -537,7 +544,7 @@ const Projects = () => {
                       {/* Main Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg text-white truncate group-hover:text-purple-300 transition-colors">
+                          <h3 className="font-semibold text-lg text-foreground truncate group-hover:text-primary transition-colors">
                             {project.title}
                           </h3>
                           {project.favorite && (
@@ -548,12 +555,12 @@ const Projects = () => {
                           </span>
                         </div>
                         
-                        <p className="text-gray-400 text-sm mb-2 line-clamp-1">
+                        <p className="text-muted-foreground text-sm mb-2 line-clamp-1">
                           {project.description}
                         </p>
                         
                         {/* Compact Stats Row */}
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             <span>{project.lastEdited}</span>
@@ -594,7 +601,7 @@ const Projects = () => {
                               } 
                             });
                           }}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-1.5 px-3 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm"
+                          className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 text-primary-foreground py-1.5 px-3 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >
@@ -607,7 +614,7 @@ const Projects = () => {
                             e.stopPropagation();
                             // Handle download
                           }}
-                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200"
+                          className="bg-muted/80 hover:bg-muted text-foreground p-1.5 rounded-md transition-all duration-200"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           title="Download"
@@ -620,7 +627,7 @@ const Projects = () => {
                             e.stopPropagation();
                             // Handle share
                           }}
-                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200"
+                          className="bg-muted/80 hover:bg-muted text-foreground p-1.5 rounded-md transition-all duration-200"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           title="Share"
@@ -633,7 +640,7 @@ const Projects = () => {
                             e.stopPropagation();
                             setProjectMenuOpen(projectMenuOpen === project.id ? null : project.id);
                           }}
-                          className="bg-gray-700/80 hover:bg-gray-600 text-white p-1.5 rounded-md transition-all duration-200 relative"
+                          className="bg-muted/80 hover:bg-muted text-foreground p-1.5 rounded-md transition-all duration-200 relative"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           title="More options"
@@ -648,14 +655,14 @@ const Projects = () => {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="absolute right-6 top-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
+                        className="absolute right-6 top-20 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px]"
                       >
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleProjectAction('open', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Play className="w-4 h-4" />
                           Open
@@ -665,7 +672,7 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('rename', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Edit3 className="w-4 h-4" />
                           Rename
@@ -675,7 +682,7 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('duplicate', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Copy className="w-4 h-4" />
                           Duplicate
@@ -685,18 +692,18 @@ const Projects = () => {
                             e.stopPropagation();
                             handleProjectAction('favorite', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <Star className="w-4 h-4" />
                           {project.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                         </button>
-                        <hr className="border-gray-200 dark:border-gray-700 my-1" />
+                        <hr className="border-border my-1" />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleProjectAction('delete', project.id);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-destructive/10 text-destructive flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete

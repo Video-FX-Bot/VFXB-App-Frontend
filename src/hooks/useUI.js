@@ -81,17 +81,31 @@ export const useUI = () => {
     setTheme(newTheme);
     storage.set(STORAGE_KEYS.THEME, newTheme);
     
-    // Apply theme to document
-    document.documentElement.setAttribute('data-theme', newTheme);
+    // Apply theme to document using classList (matches UI store)
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     
-    // Add notification
-    addNotification({
-      id: `theme_${Date.now()}`,
-      type: 'info',
-      title: 'Theme Changed',
-      message: `Switched to ${newTheme} theme`,
-      duration: 2000,
-    });
+    // Force apply CSS variables to body as well
+    const root = document.documentElement;
+    const body = document.body;
+    
+    // Get the computed styles from root to apply to body
+    const computedStyle = getComputedStyle(root);
+    const background = computedStyle.getPropertyValue('--background');
+    const foreground = computedStyle.getPropertyValue('--foreground');
+    const card = computedStyle.getPropertyValue('--card');
+    const cardForeground = computedStyle.getPropertyValue('--card-foreground');
+    
+    // Apply CSS variables directly to body
+    body.style.setProperty('--background', background);
+    body.style.setProperty('--foreground', foreground);
+    body.style.setProperty('--card', card);
+    body.style.setProperty('--card-foreground', cardForeground);
+    
+
   }, [theme, setTheme, addNotification]);
 
   // Toggle sidebar
@@ -271,7 +285,30 @@ export const useUI = () => {
     // Load theme
     const savedTheme = storage.get(STORAGE_KEYS.THEME, 'light');
     setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Apply theme to document using classList (matches UI store)
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Force apply CSS variables to body as well
+    const root = document.documentElement;
+    const body = document.body;
+    
+    // Get the computed styles from root to apply to body
+    const computedStyle = getComputedStyle(root);
+    const background = computedStyle.getPropertyValue('--background');
+    const foreground = computedStyle.getPropertyValue('--foreground');
+    const card = computedStyle.getPropertyValue('--card');
+    const cardForeground = computedStyle.getPropertyValue('--card-foreground');
+    
+    // Apply CSS variables directly to body
+    body.style.setProperty('--background', background);
+    body.style.setProperty('--foreground', foreground);
+    body.style.setProperty('--card', card);
+    body.style.setProperty('--card-foreground', cardForeground);
     
     // Load sidebar state
     const savedSidebarState = storage.get(STORAGE_KEYS.SIDEBAR_STATE, {

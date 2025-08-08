@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useAuth } from "../useAuth";
 import { useNavigate } from "react-router-dom";
+import { useUI } from "../hooks/useUI";
 
 export default function Profile() {
   const { user, isLoggedIn, logout } = useAuth();
+  const { theme } = useUI();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,118 +28,75 @@ export default function Profile() {
 
   if (!isLoggedIn) {
     return (
-      <div style={{ padding: 32, textAlign: "center" }}>
-        <h2>Please log in to view your profile</h2>
+      <div className="p-8 text-center">
+        <h2 className="text-foreground">Please log in to view your profile</h2>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: 32 }}>
+    <div className="max-w-4xl mx-auto p-8 bg-background">
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Profile</h1>
-        <p style={{ color: "#9CA3AF" }}>Manage your account settings and preferences</p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">Profile</h1>
+        <p className="text-muted-foreground">Manage your account settings and preferences</p>
       </div>
 
-      <div style={{ display: "grid", gap: 24 }}>
+      <div className="space-y-6">
         {/* Personal Information */}
-        <div style={{
-          background: "rgba(30, 41, 59, 0.95)",
-          padding: 24,
-          borderRadius: 12,
-          border: "1px solid #374151"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 600 }}>Personal Information</h2>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-elevation-2">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
             <button
               onClick={() => setIsEditing(!isEditing)}
-              style={{
-                padding: "8px 16px",
-                background: isEditing ? "#EF4444" : "#8B5CF6",
-                color: "white",
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: 500
-              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                isEditing 
+                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' 
+                  : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-elevation-2 hover:shadow-elevation-3'
+              }`}
             >
               {isEditing ? "Cancel" : "Edit"}
             </button>
           </div>
 
-          <div style={{ display: "grid", gap: 16 }}>
+          <div className="space-y-4">
             <div>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Email</label>
+              <label className="block mb-2 font-medium text-sm text-foreground">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 disabled={!isEditing}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid #374151",
-                  background: isEditing ? "#1F2937" : "#111827",
-                  color: "white",
-                  outline: "none"
-                }}
+                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-base outline-none transition-all duration-300 focus:border-primary focus:shadow-lg focus:shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Display Name</label>
+              <label className="block mb-2 font-medium text-sm text-foreground">Display Name</label>
               <input
                 type="text"
                 value={formData.displayName}
                 onChange={(e) => setFormData({...formData, displayName: e.target.value})}
                 disabled={!isEditing}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid #374151",
-                  background: isEditing ? "#1F2937" : "#111827",
-                  color: "white",
-                  outline: "none"
-                }}
+                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-base outline-none transition-all duration-300 focus:border-primary focus:shadow-lg focus:shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Bio</label>
+              <label className="block mb-2 font-medium text-sm text-foreground">Bio</label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => setFormData({...formData, bio: e.target.value})}
                 disabled={!isEditing}
                 rows={3}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 6,
-                  border: "1px solid #374151",
-                  background: isEditing ? "#1F2937" : "#111827",
-                  color: "white",
-                  outline: "none",
-                  resize: "vertical"
-                }}
+                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground text-base outline-none transition-all duration-300 focus:border-primary focus:shadow-lg focus:shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed resize-vertical"
               />
             </div>
 
             {isEditing && (
               <button
                 onClick={handleSave}
-                style={{
-                  padding: "10px 20px",
-                  background: "#10B981",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  fontWeight: 500,
-                  alignSelf: "flex-start"
-                }}
+                className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-none rounded-lg font-medium transition-all duration-200 hover:shadow-elevation-2 hover:scale-105"
               >
                 Save Changes
               </button>
@@ -146,67 +105,38 @@ export default function Profile() {
         </div>
 
         {/* Account Settings */}
-        <div style={{
-          background: "rgba(30, 41, 59, 0.95)",
-          padding: 24,
-          borderRadius: 12,
-          border: "1px solid #374151"
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>Account Settings</h2>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-elevation-2">
+          <h2 className="text-xl font-semibold mb-5 text-foreground">Account Settings</h2>
           
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-3">
               <div>
-                <h3 style={{ fontWeight: 500, marginBottom: 4 }}>Email Notifications</h3>
-                <p style={{ color: "#9CA3AF", fontSize: 14 }}>Receive updates about your projects</p>
+                <h3 className="font-medium mb-1 text-foreground">Email Notifications</h3>
+                <p className="text-muted-foreground text-sm">Receive updates about your projects</p>
               </div>
-              <label style={{ position: "relative", display: "inline-block", width: 50, height: 24 }}>
+              <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.notifications}
                   onChange={(e) => setFormData({...formData, notifications: e.target.checked})}
-                  style={{ opacity: 0, width: 0, height: 0 }}
+                  className="sr-only"
                 />
-                <span style={{
-                  position: "absolute",
-                  cursor: "pointer",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: formData.notifications ? "#8B5CF6" : "#374151",
-                  borderRadius: 12,
-                  transition: "0.3s"
-                }}>
-                  <span style={{
-                    position: "absolute",
-                    content: "",
-                    height: 18,
-                    width: 18,
-                    left: 3,
-                    bottom: 3,
-                  background: "white",
-                  borderRadius: "50%",
-                  transition: "0.3s",
-                  transform: formData.notifications ? "translateX(26px)" : "translateX(0)"
-                }} />
-                </span>
+                <div className={`w-11 h-6 rounded-full transition-all duration-300 ${
+                  formData.notifications ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-muted'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full transition-all duration-300 transform ${
+                    formData.notifications ? 'translate-x-5' : 'translate-x-0.5'
+                  } mt-0.5`} />
+                </div>
               </label>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+            <div className="flex justify-between items-center py-3">
               <div>
-                <h3 style={{ fontWeight: 500, marginBottom: 4 }}>Change Password</h3>
-                <p style={{ color: "#9CA3AF", fontSize: 14 }}>Update your account password</p>
+                <h3 className="font-medium mb-1 text-foreground">Change Password</h3>
+                <p className="text-muted-foreground text-sm">Update your account password</p>
               </div>
-              <button style={{
-                padding: "8px 16px",
-                background: "transparent",
-                color: "#8B5CF6",
-                border: "1px solid #8B5CF6",
-                borderRadius: 6,
-                cursor: "pointer"
-              }}>
+              <button className="px-4 py-2 bg-transparent text-primary border border-primary rounded-lg hover:bg-primary/10 transition-all duration-200">
                 Change
               </button>
             </div>
@@ -214,56 +144,30 @@ export default function Profile() {
         </div>
 
         {/* Subscription */}
-        <div style={{
-          background: "rgba(30, 41, 59, 0.95)",
-          padding: 24,
-          borderRadius: 12,
-          border: "1px solid #374151"
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>Subscription</h2>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-elevation-2">
+          <h2 className="text-xl font-semibold mb-5 text-foreground">Subscription</h2>
           
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="flex justify-between items-center">
             <div>
-              <h3 style={{ fontWeight: 500, marginBottom: 4 }}>Current Plan</h3>
-              <p style={{ color: "#9CA3AF", fontSize: 14 }}>Free Plan</p>
+              <h3 className="font-medium mb-1 text-foreground">Current Plan</h3>
+              <p className="text-muted-foreground text-sm">Free Plan</p>
             </div>
-            <button style={{
-              padding: "10px 20px",
-              background: "linear-gradient(90deg, #06b6d4, #8b5cf6)",
-              color: "white",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontWeight: 500
-            }}>
+            <button className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-none rounded-lg font-medium transition-all duration-200 hover:shadow-elevation-2 hover:scale-105">
               Upgrade
             </button>
           </div>
         </div>
 
         {/* Sign Out */}
-        <div style={{
-          background: "rgba(30, 41, 59, 0.95)",
-          padding: 24,
-          borderRadius: 12,
-          border: "1px solid #374151"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="bg-card border border-border rounded-xl p-6 shadow-elevation-2">
+          <div className="flex justify-between items-center">
             <div>
-              <h3 style={{ fontWeight: 500, marginBottom: 4 }}>Sign Out</h3>
-              <p style={{ color: "#9CA3AF", fontSize: 14 }}>Sign out of your account</p>
+              <h3 className="font-medium mb-1 text-foreground">Sign Out</h3>
+              <p className="text-muted-foreground text-sm">Sign out of your account</p>
             </div>
             <button
               onClick={handleLogout}
-              style={{
-                padding: "10px 20px",
-                background: "#EF4444",
-                color: "white",
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: 500
-              }}
+              className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none rounded-lg font-medium transition-all duration-200 hover:shadow-elevation-2 hover:scale-105"
             >
               Sign Out
             </button>
