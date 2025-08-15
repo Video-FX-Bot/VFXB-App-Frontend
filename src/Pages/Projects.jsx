@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Button, Card } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
+import projectService from '../services/projectService';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -41,101 +42,124 @@ const Projects = () => {
   const [projectMenuOpen, setProjectMenuOpen] = useState(null);
   const [projects, setProjects] = useState([]);
 
-  // Load projects from localStorage
+  // Load projects from backend API with localStorage fallback
   useEffect(() => {
-    const savedProjects = JSON.parse(localStorage.getItem('vfxb_projects') || '[]');
+    const loadProjects = async () => {
+      try {
+        const savedProjects = await projectService.loadProjects();
+        
+        // Add some mock projects if no saved projects exist
+        if (savedProjects.length === 0) {
+          const mockProjects = [
+            {
+               id: 1,
+               name: 'Summer Vacation Highlights',
+               title: 'Summer Vacation Highlights',
+               thumbnail: null,
+               duration: '2:45',
+               createdAt: '2024-01-15',
+               lastEdited: '2 hours ago',
+               lastModified: '2 hours ago',
+               status: 'completed',
+               favorite: true,
+               size: '2.4 GB',
+               type: 'video',
+               views: 1250,
+               rating: 4.8,
+               description: 'Family vacation memories from our trip to the mountains'
+             },
+             {
+               id: 2,
+               name: 'Product Demo Video',
+               title: 'Product Demo Video',
+               thumbnail: null,
+               duration: '1:30',
+               createdAt: '2024-01-14',
+               lastEdited: '1 day ago',
+               lastModified: '1 day ago',
+               status: 'editing',
+               favorite: false,
+               size: '1.8 GB',
+               type: 'video',
+               views: 890,
+               rating: 4.6,
+               description: 'Professional product demonstration for marketing'
+             },
+             {
+                id: 3,
+                name: 'Wedding Ceremony',
+                title: 'Wedding Ceremony',
+                thumbnail: null,
+                duration: '5:20',
+                createdAt: '2024-01-12',
+                lastEdited: '3 days ago',
+                lastModified: '3 days ago',
+                status: 'draft',
+                favorite: true,
+                size: '5.2 GB',
+                type: 'video',
+                views: 2100,
+                rating: 4.9,
+                description: 'Beautiful wedding ceremony highlights'
+              },
+              {
+                id: 4,
+                name: 'Travel Adventure Vlog',
+                title: 'Travel Adventure Vlog',
+                thumbnail: null,
+                duration: '4:15',
+                createdAt: '2024-01-10',
+                lastEdited: '5 days ago',
+                lastModified: '5 days ago',
+                status: 'completed',
+                favorite: false,
+                size: '3.8 GB',
+                type: 'video',
+                views: 1680,
+                rating: 4.7,
+                description: 'Epic travel adventure through scenic landscapes'
+              },
+              {
+                id: 5,
+                name: 'Corporate Training Module',
+                title: 'Corporate Training Module',
+                thumbnail: null,
+                duration: '6:30',
+                createdAt: '2024-01-08',
+                lastEdited: '1 week ago',
+                lastModified: '1 week ago',
+                status: 'editing',
+                favorite: true,
+                size: '4.2 GB',
+                type: 'video',
+                views: 945,
+                rating: 4.5,
+                description: 'Professional training content for employee onboarding'
+              }
+          ];
+          setProjects(mockProjects);
+        } else {
+          setProjects(savedProjects);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        setProjects([]);
+      }
+    };
     
-    // Add some mock projects if no saved projects exist
-    if (savedProjects.length === 0) {
-      const mockProjects = [
-        {
-           id: 1,
-           title: 'Summer Vacation Highlights',
-           thumbnail: null,
-           duration: '2:45',
-           createdAt: '2024-01-15',
-           lastEdited: '2 hours ago',
-           status: 'Completed',
-           favorite: true,
-           size: '2.4 GB',
-           type: 'video',
-           views: 1250,
-           rating: 4.8,
-           description: 'Family vacation memories from our trip to the mountains'
-         },
-         {
-           id: 2,
-           title: 'Product Demo Video',
-           thumbnail: null,
-           duration: '1:30',
-           createdAt: '2024-01-14',
-           lastEdited: '1 day ago',
-           status: 'In Progress',
-           favorite: false,
-           size: '1.8 GB',
-           type: 'video',
-           views: 890,
-           rating: 4.6,
-           description: 'Professional product demonstration for marketing'
-         },
-         {
-            id: 3,
-            title: 'Wedding Ceremony',
-            thumbnail: null,
-            duration: '5:20',
-            createdAt: '2024-01-12',
-            lastEdited: '3 days ago',
-            status: 'Draft',
-            favorite: true,
-            size: '5.2 GB',
-            type: 'video',
-            views: 2100,
-            rating: 4.9,
-            description: 'Beautiful wedding ceremony highlights'
-          },
-          {
-            id: 4,
-            title: 'Travel Adventure Vlog',
-            thumbnail: null,
-            duration: '4:15',
-            createdAt: '2024-01-10',
-            lastEdited: '5 days ago',
-            status: 'Completed',
-            favorite: false,
-            size: '3.8 GB',
-            type: 'video',
-            views: 1680,
-            rating: 4.7,
-            description: 'Epic travel adventure through scenic landscapes'
-          },
-          {
-            id: 5,
-            title: 'Corporate Training Module',
-            thumbnail: null,
-            duration: '6:30',
-            createdAt: '2024-01-08',
-            lastEdited: '1 week ago',
-            status: 'In Progress',
-            favorite: true,
-            size: '4.2 GB',
-            type: 'video',
-            views: 945,
-            rating: 4.5,
-            description: 'Professional training content for employee onboarding'
-          }
-      ];
-      setProjects(mockProjects);
-    } else {
-      setProjects(savedProjects);
-    }
+    loadProjects();
   }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'completed':
       case 'Completed':
         return 'bg-green-500/20 text-green-300 border-green-500/30';
+      case 'editing':
+      case 'processing':
       case 'In Progress':
         return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      case 'draft':
       case 'Draft':
         return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
       default:
@@ -144,21 +168,33 @@ const Projects = () => {
   };
 
   const getStatusText = (status) => {
-    return status;
+    switch (status) {
+      case 'completed':
+        return 'Completed';
+      case 'editing':
+        return 'In Progress';
+      case 'processing':
+        return 'Processing';
+      case 'draft':
+        return 'Draft';
+      default:
+        return status;
+    }
   };
 
-  const handleProjectAction = (action, projectId) => {
+  const handleProjectAction = async (action, projectId) => {
     console.log(`${action} project ${projectId}`);
     setProjectMenuOpen(null);
     
+    const project = projects.find(p => (p.id === projectId || p._id === projectId));
+    
     switch (action) {
       case 'open': {
-        const project = projects.find(p => p.id === projectId);
         if (project) {
           navigate('/ai-editor', { 
             state: { 
-              uploadedVideo: project.video || {
-                name: project.title,
+              uploadedVideo: project.video || project.videoData || {
+                name: project.title || project.name,
                 url: project.thumbnail,
                 size: 0,
                 type: 'video/mp4'
@@ -170,16 +206,66 @@ const Projects = () => {
         break;
       }
       case 'rename':
-        // Implement rename functionality
+        // TODO: Implement rename functionality with modal
         break;
       case 'duplicate':
-        // Implement duplicate functionality
+        if (project) {
+          try {
+            const newProject = {
+              ...project,
+              id: undefined,
+              _id: undefined,
+              name: `${project.name || project.title} (Copy)`,
+              title: `${project.title || project.name} (Copy)`,
+              lastModified: 'Just now',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            await projectService.saveProject(newProject);
+            // Reload projects
+            const updatedProjects = await projectService.loadProjects();
+            setProjects(updatedProjects);
+          } catch (error) {
+            console.error('Error duplicating project:', error);
+          }
+        }
         break;
       case 'favorite':
-        // Implement favorite toggle
+        if (project) {
+          try {
+            const updatedProject = {
+              ...project,
+              favorite: !project.favorite,
+              lastModified: 'Just now',
+              updatedAt: new Date().toISOString()
+            };
+            await projectService.saveProject(updatedProject);
+            // Update local state
+            const updatedProjects = projects.map(p => 
+              (p.id === projectId || p._id === projectId) ? updatedProject : p
+            );
+            setProjects(updatedProjects);
+          } catch (error) {
+            console.error('Error updating project favorite status:', error);
+          }
+        }
         break;
       case 'delete':
-        // Implement delete functionality
+        if (project) {
+          try {
+            const projectIdToDelete = project._id || project.id;
+            if (projectIdToDelete) {
+              await projectService.deleteProject(projectIdToDelete);
+            }
+            // Update local state
+            const updatedProjects = projects.filter(p => 
+              p.id !== projectId && p._id !== projectId
+            );
+            setProjects(updatedProjects);
+          } catch (error) {
+            console.error('Error deleting project:', error);
+          }
+        }
         break;
       default:
         break;

@@ -19,6 +19,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../useAuth";
+import { projectService } from "../../services/projectService";
+import { generateVideoThumbnail, isVideoThumbnailSupported } from "../../utils/videoThumbnailGenerator";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -30,65 +32,103 @@ const Sidebar = () => {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [editingProjectName, setEditingProjectName] = useState("");
 
-  // Load recent projects from localStorage
-  useEffect(() => {
-    const loadRecentProjects = () => {
-      const savedRecentProjects = JSON.parse(
-        localStorage.getItem("vfxb_recent_projects") || "[]"
-      );
+  // Generate thumbnail for a project if it has video data but no thumbnail
+  const generateThumbnailForProject = async (project) => {
+    if (!project.thumbnail && project.videoData && isVideoThumbnailSupported()) {
+      try {
+        const videoUrl = project.videoData.url || project.videoData.src;
+        if (videoUrl) {
+          console.log('Generating thumbnail for project:', project.name);
+          const thumbnail = await generateVideoThumbnail(videoUrl, 1, 160, 90);
+          
+          // Update project with new thumbnail
+          const updatedProject = {
+            ...project,
+            thumbnail,
+            lastModified: 'Just now',
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Save updated project
+          await projectService.saveProject(updatedProject);
+          return updatedProject;
+        }
+      } catch (error) {
+        console.warn('Failed to generate thumbnail for project:', project.name, error);
+      }
+    }
+    return project;
+  };
 
-      if (savedRecentProjects.length === 0) {
-        // Default recent projects if none saved
-        const defaultProjects = [
-          {
-            id: 1,
-            name: "Summer Vacation Video",
-            thumbnail:
-              "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
-            duration: "2:45",
-            lastModified: "2 hours ago",
-            status: "draft",
-          },
-          {
-            id: 2,
-            name: "Product Demo",
-            thumbnail:
-              "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
-            duration: "1:30",
-            lastModified: "1 day ago",
-            status: "completed",
-          },
-          {
-            id: 3,
-            name: "Wedding Highlights",
-            thumbnail:
-              "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=160",
-            duration: "3:20",
-            lastModified: "3 days ago",
-            status: "completed",
-          },
-          {
-            id: 4,
-            name: "Travel Vlog",
-            thumbnail:
-              "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
-            duration: "4:15",
-            lastModified: "5 days ago",
-            status: "draft",
-          },
-          {
-            id: 5,
-            name: "Corporate Training",
-            thumbnail:
-              "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=160",
-            duration: "6:30",
-            lastModified: "1 week ago",
-            status: "completed",
-          },
-        ];
-        setProjects(defaultProjects);
-      } else {
-        setProjects(savedRecentProjects);
+  // Load recent projects from backend API with localStorage fallback
+  useEffect(() => {
+    const loadRecentProjects = async () => {
+      try {
+        const recentProjects = await projectService.loadRecentProjects();
+        
+        if (recentProjects.length === 0) {
+          // Default recent projects if none saved
+          const defaultProjects = [
+            {
+              id: 1,
+              name: "Summer Vacation Video",
+              thumbnail:
+                "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
+              duration: "2:45",
+              lastModified: "2 hours ago",
+              status: "draft",
+            },
+            {
+              id: 2,
+              name: "Product Demo",
+              thumbnail:
+                "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
+              duration: "1:30",
+              lastModified: "1 day ago",
+              status: "completed",
+            },
+            {
+              id: 3,
+              name: "Wedding Highlights",
+              thumbnail:
+                "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=160",
+              duration: "3:20",
+              lastModified: "3 days ago",
+              status: "completed",
+            },
+            {
+              id: 4,
+              name: "Travel Vlog",
+              thumbnail:
+                "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
+              duration: "4:15",
+              lastModified: "5 days ago",
+              status: "draft",
+            },
+            {
+              id: 5,
+              name: "Corporate Training",
+              thumbnail:
+                "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=160",
+              duration: "6:30",
+              lastModified: "1 week ago",
+              status: "completed",
+            },
+          ];
+          setProjects(defaultProjects);
+        } else {
+          // Process projects to generate thumbnails if needed
+          const processedProjects = await Promise.all(
+            recentProjects.map(async (project) => {
+              return await generateThumbnailForProject(project);
+            })
+          );
+          setProjects(processedProjects);
+        }
+      } catch (error) {
+        console.error('Error loading recent projects:', error);
+        // Fallback to empty array on error
+        setProjects([]);
       }
     };
 
@@ -101,8 +141,8 @@ const Sidebar = () => {
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Also check for updates every 2 seconds (for same-tab updates)
-    const interval = setInterval(loadRecentProjects, 2000);
+    // Also check for updates every 5 seconds (reduced frequency for API calls)
+    const interval = setInterval(loadRecentProjects, 5000);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
@@ -148,15 +188,15 @@ const Sidebar = () => {
     },
   ];
 
-  const handleProjectAction = (action, projectId) => {
-    const project = projects.find((p) => p.id === projectId);
+  const handleProjectAction = async (action, projectId) => {
+    const project = projects.find((p) => p.id === projectId || p._id === projectId);
 
     switch (action) {
       case "open":
         if (project) {
           navigate("/ai-editor", {
             state: {
-              uploadedVideo: project.video || {
+              uploadedVideo: project.video || project.videoData || {
                 name: project.name,
                 url: project.thumbnail,
                 size: 0,
@@ -175,31 +215,65 @@ const Sidebar = () => {
         break;
       case "duplicate":
         if (project) {
-          const newProject = {
-            ...project,
-            id: Date.now(), // Generate new unique ID
-            name: `${project.name} (Copy)`,
-            lastModified: "Just now"
-          };
-          const updatedProjects = [newProject, ...projects];
-          setProjects(updatedProjects);
-          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+          try {
+            const newProject = {
+              ...project,
+              id: undefined, // Remove old ID
+              _id: undefined, // Remove old _id
+              name: `${project.name} (Copy)`,
+              lastModified: "Just now",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            await projectService.saveProject(newProject);
+            // Reload projects to get updated list
+            const recentProjects = await projectService.loadRecentProjects();
+            setProjects(recentProjects);
+          } catch (error) {
+            console.error('Error duplicating project:', error);
+          }
         }
         break;
       case "favorite":
         if (project) {
-          const updatedProjects = projects.map(p => 
-            p.id === projectId ? { ...p, favorite: !p.favorite } : p
-          );
-          setProjects(updatedProjects);
-          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+          try {
+            const updatedProject = {
+              ...project,
+              favorite: !project.favorite,
+              lastModified: "Just now",
+              updatedAt: new Date().toISOString()
+            };
+            await projectService.saveProject(updatedProject);
+            // Update local state
+            const updatedProjects = projects.map(p => 
+              (p.id === projectId || p._id === projectId) ? updatedProject : p
+            );
+            setProjects(updatedProjects);
+          } catch (error) {
+            console.error('Error updating project favorite status:', error);
+          }
         }
         break;
       case "delete":
         if (project) {
-          const updatedProjects = projects.filter(p => p.id !== projectId);
-          setProjects(updatedProjects);
-          localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+          try {
+            const projectIdToDelete = project._id || project.id;
+            if (projectIdToDelete) {
+              await projectService.deleteProject(projectIdToDelete);
+            }
+            // Update local state
+            const updatedProjects = projects.filter(p => 
+              p.id !== projectId && p._id !== projectId
+            );
+            setProjects(updatedProjects);
+          } catch (error) {
+            console.error('Error deleting project:', error);
+            // Still update local state even if backend delete fails
+            const updatedProjects = projects.filter(p => 
+              p.id !== projectId && p._id !== projectId
+            );
+            setProjects(updatedProjects);
+          }
         }
         break;
       default:
@@ -212,13 +286,27 @@ const Sidebar = () => {
     navigate("/");
   };
 
-  const handleRenameSave = (projectId) => {
+  const handleRenameSave = async (projectId) => {
     if (editingProjectName.trim() !== "") {
-      const updatedProjects = projects.map(p => 
-        p.id === projectId ? { ...p, name: editingProjectName.trim() } : p
-      );
-      setProjects(updatedProjects);
-      localStorage.setItem("vfxb_recent_projects", JSON.stringify(updatedProjects));
+      try {
+        const project = projects.find(p => p.id === projectId || p._id === projectId);
+        if (project) {
+          const updatedProject = {
+            ...project,
+            name: editingProjectName.trim(),
+            lastModified: "Just now",
+            updatedAt: new Date().toISOString()
+          };
+          await projectService.saveProject(updatedProject);
+          // Update local state
+          const updatedProjects = projects.map(p => 
+            (p.id === projectId || p._id === projectId) ? updatedProject : p
+          );
+          setProjects(updatedProjects);
+        }
+      } catch (error) {
+        console.error('Error renaming project:', error);
+      }
     }
     setEditingProjectId(null);
     setEditingProjectName("");
