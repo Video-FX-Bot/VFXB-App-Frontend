@@ -246,5 +246,5 @@ const handleAnalysisComplete = (analysisData) => {
 
 ---
 
-*Last Updated: December 16, 2024*
+*Last Updated: August 15, 2025*
 *Version: 1.0.0*

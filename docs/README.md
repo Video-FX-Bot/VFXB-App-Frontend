@@ -226,6 +226,6 @@ For technical support or questions, please refer to the individual documentation
 
 ---
 
-**Last Updated:** December 16, 2024  
+**Last Updated:** August 15, 2025  
 **Version:** 1.0.0  
 **Status:** Active Development
