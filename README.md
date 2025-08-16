@@ -1,124 +1,32 @@
-# 🎬 VFXB App Frontend
+# 🎬 VFXB Frontend - AI-Powered Video Editing Platform
 
-**Video Effects Bot Application - Frontend Interface**
+**Video Effects Bot Application - React Frontend**
 
-A modern, AI-powered video editing platform built with React, Vite, and TailwindCSS. This application provides an intuitive interface for video editing with conversational AI assistance, real-time processing, and professional-grade video effects.
+VFXB Frontend is the user interface for our cutting-edge, AI-powered video editing platform. Built with React, Vite, and TailwindCSS, it provides an intuitive and responsive interface for both beginners and professionals to create stunning videos through natural language commands and traditional editing tools.
 
-## 🚀 Features
+> 📚 **Complete Documentation**: For comprehensive documentation, architecture details, and development guides, see the [`docs/`](./docs/) folder.
 
-### 🎥 Video Editing
-- **Video Upload & Management**: Support for multiple video formats (MP4, WebM, AVI, MOV, MKV, WMV, FLV)
-- **Real-time Video Player**: Custom video player with full playback controls
-- **Video Processing**: Trim, crop, resize, rotate, and flip operations
-- **Audio Enhancement**: Noise reduction, audio quality improvement
-- **Color Correction**: Brightness, contrast, saturation adjustments
-- **Effects & Filters**: Vintage, sepia, black & white, and custom filters
-- **Subtitles & Text**: Add subtitles, captions, and text overlays
-- **Transitions**: Fade in/out and smooth transitions
-- **Export Options**: Multiple formats and quality presets
+## 🌟 Frontend Features
 
-### 🤖 AI-Powered Assistant
-- **Conversational Interface**: Natural language processing for video editing commands
-- **Intent Recognition**: Smart understanding of user requests
-- **Contextual Suggestions**: AI-powered recommendations based on video content
-- **Real-time Chat**: Interactive chat interface with typing indicators
-- **Operation Execution**: Direct execution of editing operations through chat
+- **🎨 Modern UI**: React + Vite + TailwindCSS with responsive design
+- **📱 Mobile-First**: Capacitor integration for iOS and Android
+- **🤖 AI Chat Interface**: Real-time chat with AI video editing assistant
+- **🎥 Video Timeline**: Interactive video editing timeline component
+- **⚡ Real-time Updates**: Socket.io client for live collaboration
+- **🔐 Authentication**: Secure user authentication and session management
+- **🎯 State Management**: Efficient state management with React Context
 
-### 🎨 User Interface
-- **Modern Design**: Clean, professional interface with dark/light theme support
-- **Responsive Layout**: Optimized for desktop, tablet, and mobile devices
-- **Sidebar Navigation**: Collapsible sidebar with project management
-- **Dashboard**: Overview of projects, recent activities, and quick actions
-- **Project Management**: Create, save, and organize video projects
-- **Template Library**: Pre-built templates for common video types
-
-### ⚡ Performance & UX
-- **Fast Loading**: Optimized with Vite for lightning-fast development and builds
-- **Smooth Animations**: Framer Motion for fluid user interactions
-- **Keyboard Shortcuts**: Comprehensive keyboard shortcuts for power users
-- **Auto-save**: Automatic project saving to prevent data loss
-- **Progress Tracking**: Real-time progress indicators for video processing
-
-## 🛠️ Tech Stack
-
-### Frontend Framework
-- **React 19.1.0**: Latest React with concurrent features
-- **Vite 7.0.4**: Next-generation frontend tooling
-- **React Router DOM 7.7.1**: Client-side routing
-
-### Styling & UI
-- **TailwindCSS 4.1.11**: Utility-first CSS framework
-- **Framer Motion 12.23.11**: Production-ready motion library
-- **Lucide React 0.525.0**: Beautiful & consistent icon library
-
-### State Management
-- **Zustand 5.0.6**: Lightweight state management
-- **React Hook Form 7.61.1**: Performant forms with easy validation
-
-### Additional Libraries
-- **React Dropzone 14.3.8**: File upload with drag & drop
-- **Socket.io Client 4.8.1**: Real-time communication
-- **Autoprefixer & PostCSS**: CSS processing and optimization
-
-## 📁 Project Structure
-
-```
-src/
-├── Pages/                    # Main application pages
-│   ├── Dashboard.jsx         # Main dashboard
-│   ├── AIEditor.jsx          # AI-powered video editor
-│   ├── Projects.jsx          # Project management
-│   ├── Templates.jsx         # Template library
-│   ├── Settings.jsx          # User settings
-│   ├── Login.jsx             # Authentication
-│   └── Signup.jsx            # User registration
-├── components/               # Reusable UI components
-│   ├── ui/                   # Base UI components
-│   │   ├── Button.jsx
-│   │   ├── Card.jsx
-│   │   ├── Input.jsx
-│   │   ├── Modal.jsx
-│   │   └── Loading.jsx
-│   ├── video/                # Video-specific components
-│   │   ├── VideoPlayer.jsx
-│   │   └── VideoUpload.jsx
-│   ├── chat/                 # AI chat interface
-│   │   └── ChatInterface.jsx
-│   ├── layout/               # Layout components
-│   │   └── Sidebar.jsx
-│   └── dashboard/            # Dashboard components
-│       └── DashboardLayout.jsx
-├── services/                 # API and external services
-│   ├── aiService.js          # AI processing service
-│   └── apiService.js         # HTTP API client
-├── context/                  # Zustand stores
-│   ├── chatStore.js          # Chat state management
-│   ├── uiStore.js            # UI state management
-│   └── videoStore.js         # Video state management
-├── hooks/                    # Custom React hooks
-│   ├── useChat.js            # Chat functionality
-│   ├── useUI.js              # UI interactions
-│   └── useVideo.js           # Video operations
-├── constants/                # Application constants
-│   └── index.js              # API endpoints, configs, etc.
-├── utils/                    # Utility functions
-│   └── index.js              # Helper functions
-└── types/                    # Type definitions
-    └── index.js              # TypeScript-like type definitions
-```
-
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js**: Version 18.0 or higher
-- **npm**: Version 8.0 or higher (or yarn/pnpm)
-- **Git**: For version control
+- Node.js 18+
+- Backend API server running (see backend documentation)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Video-FX-Bot/VFXB-App-Frontend.git
+   git clone <repository-url>
    cd VFXB-App-Frontend
    ```
 
@@ -127,326 +35,330 @@ src/
    npm install
    ```
 
-3. **Environment Setup**
-   Create a `.env` file in the root directory:
-   ```env
-   VITE_API_URL=http://localhost:3001/api
-   VITE_WEBSOCKET_URL=ws://localhost:3001
-   VITE_UPLOAD_MAX_SIZE=500000000
-   ```
-
-4. **Start development server**
+3. **Start development server**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**
-   Navigate to `http://localhost:5173`
+4. **Build for production**
+   ```bash
+   npm run build
+   ```
 
-### Build for Production
+### Environment Variables
 
-```bash
-# Build the application
-npm run build
+Configure the following in `backend/.env`:
 
-# Preview the production build
-npm run preview
+```env
+# Database
+MONGODB_URI=mongodb://localhost:27017/vfxb
+
+# JWT
+JWT_SECRET=your-jwt-secret
+
+# AI Services
+OPENAI_API_KEY=your-openai-key
+REPLICATE_API_TOKEN=your-replicate-token
+ELEVENLABS_API_KEY=your-elevenlabs-key
+
+# Media Storage
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 ```
 
-## 🎮 Usage Guide
+## 🛠️ Tech Stack
 
-### Getting Started with Video Editing
+**Frontend:** React + Vite + TailwindCSS + Framer Motion  
+**Backend:** Node.js + Express + MongoDB + Socket.io  
+**AI Services:** OpenAI GPT-4 + Replicate + ElevenLabs  
+**Media:** Cloudinary + FFmpeg
+- **Vite**: Lightning-fast build tool and dev server
+- **TailwindCSS**: Utility-first CSS framework
+- **Framer Motion**: Smooth animations and transitions
+- **Lucide React**: Beautiful, customizable icons
+- **React Router**: Client-side routing
+- **Socket.IO Client**: Real-time communication
 
-1. **Upload a Video**
-   - Navigate to the AI Editor
-   - Drag and drop a video file or click to browse
-   - Supported formats: MP4, WebM, AVI, MOV, MKV, WMV, FLV
+### Backend
+- **Node.js**: JavaScript runtime environment
+- **Express.js**: Fast, unopinionated web framework
+- **Socket.IO**: Real-time bidirectional communication
+- **FFmpeg**: Video processing and manipulation
+- **Multer**: File upload handling
+- **Winston**: Comprehensive logging
+- **Helmet**: Security middleware
 
-2. **Use AI Assistant**
-   - Type natural language commands like:
-     - "Enhance the audio quality"
-     - "Trim the video from 10 seconds to 30 seconds"
-     - "Add subtitles to this video"
-     - "Apply a vintage filter"
-     - "Export as MP4 in high quality"
+### AI & External Services
+- **OpenAI GPT-4**: Conversational AI and content analysis
+- **Replicate**: Video upscaling and style transfer
+- **ElevenLabs**: High-quality voice synthesis
+- **Custom AI Models**: Video analysis and enhancement
 
-3. **Manual Editing**
-   - Use the video player controls for precise editing
-   - Access tools through the sidebar
-   - Apply effects and filters
-   - Preview changes in real-time
+## 📁 Project Structure
 
-### Keyboard Shortcuts
-
-#### General
-- `Ctrl + B`: Toggle sidebar
-- `Ctrl + Shift + T`: Toggle theme
-- `Ctrl + K`: Open search
-- `Ctrl + S`: Save project
-- `Ctrl + Z`: Undo
-- `Ctrl + Y`: Redo
-
-#### Video Player
-- `Space`: Play/Pause
-- `←/→`: Seek backward/forward
-- `↑/↓`: Volume up/down
-- `M`: Mute/Unmute
-- `F`: Fullscreen
-
-#### Timeline Editor
-- `S`: Split clip
-- `Delete`: Delete selected clip
-- `Ctrl + C`: Copy
-- `Ctrl + V`: Paste
-- `Ctrl + A`: Select all
-
-## 🔧 Configuration
-
-### API Configuration
-The application connects to a backend API for video processing and AI services. Configure the API endpoints in `src/constants/index.js`:
-
-```javascript
-export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
-  TIMEOUT: 30000,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
-};
+```
+VFXB_APP/
+├── 📁 VFXB-App-Frontend/          # React frontend application
+│   ├── 📁 src/
+│   │   ├── 📁 components/          # Reusable UI components
+│   │   │   ├── 📁 ui/              # Basic UI components
+│   │   │   ├── 📁 video/           # Video player components
+│   │   │   ├── 📁 effects/         # Effects library
+│   │   │   ├── 📁 chat/            # AI chat interface
+│   │   │   └── 📁 timeline/        # Timeline editor
+│   │   ├── 📁 Pages/               # Page components
+│   │   ├── 📁 services/            # API services
+│   │   ├── 📁 hooks/               # Custom React hooks
+│   │   └── 📁 utils/               # Utility functions
+│   ├── 📄 package.json
+│   └── 📄 vite.config.js
+├── 📁 backend/                     # Node.js backend application
+│   ├── 📁 src/
+│   │   ├── 📁 routes/              # API route handlers
+│   │   ├── 📁 services/            # Business logic services
+│   │   ├── 📁 models/              # Data models
+│   │   ├── 📁 middleware/          # Express middleware
+│   │   ├── 📁 utils/               # Utility functions
+│   │   └── 📁 sockets/             # Socket.IO handlers
+│   ├── 📁 uploads/                 # File storage
+│   ├── 📁 docs/                    # API documentation
+│   └── 📄 package.json
+├── 📄 README.md                    # This file
+└── 📄 AI_Video_Editor_Market_Research.md
 ```
 
-### Upload Limits
-Configure file upload limits:
+## 🚀 Quick Start
 
-```javascript
-export const UPLOAD_CONFIG = {
-  MAX_FILE_SIZE: 500 * 1024 * 1024, // 500MB
-  MAX_AUDIO_SIZE: 100 * 1024 * 1024, // 100MB
-  CHUNK_SIZE: 1024 * 1024, // 1MB chunks
-};
+### Prerequisites
+- **Node.js**: Version 18.0 or higher
+- **npm**: Version 8.0 or higher
+- **FFmpeg**: Required for video processing
+- **Git**: For version control
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd VFXB_APP
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   
+   # Create environment file
+   cp .env.example .env
+   # Edit .env with your API keys
+   
+   # Start backend server
+   npm run dev
+   ```
+
+3. **Frontend Setup** (in a new terminal)
+   ```bash
+   cd VFXB-App-Frontend
+   npm install
+   
+   # Create environment file
+   echo "VITE_API_URL=http://localhost:3001/api" > .env
+   
+   # Start frontend server
+   npm run dev
+   ```
+
+4. **Access the Application**
+   - Frontend: `http://localhost:3000`
+   - Backend API: `http://localhost:3001`
+   - Health Check: `http://localhost:3001/api/health`
+
+## ⚙️ Environment Configuration
+
+### Backend Environment Variables
+Create a `.env` file in the `backend` directory:
+
+```env
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# AI Service API Keys
+OPENAI_API_KEY=your_openai_api_key_here
+REPLICATE_API_TOKEN=your_replicate_token_here
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+
+# File Upload Configuration
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=500000000
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3000
+
+# Logging
+LOG_LEVEL=info
 ```
 
-### Video Processing
-Customize video processing presets:
+### Frontend Environment Variables
+Create a `.env` file in the `VFXB-App-Frontend` directory:
 
-```javascript
-export const VIDEO_PROCESSING = {
-  QUALITY_PRESETS: {
-    LOW: { width: 480, height: 360, bitrate: '500k' },
-    MEDIUM: { width: 720, height: 480, bitrate: '1000k' },
-    HIGH: { width: 1280, height: 720, bitrate: '2500k' },
-    ULTRA: { width: 1920, height: 1080, bitrate: '5000k' },
-  },
-};
+```env
+# API Configuration
+VITE_API_URL=http://localhost:3001/api
+VITE_WEBSOCKET_URL=ws://localhost:3001
+
+# Upload Configuration
+VITE_UPLOAD_MAX_SIZE=500000000
+VITE_SUPPORTED_FORMATS=mp4,mov,avi,mkv,webm
+
+# Feature Flags
+VITE_ENABLE_AI_FEATURES=true
+VITE_ENABLE_PREMIUM_EFFECTS=true
 ```
-
-## 🎨 Theming & Customization
-
-### Theme Configuration
-The application supports light and dark themes. Customize colors in `src/constants/index.js`:
-
-```javascript
-export const THEME_CONFIG = {
-  COLORS: {
-    PRIMARY: {
-      500: '#3b82f6', // Blue
-      600: '#2563eb',
-      // ... other shades
-    },
-    // ... other color schemes
-  },
-};
-```
-
-### TailwindCSS Customization
-Modify `tailwind.config.js` to customize the design system:
-
-```javascript
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        // Custom colors
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-    },
-  },
-};
-```
-
-## 🧪 Testing
-
-### Running Tests
-```bash
-# Run unit tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run E2E tests
-npm run test:e2e
-```
-
-### Testing Strategy
-- **Unit Tests**: Component testing with React Testing Library
-- **Integration Tests**: API integration and service testing
-- **E2E Tests**: Full user journey testing with Playwright
-
-## 📦 Deployment
-
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Configure environment variables
-3. Deploy automatically on push to main branch
-
-### Netlify
-1. Build the application: `npm run build`
-2. Deploy the `dist` folder to Netlify
-3. Configure redirects for SPA routing
-
-### Docker
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
-```
-
-## 🔒 Security
-
-### Best Practices
-- Environment variables for sensitive configuration
-- Input validation and sanitization
-- HTTPS enforcement in production
-- Content Security Policy (CSP) headers
-- Regular dependency updates
-
-### File Upload Security
-- File type validation
-- Size limits enforcement
-- Virus scanning (backend)
-- Secure file storage
-
-## 🚀 Performance Optimization
-
-### Code Splitting
-- Route-based code splitting with React.lazy()
-- Component-level lazy loading
-- Dynamic imports for heavy libraries
-
-### Asset Optimization
-- Image optimization with WebP format
-- Video compression and streaming
-- CSS and JavaScript minification
-- Gzip compression
-
-### Caching Strategy
-- Browser caching for static assets
-- Service worker for offline functionality
-- API response caching
-- Local storage for user preferences
-
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Code Style
-- ESLint configuration for code quality
-- Prettier for code formatting
-- Conventional commits for commit messages
-- Component documentation with JSDoc
-
-### Pull Request Guidelines
-- Include tests for new features
-- Update documentation as needed
-- Ensure all tests pass
-- Follow the existing code style
-- Add screenshots for UI changes
 
 ## 📚 API Documentation
 
-### AI Service Integration
-The application integrates with an AI service for natural language processing:
+### Core Endpoints
 
-```javascript
-// Example AI service usage
-import aiService from './services/aiService';
+#### Health Check
+```http
+GET /api/health
+```
+Returns server status, uptime, and version information.
 
-const response = await aiService.processMessage(
-  "Enhance the audio quality",
-  { videoId: "123", currentTime: 30 }
-);
+#### Video Processing
+```http
+POST /api/video/upload
+POST /api/video/trim
+POST /api/video/crop
+POST /api/video/apply-filter
+POST /api/video/add-text
+POST /api/video/export
 ```
 
-### Video Processing API
-Video operations are handled through RESTful API endpoints:
-
-```javascript
-// Example video processing
-const result = await apiService.post('/video/process', {
-  videoId: '123',
-  operation: 'audio_enhance',
-  parameters: { noiseReduction: true }
-});
+#### AI Services
+```http
+POST /api/ai/chat
+POST /api/ai/upscale
+POST /api/ai/style-transfer
+POST /api/ai/voice-generation
 ```
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Video Upload Fails**
-- Check file size limits (500MB max)
-- Verify supported file formats
-- Ensure stable internet connection
-
-**AI Chat Not Responding**
-- Verify API endpoint configuration
-- Check network connectivity
-- Review browser console for errors
-
-**Performance Issues**
-- Clear browser cache
-- Check available system memory
-- Reduce video quality settings
-
-### Debug Mode
-Enable debug mode by setting:
-```env
-VITE_DEBUG=true
+#### Project Management
+```http
+GET /api/projects
+POST /api/projects
+GET /api/projects/:id
+PUT /api/projects/:id
+DELETE /api/projects/:id
 ```
 
-## 📄 License
+For detailed API documentation, see the [Backend Documentation](./backend/docs/API.md).
+
+## 🏗️ Build for Production
+
+### Frontend Build
+```bash
+cd VFXB-App-Frontend
+npm run build
+```
+This creates an optimized production build in the `dist` directory.
+
+### Backend Production
+```bash
+cd backend
+npm run build  # If using TypeScript
+npm start      # Production server
+```
+
+## 🚀 Deployment
+
+### Frontend Deployment
+- **Vercel**: Connect your GitHub repository for automatic deployments
+- **Netlify**: Drag and drop the `dist` folder or connect via Git
+- **AWS S3 + CloudFront**: Upload build files to S3 and configure CloudFront
+
+### Backend Deployment
+- **Railway**: Simple deployment with automatic scaling
+- **Heroku**: Easy deployment with add-ons for databases
+- **AWS EC2**: Full control over server configuration
+- **DigitalOcean**: Cost-effective VPS hosting
+
+### Environment Variables for Production
+Ensure all environment variables are properly configured in your deployment platform.
+
+## 🧪 Testing
+
+### Frontend Testing
+```bash
+cd VFXB-App-Frontend
+npm run test        # Run unit tests
+npm run test:e2e    # Run end-to-end tests
+npm run test:coverage # Generate coverage report
+```
+
+### Backend Testing
+```bash
+cd backend
+npm test            # Run all tests
+npm run test:unit   # Unit tests only
+npm run test:integration # Integration tests
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes**
+4. **Add tests** for new functionality
+5. **Commit your changes**
+   ```bash
+   git commit -m 'Add amazing feature'
+   ```
+6. **Push to the branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open a Pull Request**
+
+### Development Guidelines
+- Follow the existing code style
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting
+
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **React Team**: For the amazing React framework
-- **Vite Team**: For the lightning-fast build tool
-- **TailwindCSS**: For the utility-first CSS framework
-- **Framer Motion**: For smooth animations
-- **Lucide**: For beautiful icons
-- **Open Source Community**: For the incredible ecosystem
+- **FFmpeg** - Powerful video processing capabilities
+- **OpenAI** - Advanced AI language models
+- **Replicate** - AI model hosting and inference
+- **ElevenLabs** - High-quality voice synthesis
+- **React Community** - Amazing frontend framework and ecosystem
+- **Node.js Community** - Robust backend runtime and packages
 
 ## 📞 Support
 
-- **Documentation**: [docs.vfxb.app](https://docs.vfxb.app)
-- **Issues**: [GitHub Issues](https://github.com/Video-FX-Bot/VFXB-App-Frontend/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Video-FX-Bot/VFXB-App-Frontend/discussions)
-- **Email**: support@vfxb.app
+- **Documentation**: Check our comprehensive docs
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Join community discussions
+- **Email**: Contact us at support@vfxb.app
 
 ---
+
+**Built with ❤️ by the VFXB Team**
+
+*Making professional video editing accessible to everyone through the power of AI.*
 
 **Built with ❤️ by the VFXB Team**
 
