@@ -36,11 +36,13 @@ const ChatInterface = ({
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [contextualSuggestions, setContextualSuggestions] = useState([]);
-  const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
   const [speechSynthesis, setSpeechSynthesis] = useState(null);
-  
+
+  // NEW: listRef replaces messagesEndRef
+  const listRef = useRef(null);
+
   // Initialize voice recognition
   useEffect(() => {
     if (enableVoiceInput && 'webkitSpeechRecognition' in window) {
@@ -70,10 +72,13 @@ const ChatInterface = ({
     }
   }, [enableVoiceInput]);
   
-  // Auto-scroll to bottom
+  // Keep view pinned to the newest (bottom) message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (listRef.current) {
+      // with flex-col-reverse, bottom is scrollTop = 0
+      listRef.current.scrollTop = 0;
+    }
+  }, [messages, isLoading]);
   
   // Generate contextual suggestions based on current project
   useEffect(() => {
@@ -112,12 +117,8 @@ const ChatInterface = ({
   
   const handleVoiceToggle = useCallback(() => {
     if (!voiceSupported || !recognitionRef.current) return;
-    
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
-    }
+    if (isListening) recognitionRef.current.stop();
+    else recognitionRef.current.start();
   }, [isListening, voiceSupported]);
   
   const speakMessage = useCallback((text) => {
@@ -186,8 +187,12 @@ const ChatInterface = ({
         </div>
       </div>
       
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages (bottom-anchored) */}
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto p-4 flex flex-col-reverse space-y-4 space-y-reverse"
+        style={{ scrollbarWidth: 'thin' }}
+      >
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <Bot className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -217,13 +222,13 @@ const ChatInterface = ({
             </div>
           </div>
         ) : (
-          <AnimatePresence>
-            {messages.map((message, index) => (
+          <AnimatePresence initial={false}>
+            {[...messages].reverse().map((message, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.25 }}
                 className={`flex items-start space-x-3 ${
                   message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                 }`}
@@ -250,7 +255,7 @@ const ChatInterface = ({
                   }`}>
                     <p className="text-sm">{message.content}</p>
                     {message.timestamp && (
-                      <p className={`text-xs mt-1 opacity-70`}>
+                      <p className="text-xs mt-1 opacity-70">
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </p>
                     )}
@@ -305,28 +310,27 @@ const ChatInterface = ({
                 </div>
               </motion.div>
             ))}
+
+            {isLoading && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start space-x-3"
+              >
+                <div className="w-8 h-8 bg-secondary-600 rounded-full flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                    <span className="text-sm text-gray-600">AI is thinking...</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         )}
-        
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-start space-x-3"
-          >
-            <div className="w-8 h-8 bg-secondary-600 rounded-full flex items-center justify-center">
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-            <div className="bg-gray-100 rounded-lg p-3">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
-                <span className="text-sm text-gray-600">AI is thinking...</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        
-        <div ref={messagesEndRef} />
       </div>
       
       {/* Input */}
