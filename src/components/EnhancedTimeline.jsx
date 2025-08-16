@@ -927,8 +927,12 @@ const EnhancedTimeline = ({
       className={`${currentTheme.bg} ${currentTheme.text} ${className} flex flex-col border rounded-lg overflow-visible`}
       style={{ height: timelineHeight }}
     >
-      {/* Timeline Header */}
-      <div className={`${currentTheme.cardBg} ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2`} style={{ minHeight: HEADER_HEIGHT }}>
+     {/* Timeline Header */}
+<div
+  className={`${currentTheme.cardBg} ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 relative z-10`}
+  style={{ minHeight: HEADER_HEIGHT }}
+>
+
         {/* Left Section - Zoom Controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Enhanced Zoom Controls */}
