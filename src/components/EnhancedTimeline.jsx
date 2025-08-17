@@ -134,6 +134,7 @@ const EnhancedTimeline = ({
   }), []);
   
   const currentTheme = themeConfig[theme] || themeConfig.dark;
+  const isDark = theme === 'dark';
   
   // Time conversion utilities
   const timeToPixels = useCallback((time) => {
@@ -749,7 +750,7 @@ const EnhancedTimeline = ({
         )}
         
         {/* Enhanced Clip info overlay */}
-        <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/70 via-black/40 to-transparent rounded-t-lg">
+        <div className={`absolute top-0 left-0 right-0 p-2 rounded-t-lg ${isDark ? 'bg-gradient-to-b from-black/70 via-black/40 to-transparent' : 'bg-gradient-to-b from-white/70 via-white/40 to-transparent'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
@@ -758,7 +759,7 @@ const EnhancedTimeline = ({
                 clip.type === 'image' ? 'bg-purple-400' :
                 'bg-yellow-400'
               } shadow-lg`} />
-              <span className="text-xs font-semibold text-white truncate drop-shadow-sm">
+              <span className={`text-xs font-semibold truncate drop-shadow-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {clip.name}
               </span>
             </div>
@@ -767,7 +768,7 @@ const EnhancedTimeline = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-white hover:bg-white/25 rounded-md transition-all duration-200 backdrop-blur-sm"
+                  className={`h-6 w-6 p-0 rounded-md transition-all duration-200 backdrop-blur-sm ${isDark ? 'text-white hover:bg-white/25' : 'text-gray-900 hover:bg-gray-200/70'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     // Handle clip split
@@ -778,7 +779,7 @@ const EnhancedTimeline = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-white hover:bg-red-500/30 rounded-md transition-all duration-200 backdrop-blur-sm"
+                  className={`h-6 w-6 p-0 rounded-md transition-all duration-200 backdrop-blur-sm ${isDark ? 'text-white hover:bg-red-500/30' : 'text-red-600 hover:bg-red-100'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteClip(clip.id, trackId);
@@ -792,11 +793,11 @@ const EnhancedTimeline = ({
           
           {/* Clip duration and metadata */}
           <div className="flex items-center justify-between mt-1">
-            <div className="text-xs text-gray-200 font-medium drop-shadow-sm">
+            <div className={`text-xs font-medium drop-shadow-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
               {formatTime(clip.duration)}
             </div>
             {clip.metadata && (
-              <div className="text-xs text-gray-300 opacity-75">
+              <div className={`text-xs opacity-75 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                 {clip.metadata.resolution || ''}
               </div>
             )}
@@ -832,7 +833,7 @@ const EnhancedTimeline = ({
           </div>
         ))}
         
-        <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/60 to-transparent">
+        <div className={`absolute bottom-0 left-0 right-0 p-1 ${isDark ? 'bg-gradient-to-t from-black/60 to-transparent' : 'bg-gradient-to-t from-white/70 to-transparent'}`}>
           <div className="text-xs text-gray-300 flex justify-between items-center">
             <span>{formatTime(clip.duration)}</span>
             {clip.type === 'video' && (
@@ -928,40 +929,44 @@ const EnhancedTimeline = ({
       style={{ height: timelineHeight }}
     >
      {/* Timeline Header */}
-<div
-  className={`${currentTheme.cardBg} ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 relative z-10`}
-  style={{ minHeight: HEADER_HEIGHT }}
->
+    <div
+      className={`${currentTheme.cardBg} ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 relative z-10`}
+      style={{ minHeight: HEADER_HEIGHT }}
+    >
 
         {/* Left Section - Zoom Controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Enhanced Zoom Controls */}
-          <div className="flex items-center space-x-2 bg-gray-800/95 backdrop-blur-md rounded-lg px-3 py-2 border border-gray-600/50 shadow-lg">
+          <div className={`flex items-center space-x-2 ${currentTheme.cardBg} backdrop-blur-md rounded-lg px-3 py-2 border ${currentTheme.border} shadow-lg`}>
             {/* Zoom Out */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onZoomChange?.(Math.max(0.1, zoom - 0.1))}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`bg-transparent h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Zoom Out (Ctrl + -)"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
             
             {/* Zoom Level Display */}
-            <span className="text-sm text-white font-mono min-w-[3rem] text-center bg-gray-700/50 px-2 py-1 rounded border border-gray-600/30">
-              {Math.round(zoom * 100)}%
-            </span>
+            <span className={`text-sm font-mono min-w-[3rem] text-center px-2 py-1 rounded border ${
+              isDark
+                ? 'text-white bg-gray-700/50 border-gray-600/30'
+                : 'text-gray-900 bg-gray-200/90 border-gray-300'
+            }`}>
+               {Math.round(zoom * 100)}%
+             </span>
             
             {/* Zoom In */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onZoomChange?.(Math.min(5, zoom + 0.1))}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Zoom In (Ctrl + +)"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
           </div>
         </div>
@@ -969,16 +974,16 @@ const EnhancedTimeline = ({
         {/* Right Section - Playback Controls and Add Track */}
         <div className="flex items-center space-x-2 flex-nowrap">
           {/* Enhanced Playback Controls */}
-          <div className="flex items-center space-x-2 bg-gray-800/95 backdrop-blur-md rounded-lg px-3 py-2 border border-gray-600/50 shadow-lg">
+          <div className={`flex items-center space-x-2 ${currentTheme.cardBg} backdrop-blur-md rounded-lg px-3 py-2 border ${currentTheme.border} shadow-lg`}>
             {/* Skip to Start */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onTimeChange?.(0)}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Skip to Start (Home)"
             >
-              <SkipBack className="w-4 h-4" />
+              <SkipBack className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
             
             {/* Frame Backward */}
@@ -989,10 +994,10 @@ const EnhancedTimeline = ({
                 const newTime = Math.max(0, currentTime - 1/30); // 1 frame at 30fps
                 onTimeChange?.(newTime);
               }}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Previous Frame (Left Arrow)"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
             
             {/* Play/Pause Button */}
@@ -1013,7 +1018,7 @@ const EnhancedTimeline = ({
               }`}
               title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
             >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
             </Button>
             
             {/* Frame Forward */}
@@ -1024,10 +1029,10 @@ const EnhancedTimeline = ({
                 const newTime = Math.min(duration, currentTime + 1/30); // 1 frame at 30fps
                 onTimeChange?.(newTime);
               }}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Next Frame (Right Arrow)"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
             
             {/* Skip to End */}
@@ -1035,22 +1040,24 @@ const EnhancedTimeline = ({
               variant="ghost"
               size="sm"
               onClick={() => onTimeChange?.(duration)}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
+              className={`h-8 w-8 p-0 rounded transition-all duration-200 ${isDark ? 'text-gray-300 hover:text-white hover:bg-gray-700/60' : 'text-black hover:text-black hover:bg-gray-200/70'}`}
               title="Skip to End (End)"
             >
-              <SkipForward className="w-4 h-4" />
+              <SkipForward className={isDark ? 'w-6 h-6' : 'w-6 h-6'} />
             </Button>
             
             {/* Separator */}
             <div className="h-8 w-px bg-gray-600/50" />
             
             {/* Time Display */}
-            <div className="flex items-center space-x-1 bg-gray-700/50 px-2 py-1 rounded border border-gray-600/30">
-              <div className="text-sm font-mono text-white font-semibold">
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded border ${
+              isDark ? 'bg-gray-700/50 border-gray-600/30' : 'bg-gray-200/90 border-gray-300'
+            }`}>
+              <div className={`text-sm font-mono font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {formatTime(currentTime)}
               </div>
-              <div className="text-gray-500 font-mono text-sm">/</div>
-              <div className="text-sm font-mono text-gray-300">
+              <div className={`font-mono text-sm ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>/</div>
+              <div className={`text-sm font-mono ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>
                 {formatTime(duration)}
               </div>
             </div>
@@ -1148,10 +1155,10 @@ const EnhancedTimeline = ({
                         {track.type === 'effects' && <Filter className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-gray-200 truncate">
+                        <div className={`font-medium text-sm truncate ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                           {track.name || `${track.type.charAt(0).toUpperCase() + track.type.slice(1)} Track ${index + 1}`}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                           {track.clips?.length || 0} clip{(track.clips?.length || 0) !== 1 ? 's' : ''}
                         </div>
                       </div>
@@ -1163,7 +1170,7 @@ const EnhancedTimeline = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onVideoUpload?.(track.id)}
-                        className="h-8 w-8 p-0 hover:bg-gray-600/50"
+                        className={`h-8 w-8 p-0 ${isDark ? 'hover:bg-gray-600/50' : 'hover:bg-gray-200/70'}`}
                         title="Upload Media"
                       >
                         <Upload className="w-4 h-4" />
@@ -1172,7 +1179,7 @@ const EnhancedTimeline = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteTrack(track.id)}
-                        className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400"
+                        className={`h-8 w-8 p-0 ${isDark ? 'hover:bg-red-500/20 hover:text-red-400' : 'hover:bg-red-100 hover:text-red-600'}`}
                         title="Delete Track"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1253,7 +1260,7 @@ const EnhancedTimeline = ({
                           }}
                         />
                       </div>
-                      <span className="text-xs text-gray-400 w-8 text-right">
+                      <span className={`text-xs w-8 text-right ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         {track.volume || track.opacity || 100}%
                       </span>
                     </div>
@@ -1268,7 +1275,7 @@ const EnhancedTimeline = ({
         <div className="flex-1 overflow-x-auto overflow-y-visible relative z-0" ref={timelineRef} style={{ scrollBehavior: 'smooth' }}>
           {/* Time Ruler */}
           <div 
-            className={`${currentTheme.ruler} ${currentTheme.border} border-b relative shadow-inner bg-gradient-to-b from-gray-800 to-gray-900`} 
+            className={`${currentTheme.ruler} ${currentTheme.border} border-b relative shadow-inner ${isDark ? 'bg-gradient-to-b from-gray-800 to-gray-900' : 'bg-gradient-to-b from-gray-100 to-gray-50'}`} 
             style={{ height: RULER_HEIGHT, minWidth: Math.max(800, timelineDuration * PIXELS_PER_SECOND * zoom) }}
             onClick={handleTimelineClick}
           >
@@ -1319,10 +1326,12 @@ const EnhancedTimeline = ({
                 {/* Time labels with enhanced styling */}
                 {mark.showLabel && (
                   <div
-                    className="absolute text-xs text-gray-200 pointer-events-none select-none font-mono font-medium"
+                    className={`absolute text-xs pointer-events-none select-none font-mono font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}
                     style={{ left: mark.x - 25, top: 4 }}
                   >
-                    <div className="bg-gray-800/90 backdrop-blur-sm px-2 py-1 rounded-md text-center min-w-[50px] border border-gray-600/30 shadow-lg">
+                    <div className={`backdrop-blur-sm px-2 py-1 rounded-md text-center min-w-[50px] border shadow-lg ${
+                      isDark ? 'bg-gray-800/90 border-gray-600/30 text-white' : 'bg-gray-100/90 border-gray-300 text-gray-900'
+                    }`}>
                       {formatTime(mark.time)}
                     </div>
                   </div>
@@ -1345,7 +1354,7 @@ const EnhancedTimeline = ({
               
               {/* Time display bubble */}
               <div
-                className="absolute top-8 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-mono font-bold px-2 py-1 rounded-md shadow-xl border border-blue-400/50 backdrop-blur-sm transform -translate-x-1/2"
+                className="absolute top-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-mono font-bold px-2 py-1 rounded-md shadow-xl border border-blue-400/50 backdrop-blur-sm transform -translate-x-1/2"
                 style={{ left: '50%' }}
               >
                 <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-500 rotate-45" />
@@ -1371,7 +1380,7 @@ const EnhancedTimeline = ({
             {tracks.map((track, index) => (
               <div
                 key={track.id}
-                className={`relative ${currentTheme.border} border-b group backdrop-blur-sm transition-all duration-200 hover:bg-gray-700/20`}
+                className={`relative ${currentTheme.border} border-b group backdrop-blur-sm transition-all duration-200 ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-100/70'}`}
                 style={{ 
                   height: TRACK_HEIGHT,
                   backgroundColor: index % 2 === 0 ? currentTheme.track : currentTheme.trackAlt
@@ -1509,7 +1518,7 @@ const EnhancedTimeline = ({
       </div>
       
       {/* Timeline Footer - Enhanced */}
-      <div className={`${currentTheme.cardBg} ${currentTheme.border} border-t p-3 flex items-center justify-between text-sm ${currentTheme.textMuted} bg-gradient-to-r from-gray-800 to-gray-900`}>
+      <div className={`${currentTheme.cardBg} ${currentTheme.border} border-t p-3 flex items-center justify-between text-sm ${isDark ? currentTheme.textMuted : 'text-gray-900'} ${isDark ? 'bg-gradient-to-r from-gray-800 to-gray-900' : 'bg-gradient-to-r from-gray-100 to-white'}`}>
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1526,8 +1535,8 @@ const EnhancedTimeline = ({
         </div>
         
         <div className="flex items-center space-x-4">
-          <span className="px-2 py-1 bg-gray-700 rounded text-xs font-medium">Professional Mode</span>
-          <span className="px-2 py-1 bg-blue-600 rounded text-xs font-medium text-white">Zoom: {Math.round(zoom * 100)}%</span>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'}`}>Professional Mode</span>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${isDark ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'}`}>Zoom: {Math.round(zoom * 100)}%</span>
         </div>
       </div>
       

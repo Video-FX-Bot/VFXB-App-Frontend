@@ -549,15 +549,22 @@ const NewDashboard = () => {
                        return (
                          <motion.button
                            key={category.id}
-                           initial={{ opacity: 0, y: 20 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           transition={{ delay: 0.3 + index * 0.1 }}
+                           initial={{ opacity: 0, y: 20, scale: 1 }}
+                           animate={{
+                             opacity: 1,
+                             y: 0,
+                             scale: selectedCategory === category.id ? 1.06 : 1
+                           }}
+                           transition={{
+                             delay: 0.3 + index * 0.1,
+                             scale: { duration: 0.05, ease: 'easeInOut' }
+                           }}
                            onClick={() => setSelectedCategory(category.id)}
-                           className={`group p-4 rounded-xl border-2 transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-[1.02] hover:-translate-y-1 ${
-                             selectedCategory === category.id
-                               ? 'border-purple-500 bg-purple-500/10 shadow-elevation-2'
-                               : 'border-gray-300 dark:border-gray-600 bg-card/50 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-card/70'
-                           }`}
+                            className={`group p-4 rounded-xl border-2 transition-transform duration-300 shadow-elevation-1 hover:shadow-elevation-2 hover:-translate-y-1 ${
+                              selectedCategory === category.id
+                                ? 'border-purple-500 bg-purple-500/10 shadow-elevation-2'
+                                : 'border-gray-300 dark:border-gray-600 bg-card/50 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-card/70'
+                            }`}
                          >
                            <div className="text-center space-y-3">
                              <div className={`${category.color} p-3 rounded-lg mx-auto w-fit shadow-elevation-1 group-hover:scale-110 transition-transform`}>
@@ -759,7 +766,7 @@ const NewDashboard = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&>option]:bg-background [&>option]:text-foreground"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&>option]:bg-background [&>option]:text-black"
               >
                 <option value="recent" className="bg-background text-foreground">Last Edited</option>
                 <option value="name" className="bg-background text-foreground">Title</option>
@@ -803,9 +810,9 @@ const NewDashboard = () => {
                       />
                       <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                          project.status === 'Completed' ? 'bg-green-500/20 text-green-600 border border-green-500/30' :
-                          project.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30' :
-                          'bg-blue-500/20 text-blue-600 border border-blue-500/30'
+                          project.status === 'Completed' ? 'bg-green-500/80 text-green-600 dark:text-green-300 border-2 border-green-500/50 shadow-sm' :
+                          project.status === 'In Progress' ? 'bg-yellow-500/80 text-yellow-700 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm' :
+                          'bg-blue-500/80 text-blue-700 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm'
                         }`}>
                           {project.status}
                         </span>
@@ -929,8 +936,8 @@ const NewDashboard = () => {
                           alt={project.title}
                           className="w-16 h-16 object-cover rounded-lg group-hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="absolute -top-1 -right-1">
-                          <span className={`w-3 h-3 rounded-full ${
+                        <div className="absolute -top-3 -right-1">
+                          <span className={`inline-block w-3 h-3 rounded-full ${
                             project.status === 'Completed' ? 'bg-green-500' :
                             project.status === 'In Progress' ? 'bg-yellow-500' :
                             'bg-blue-500'

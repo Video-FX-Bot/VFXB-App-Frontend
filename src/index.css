@@ -598,3 +598,12 @@
   background: hsl(var(--primary) / 0.8);
   transform: scale(1.1);
 }
+
+/* AI Editor scoped overrides */
+.ai-editor :where(button[variant="ghost"], .ghost-button-light, .btn-ghost) {
+  background-color: transparent !important;
+}
+/* Keep dark theme behavior untouched */
+:root.dark .ai-editor :where(button[variant="ghost"], .ghost-button-light, .btn-ghost) {
+  background-color: transparent; /* rely on existing dark hover classes */
+}

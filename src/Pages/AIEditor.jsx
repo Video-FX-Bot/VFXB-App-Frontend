@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
 import EnhancedTimeline from "../components/EnhancedTimeline";
+import useUI from "../hooks/useUI";
 import EffectsLibrary from "../components/effects/EffectsLibrary";
 // Removed ProfessionalToolPalette import as per user request
 import {
@@ -44,6 +45,7 @@ import socketService from "../services/socketService";
 import projectService from "../services/projectService";
 
 const AIEditor = () => {
+  const { theme } = useUI();
   const [activeTab, setActiveTab] = useState("assistant");
   const chatScrollRef = useRef(null);
   const location = useLocation();
@@ -963,7 +965,7 @@ const AIEditor = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="ai-editor min-h-screen bg-background text-foreground flex flex-col">
       {/* Main Editor Layout (two columns) */}
       <div className="flex flex-1 overflow-hidden px-8 py-4 gap-6">
         {/* Left: Video Only (2/3) */}
@@ -1211,7 +1213,7 @@ const AIEditor = () => {
             duration={duration || 30}
             zoom={timelineZoom}
             isPlaying={isPlaying}
-            theme="dark"
+            theme={theme === 'dark' ? 'dark' : 'light'}
             onTimeChange={handleTimeChange}
             onZoomChange={setTimelineZoom}
             onPlay={() => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -317,17 +317,32 @@ const Sidebar = () => {
     setEditingProjectName("");
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "draft":
-        return "bg-yellow-500";
-      case "completed":
-        return "bg-green-500";
-      case "processing":
-        return "bg-blue-500";
-      default:
-        return "bg-gray-500";
+  // Normalize varying status strings to match Dashboard: 'Completed' | 'In Progress' | 'Draft'
+  const normalizeStatus = (status) => {
+    const s = (status || '').toString().toLowerCase();
+    if (s.includes('progress') || s === 'processing') return 'In Progress';
+    if (s === 'completed' || s === 'complete' || s === 'done') return 'Completed';
+    return 'Draft';
+  };
+
+  // Dot color next to thumbnail
+  const getStatusDotColor = (status) => {
+    const n = normalizeStatus(status);
+    if (n === 'Completed') return 'bg-green-500';
+    if (n === 'In Progress') return 'bg-yellow-500';
+    return 'bg-blue-500'; // Draft
+  };
+
+  // Badge classes matching Dashboard grid badges
+  const getStatusBadgeClasses = (status) => {
+    const n = normalizeStatus(status);
+    if (n === 'Completed') {
+      return 'bg-green-500/80 text-green-600 dark:text-green-300 border-2 border-green-500/50 shadow-sm';
     }
+    if (n === 'In Progress') {
+      return 'bg-yellow-500/80 text-yellow-700 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm';
+    }
+    return 'bg-blue-500/80 text-blue-700 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm'; // Draft
   };
 
   return (
@@ -389,7 +404,7 @@ const Sidebar = () => {
 
           <div className="space-y-1 lg:space-y-2">
             {projects.map((project) => (
-              <motion.div
+              <Motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -409,7 +424,7 @@ const Sidebar = () => {
                       />
                     </div>
                     <div
-                       className={`absolute -top-1 -right-1 w-3 h-3 rounded-full z-10 ${getStatusColor(
+                       className={`absolute -top-1 -right-1 w-3 h-3 rounded-full z-10 ${getStatusDotColor(
                          project.status
                        )}`}
                      />
@@ -444,16 +459,8 @@ const Sidebar = () => {
                                <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
                                <span className="text-xs">{project.duration}</span>
                              </div>
-                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                               project.status === 'completed' 
-                                 ? 'bg-success-light text-success-light border border-green-500/30' 
-                                 : project.status === 'draft'
-                                 ? 'bg-warning-light text-warning-light border border-yellow-500/30'
-                                 : project.status === 'processing'
-                                 ? 'bg-info-light text-info-light border border-blue-500/30'
-                                 : 'bg-muted text-muted-foreground border border-border'
-                             }`}>
-                               {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadgeClasses(project.status)}`}>
+                               {normalizeStatus(project.status)}
                              </span>
                            </div>
                         </>
@@ -476,7 +483,7 @@ const Sidebar = () => {
 
                   {/* Project Menu */}
                   {projectMenuOpen === project.id && (
-                    <motion.div
+                    <Motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="absolute right-2 top-12 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px] bg-card"
@@ -538,10 +545,10 @@ const Sidebar = () => {
                         <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
-                    </motion.div>
+                    </Motion.div>
                   )}
                 </div>
-              </motion.div>
+              </Motion.div>
             ))}
           </div>
 
