@@ -62,13 +62,13 @@ const Modal = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative bg-white rounded-lg shadow-xl w-full ${sizes[size]} ${className}`}
+            className={`relative bg-card text-card-foreground border border-border rounded-lg shadow-xl w-full ${sizes[size]} ${className}`}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-border">
                 {title && (
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-foreground">
                     {title}
                   </h2>
                 )}
@@ -77,7 +77,7 @@ const Modal = ({
                     variant="ghost"
                     size="sm"
                     onClick={onClose}
-                    className="p-2 hover:bg-gray-100 rounded-full"
+                    className="p-2 hover:bg-muted rounded-full"
                   >
                     <X className="w-5 h-5" />
                   </Button>

@@ -301,8 +301,8 @@ const Settings = () => {
                  onChange={(e) => handleInputChange('notifications', key, e.target.checked)}
                  className="sr-only peer"
                />
-               <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-purple-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 relative">
-                 <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${formData.notifications[key] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+               <div className="w-11 h-6 bg-muted rounded-full border-2 border-border peer peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 relative">
+                 <div className={`absolute top-0.2 left-0.2 w-5 h-5 bg-card-foreground rounded-full transition-transform duration-200 ease-in-out ${formData.notifications[key] ? 'translate-x-5' : 'translate-x-0'}`}></div>
                </div>
              </label>
            </div>
@@ -356,15 +356,15 @@ const Settings = () => {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={formData.preferences[key]}
+                checked={key === 'darkMode' ? theme === 'dark' : formData.preferences[key]}
                 onChange={(e) => {
                   handleInputChange('preferences', key, e.target.checked);
                   if (key === 'darkMode') toggleTheme();
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-purple-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 relative">
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out ${formData.preferences[key] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              <div className="w-11 h-6 bg-muted rounded-full border-2 border-border peer peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 relative">
+                <div className={`absolute top-0.2 left-0.2 w-5 h-5 bg-card-foreground rounded-full transition-transform duration-200 ease-in-out ${(key === 'darkMode' ? theme === 'dark' : formData.preferences[key]) ? 'translate-x-5' : 'translate-x-0'}`}></div>
               </div>
             </label>
           </div>
