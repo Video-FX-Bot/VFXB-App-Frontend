@@ -354,10 +354,21 @@ export const useVideo = () => {
     const handleKeyDown = (e) => {
       if (!currentVideo) return;
       
+      // Check if user is typing in an input field
+      const isTyping = e.target.tagName === 'INPUT' || 
+                      e.target.tagName === 'TEXTAREA' || 
+                      e.target.contentEditable === 'true' ||
+                      e.target.closest('[contenteditable="true"]') ||
+                      e.target.closest('input') ||
+                      e.target.closest('textarea');
+      
       switch (e.code) {
         case 'Space':
-          e.preventDefault();
-          togglePlay();
+          // Don't prevent default if user is typing
+          if (!isTyping) {
+            e.preventDefault();
+            togglePlay();
+          }
           break;
         case 'ArrowLeft':
           e.preventDefault();

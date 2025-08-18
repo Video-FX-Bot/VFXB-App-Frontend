@@ -4,19 +4,11 @@ import { Bell, User as UserIcon, History, Sun, Moon } from "lucide-react";
 import { useAuth } from "../useAuth";
 import { useUI } from "../hooks/useUI";
 import Sidebar from "../components/layout/Sidebar";
+import { Button } from "../components/ui";
 
-// 🔧 Simple mock components to replace missing UI imports
-const Button = ({ children, className = "", ...props }) => (
-  <button
-    className={`bg-pink-600 text-white rounded px-3 py-1 text-sm ${className}`}
-    {...props}
-  >
-    {children}
-  </button>
-);
-
-const Avatar = ({ children }) => (
-  <div className="h-9 w-9 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold">
+// Avatar components
+const Avatar = ({ children, className = "" }) => (
+  <div className={`h-9 w-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold ${className}`}>
     {children}
   </div>
 );
@@ -313,7 +305,7 @@ export default function Layout({ children }) {
         <div className="flex-1 flex flex-col">
           <Header />
           <main 
-            className="flex-1 p-4 sm:p-6 overflow-y-auto bg-background"
+            className="flex-1 p-2 sm:p-3 overflow-y-auto bg-background"
             style={{
               background: `hsl(var(--background))`,
               color: `hsl(var(--foreground))`

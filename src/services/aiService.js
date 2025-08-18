@@ -75,6 +75,25 @@ class AIService {
       /smooth.*cut/i
     ],
     
+    // Background operations
+    change_background: [
+      /change.*background/i,
+      /replace.*background/i,
+      /remove.*background/i,
+      /background.*removal/i,
+      /green.*screen/i,
+      /chroma.*key/i
+    ],
+    
+    // Video analysis
+    analyze_video: [
+      /analyze.*video/i,
+      /what.*in.*video/i,
+      /video.*content/i,
+      /breakdown/i,
+      /summary/i
+    ],
+    
     // Export and sharing
     export_video: [
       /export/i,

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button, Card } from '../ui';
 
-const EnhancedVideoPlayer = ({
+const EnhancedVideoPlayer = forwardRef(({
   src,
   poster,
   autoPlay = false,
@@ -37,7 +37,7 @@ const EnhancedVideoPlayer = ({
   enableGestures = true,
   enablePiP = true,
   showMinimap = true
-}) => {
+}, ref) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const progressRef = useRef(null);
@@ -63,6 +63,23 @@ const EnhancedVideoPlayer = ({
   const [qualityLevels, setQualityLevels] = useState(['1080p', '720p', '480p', '360p']);
   const [currentQuality, setCurrentQuality] = useState('1080p');
   
+  // Enhanced MVP features
+  const [frameByFrame, setFrameByFrame] = useState(false);
+  const [abComparisonMode, setAbComparisonMode] = useState(false);
+  const [comparisonPoint, setComparisonPoint] = useState(0);
+  const [subtitles, setSubtitles] = useState([]);
+  const [currentSubtitle, setCurrentSubtitle] = useState(null);
+  const [multiCameraAngles, setMultiCameraAngles] = useState([]);
+  const [currentAngle, setCurrentAngle] = useState(0);
+  const [adaptiveQuality, setAdaptiveQuality] = useState(true);
+  const [minimapVisible, setMinimapVisible] = useState(showMinimap);
+  
+  // Playback speed presets for MVP
+  const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
+  
+  // Expose video element to parent component
+  useImperativeHandle(ref, () => videoRef.current, []);
+  
   // Control visibility timer
   const controlsTimeoutRef = useRef(null);
   
@@ -78,6 +95,67 @@ const EnhancedVideoPlayer = ({
     }, 3000);
   }, [isPlaying, isHovering]);
   
+  // Adaptive quality based on device capabilities
+  const adjustQualityForDevice = useCallback(() => {
+    if (!adaptiveQuality) return;
+    
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (connection) {
+      const effectiveType = connection.effectiveType;
+      let recommendedQuality = '1080p';
+      
+      switch (effectiveType) {
+        case 'slow-2g':
+        case '2g':
+          recommendedQuality = '360p';
+          break;
+        case '3g':
+          recommendedQuality = '480p';
+          break;
+        case '4g':
+          recommendedQuality = '720p';
+          break;
+        default:
+          recommendedQuality = '1080p';
+      }
+      
+      if (recommendedQuality !== currentQuality) {
+        setCurrentQuality(recommendedQuality);
+      }
+    }
+  }, [adaptiveQuality, currentQuality]);
+  
+  // Subtitle management
+  const updateCurrentSubtitle = useCallback(() => {
+    const activeSubtitle = subtitles.find(sub => 
+      currentTime >= sub.startTime && currentTime <= sub.endTime
+    );
+    setCurrentSubtitle(activeSubtitle || null);
+  }, [subtitles, currentTime]);
+
+  const updateBuffered = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const bufferedRanges = [];
+    for (let i = 0; i < video.buffered.length; i++) {
+      bufferedRanges.push({
+        start: video.buffered.start(i),
+        end: video.buffered.end(i)
+      });
+    }
+    setBuffered(bufferedRanges);
+  }, []);
+
+  const generateWaveform = useCallback(async () => {
+    if (!enableWaveform || !videoRef.current) return;
+    
+    // Simulate waveform data generation
+    // In a real implementation, you'd extract audio data and generate waveform
+    const mockWaveform = Array.from({ length: 200 }, () => Math.random() * 100);
+    setWaveformData(mockWaveform);
+  }, [enableWaveform]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -97,6 +175,31 @@ const EnhancedVideoPlayer = ({
       const dur = video.duration;
       setDuration(dur);
       onDurationChange?.(dur);
+    };
+    
+    // Frame-by-frame navigation
+    const stepFrame = (direction) => {
+      if (!video) return;
+      const frameRate = 30; // Assume 30fps, could be dynamic
+      const frameTime = 1 / frameRate;
+      const newTime = Math.max(0, Math.min(duration, currentTime + (direction * frameTime)));
+      video.currentTime = newTime;
+      setCurrentTime(newTime);
+    };
+    
+    // A/B comparison functionality
+    const toggleABComparison = () => {
+      if (!abComparisonMode) {
+        setComparisonPoint(currentTime);
+      }
+      setAbComparisonMode(!abComparisonMode);
+    };
+    
+    const jumpToComparisonPoint = () => {
+      if (video && abComparisonMode) {
+        video.currentTime = comparisonPoint;
+        setCurrentTime(comparisonPoint);
+      }
     };
     const handlePlay = () => {
       setIsPlaying(true);
@@ -133,30 +236,7 @@ const EnhancedVideoPlayer = ({
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onTimeUpdate, onDurationChange, onPlay, onPause, loopMode, resetControlsTimeout]);
-  
-  const updateBuffered = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const bufferedRanges = [];
-    for (let i = 0; i < video.buffered.length; i++) {
-      bufferedRanges.push({
-        start: video.buffered.start(i),
-        end: video.buffered.end(i)
-      });
-    }
-    setBuffered(bufferedRanges);
-  }, []);
-  
-  const generateWaveform = useCallback(async () => {
-    if (!enableWaveform || !videoRef.current) return;
-    
-    // Simulate waveform data generation
-    // In a real implementation, you'd extract audio data and generate waveform
-    const mockWaveform = Array.from({ length: 200 }, () => Math.random() * 100);
-    setWaveformData(mockWaveform);
-  }, [enableWaveform]);
+  }, [onTimeUpdate, onDurationChange, onPlay, onPause, loopMode, resetControlsTimeout, updateBuffered, generateWaveform, updateCurrentSubtitle]);
   
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -666,7 +746,7 @@ const EnhancedVideoPlayer = ({
         )}
       </div>
       
-      <style jsx>{`
+      <style>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
           width: 12px;
@@ -689,6 +769,8 @@ const EnhancedVideoPlayer = ({
       `}</style>
     </Card>
   );
-};
+});
+
+EnhancedVideoPlayer.displayName = 'EnhancedVideoPlayer';
 
 export default EnhancedVideoPlayer;
