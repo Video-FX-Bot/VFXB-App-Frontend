@@ -33,7 +33,6 @@ import {
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
 import EnhancedTimeline from "../components/EnhancedTimeline";
 import EffectsLibrary from "../components/effects/EffectsLibrary";
-// Removed ProfessionalToolPalette import as per user request
 import {
   videoWorker,
   smartCache,
@@ -54,6 +53,10 @@ const AIEditor = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Timeline toggle (sits directly under the preview, spans both columns)
+  const [showTimeline, setShowTimeline] = useState(false);
+
   const [chatMessages, setChatMessages] = useState([
     {
       type: "ai",
@@ -71,7 +74,6 @@ const AIEditor = () => {
     },
   ]);
 
-  // Enhanced AI Chat features
   const [isTyping, setIsTyping] = useState(false);
   const [contextAwareSuggestions, setContextAwareSuggestions] = useState([]);
   const [voiceCommandActive, setVoiceCommandActive] = useState(false);
@@ -85,7 +87,6 @@ const AIEditor = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
 
-  // Professional tools and performance state
   const [selectedTool, setSelectedTool] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -181,7 +182,7 @@ const AIEditor = () => {
           resolution: `${video.videoWidth || 1920}x${
             video.videoHeight || 1080
           }`,
-          fps: 30, // Default, would need more complex detection for actual FPS
+          fps: 30,
           fileSize: videoFile.size || 0,
           format: videoFile.type || "video/mp4",
         };
@@ -192,7 +193,6 @@ const AIEditor = () => {
       video.onerror = (error) => {
         console.error("Video metadata extraction error:", error);
         cleanup();
-        // Fallback metadata
         resolve({
           duration: 30,
           width: 1920,
@@ -222,27 +222,26 @@ const AIEditor = () => {
       }
     });
   };
+
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
-    // Always scroll to the bottom when messages or loading state change
     el.scrollTop = el.scrollHeight;
   }, [chatMessages, isChatLoading]);
-  // Get video from navigation state
+
+  // Load video from navigation state
   useEffect(() => {
     if (location.state?.video) {
       const video = location.state.video;
       const autoAnalyze = location.state?.autoAnalyze;
-      const fromDashboard = location.state?.fromDashboard;
 
+      // FIXED: removed stray "the:" that caused a syntax error
       setUploadedVideo(video);
 
-      // Extract actual video metadata
       extractVideoMetadata(video)
         .then(async (videoMetadata) => {
           console.log("Extracted video metadata:", videoMetadata);
 
-          // Automatically add video to timeline with detailed processing
           const videoClip = {
             id: `clip-${Date.now()}`,
             name: video.name || "Video Clip",
@@ -292,7 +291,6 @@ const AIEditor = () => {
             },
           };
 
-          // Update tracks with the new video
           setTracks([
             {
               id: "video-track-1",
@@ -316,13 +314,11 @@ const AIEditor = () => {
             },
           ]);
 
-          // Set duration and project name
           setDuration(videoMetadata.duration);
           const newProjectName =
             video.name?.replace(/\.[^/.]+$/, "") || "Untitled Project";
           setProjectName(newProjectName);
 
-          // Automatically create and save project when video is loaded
           const autoProjectData = {
             name: newProjectName,
             video: video,
@@ -348,21 +344,16 @@ const AIEditor = () => {
             autoSaved: true,
           };
 
-          // Save project using projectService with fallback to localStorage
           try {
             const savedProject = await projectService.saveProject(
               autoProjectData,
               true
             );
-            console.log(
-              "Project automatically created and saved:",
-              savedProject
-            );
+            console.log("Project automatically created and saved:", savedProject);
           } catch (error) {
             console.error("Failed to auto-save project:", error);
           }
 
-          // Add AI welcome message with video details
           setChatMessages((prev) => [
             ...prev,
             {
@@ -383,50 +374,9 @@ const AIEditor = () => {
               timestamp: new Date().toISOString(),
             },
           ]);
-
-          // Trigger automatic video analysis if requested from dashboard
-          if (autoAnalyze && fromDashboard) {
-            setTimeout(() => {
-              setIsChatLoading(true);
-              setIsProcessing(true);
-              setProcessingProgress(0);
-
-              // Simulate analysis progress
-              const progressInterval = setInterval(() => {
-                setProcessingProgress((prev) => {
-                  if (prev >= 100) {
-                    clearInterval(progressInterval);
-                    setIsProcessing(false);
-                    setIsChatLoading(false);
-
-                    // Add analysis results message
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        type: "ai",
-                        content: `🔍 **Video Analysis Complete!**\n\nI've automatically analyzed your video and here's what I found:\n\n🎬 **Content Analysis:**\n- Scene Detection: ${videoClip.scenes.length} scenes identified\n- Video Quality: ${videoMetadata.resolution} - Good quality\n- Audio Quality: Clear audio detected\n\n💡 **AI Recommendations:**\n- Consider adding smooth transitions between scenes\n- The lighting could benefit from color correction\n- Audio levels are balanced\n- Perfect for adding background music\n\n✨ **Quick Actions Available:**\n- Apply cinematic color grading\n- Add fade transitions\n- Enhance audio quality\n- Create title sequence\n\nWhat would you like to work on first?`,
-                        timestamp: new Date().toISOString(),
-                        suggestions: [
-                          "🎨 Apply cinematic color grading",
-                          "🔄 Add smooth transitions",
-                          "🎵 Add background music",
-                          "📝 Create title sequence",
-                          "⚡ Enhance video quality",
-                        ],
-                      },
-                    ]);
-
-                    return 100;
-                  }
-                  return prev + 10;
-                });
-              }, 200);
-            }, 1000);
-          }
         })
         .catch((error) => {
           console.error("Error extracting video metadata:", error);
-          // Fallback with default duration
           setDuration(30);
           setProjectName(
             video.name?.replace(/\.[^/.]+$/, "") || "Untitled Project"
@@ -435,12 +385,10 @@ const AIEditor = () => {
     }
   }, [location.state]);
 
-  // Socket connection setup
+  // Socket setup
   useEffect(() => {
-    // Connect to socket service
     socketService.connect();
 
-    // Set up event listeners
     socketService.onAIResponse((data) => {
       setChatMessages((prev) => [
         ...prev,
@@ -453,7 +401,7 @@ const AIEditor = () => {
         },
       ]);
       setIsTyping(false);
-      setIsLoading(false);
+      setIsChatLoading(false);
     });
 
     socketService.onVideoAnalysisComplete((data) => {
@@ -480,7 +428,7 @@ const AIEditor = () => {
         },
       ]);
       setIsTyping(false);
-      setIsLoading(false);
+      setIsChatLoading(false);
     });
 
     socketService.onAITyping((data) => {
@@ -498,13 +446,11 @@ const AIEditor = () => {
       ]);
     });
 
-    // Cleanup on unmount
     return () => {
       socketService.disconnect();
     };
   }, []);
 
-  // Video control functions
   const togglePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -586,7 +532,6 @@ const AIEditor = () => {
     setIsTyping(true);
 
     try {
-      // Send message through socket service
       await socketService.sendChatMessage({
         message: newMessage,
         videoMetadata: uploadedVideo
@@ -605,7 +550,6 @@ const AIEditor = () => {
         },
       });
 
-      // If there's an uploaded video and this is the first message about it, trigger video analysis
       if (uploadedVideo && chatHistory.length === 0) {
         await socketService.notifyVideoUpload({
           videoName: uploadedVideo.name,
@@ -630,7 +574,6 @@ const AIEditor = () => {
     }
   };
 
-  // Performance monitoring and optimization
   useEffect(() => {
     const monitorPerformance = () => {
       const stats = memoryManager.getMemoryStats();
@@ -644,27 +587,20 @@ const AIEditor = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Tool handling functions
   const handleToolSelect = useCallback((tool) => {
     setSelectedTool(tool);
-
-    // Execute tool-specific actions
     switch (tool.id) {
       case "cut":
-        // Handle cut operation
         break;
       case "trim":
-        // Handle trim operation
         break;
       case "color-correction":
-        // Handle color correction
         break;
       default:
         console.log(`Tool selected: ${tool.name}`);
     }
   }, []);
 
-  // Background processing handler
   const handleBackgroundProcess = useCallback(async (task) => {
     setIsProcessing(true);
     setProcessingProgress(0);
@@ -691,184 +627,13 @@ const AIEditor = () => {
     }
   }, []);
 
-  // Keyboard shortcuts for professional tools
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only handle shortcuts if not typing in an input, textarea, or contenteditable element
-      if (
-        e.target.tagName === "INPUT" ||
-        e.target.tagName === "TEXTAREA" ||
-        e.target.contentEditable === "true" ||
-        e.target.closest('[contenteditable="true"]') ||
-        e.target.closest("textarea") ||
-        e.target.closest("input")
-      ) {
-        return;
-      }
-
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case "x":
-            e.preventDefault();
-            handleToolSelect({ id: "cut", name: "Cut" });
-            break;
-          case "c":
-            e.preventDefault();
-            handleToolSelect({ id: "copy", name: "Copy" });
-            break;
-          case "v":
-            e.preventDefault();
-            handleToolSelect({ id: "paste", name: "Paste" });
-            break;
-          case "z":
-            e.preventDefault();
-            if (e.shiftKey) {
-              // Redo
-              console.log("Redo");
-            } else {
-              // Undo
-              console.log("Undo");
-            }
-            break;
-          case "s":
-            e.preventDefault();
-            // Save project
-            console.log("Save project");
-            break;
-          case "e":
-            e.preventDefault();
-            // Export
-            handleBackgroundProcess({ type: "export", quality: exportQuality });
-            break;
-        }
-      } else {
-        switch (e.key) {
-          case "Delete":
-          case "Backspace":
-            handleToolSelect({ id: "delete", name: "Delete" });
-            break;
-          case " ":
-            e.preventDefault();
-            togglePlayPause();
-            break;
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    isPlaying,
-    exportQuality,
-    handleToolSelect,
-    handleBackgroundProcess,
-    togglePlayPause,
-  ]);
-
-  // Enhanced AI response generator with natural language processing
-  const generateEnhancedAIResponse = (message, video, history) => {
-    const lowerMessage = message.toLowerCase();
-
-    // Context-aware responses based on video content and history
-    const responses = {
-      // Editing commands
-      cut: {
-        content:
-          "I'll help you cut your video. You can use the scissors tool in the timeline or tell me the specific timestamps where you'd like to make cuts.",
-        suggestions: [
-          "Cut at current time",
-          "Split clip in half",
-          "Remove middle section",
-        ],
-        actions: ["enableCutTool", "highlightTimeline"],
-      },
-      trim: {
-        content:
-          "Let's trim your video! You can drag the clip edges in the timeline or specify the start and end times you want to keep.",
-        suggestions: ["Trim beginning", "Trim end", "Keep middle section"],
-        actions: ["enableTrimTool", "showTrimControls"],
-      },
-      transition: {
-        content:
-          "I can add smooth transitions between your clips. What type of transition would you like? Fade, dissolve, wipe, or something more creative?",
-        suggestions: [
-          "Add fade transition",
-          "Cross dissolve",
-          "Wipe transition",
-          "Zoom transition",
-        ],
-        actions: ["openTransitionLibrary"],
-      },
-      effect: {
-        content:
-          "Great! I have over 50 professional effects available. What kind of look are you going for? Cinematic, vintage, artistic, or something specific?",
-        suggestions: [
-          "Color grading",
-          "Blur effects",
-          "Artistic filters",
-          "Lighting effects",
-        ],
-        actions: ["openEffectsLibrary"],
-      },
-      music: {
-        content:
-          "Adding music will make your video more engaging! I can help you add background music, sync it to the beat, or adjust audio levels.",
-        suggestions: [
-          "Add background music",
-          "Sync to beat",
-          "Adjust audio levels",
-          "Add fade in/out",
-        ],
-        actions: ["openMusicLibrary", "showAudioControls"],
-      },
-      text: {
-        content:
-          "Let's add some text to your video! I can create titles, subtitles, captions, or animated text overlays. What would you like to add?",
-        suggestions: [
-          "Add title",
-          "Create subtitles",
-          "Animated text",
-          "Lower thirds",
-        ],
-        actions: ["openTextEditor", "showTextTemplates"],
-      },
-    };
-
-    // Find matching response
-    for (const [key, response] of Object.entries(responses)) {
-      if (lowerMessage.includes(key)) {
-        return {
-          ...response,
-          contextSuggestions: generateContextSuggestions(video, history),
-        };
-      }
-    }
-
-    // Default enhanced response
-    return {
-      content:
-        "I'm here to help you create amazing videos! You can ask me to add effects, transitions, music, text, or perform any editing operation. What would you like to work on?",
-      suggestions: [
-        "Show me effects",
-        "Add transitions",
-        "Help with audio",
-        "Create titles",
-      ],
-      actions: ["showTutorial"],
-      contextSuggestions: generateContextSuggestions(video, history),
-    };
-  };
-
-  // Generate context-aware suggestions based on video content
   const generateContextSuggestions = (video, history) => {
     const suggestions = [];
-
     if (video) {
       suggestions.push("Enhance video quality");
       suggestions.push("Add color grading");
       suggestions.push("Create highlight reel");
     }
-
     if (history.length > 0) {
       const recentTopics = history.slice(-3);
       if (recentTopics.some((topic) => topic.includes("color"))) {
@@ -878,7 +643,6 @@ const AIEditor = () => {
         suggestions.push("Noise reduction");
       }
     }
-
     return suggestions;
   };
 
@@ -916,7 +680,6 @@ const AIEditor = () => {
     };
 
     try {
-      // Save project using projectService with fallback to localStorage
       const savedProject = await projectService.saveProject(projectData, true);
       console.log("Project saved successfully:", savedProject);
       alert("Project saved successfully!");
@@ -928,319 +691,328 @@ const AIEditor = () => {
     }
   };
 
-  const effects = [
-    {
-      name: "Color Grading",
-      icon: Palette,
-      description: "Enhance colors and mood",
-    },
-    { name: "Transitions", icon: Zap, description: "Smooth scene transitions" },
-    {
-      name: "Text Overlay",
-      icon: Type,
-      description: "Add titles and captions",
-    },
-    {
-      name: "Audio Enhancement",
-      icon: Music,
-      description: "Improve audio quality",
-    },
-    { name: "Stabilization", icon: Eye, description: "Remove camera shake" },
-    {
-      name: "Speed Control",
-      icon: Clock,
-      description: "Slow motion & time-lapse",
-    },
-  ];
-
-  const suggestions = [
-    "Add smooth transitions between scenes",
-    "Enhance audio quality and remove background noise",
-    "Apply color grading for cinematic look",
-    "Add text overlays for key moments",
-    "Create slow-motion effects for highlights",
-    "Generate automatic subtitles",
-  ];
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Main Editor Layout (two columns) */}
-      <div className="flex flex-1 overflow-hidden px-8 py-4 gap-6">
-        {/* Left: Video Only (2/3) */}
-        <div className="flex-1 flex flex-col" style={{ width: "66.666%" }}>
-          {/* Video Player */}
-          <div className="bg-black relative p-4 rounded-lg shadow-elevation-2 flex-1 min-h-[700px]">
-            {uploadedVideo ? (
-              <EnhancedVideoPlayer
-                ref={videoRef}
-                src={uploadedVideo.url}
-                poster={uploadedVideo.thumbnail}
-                currentTime={currentTime}
-                duration={duration}
-                onTimeUpdate={setCurrentTime}
-                onDurationChange={setDuration}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                className="w-full h-full"
-                showWaveform
-                showThumbnailScrubbing
-                enableKeyboardShortcuts
-                showMinimap
-                enableGestures
-                enablePiP
-                selectedTool={selectedTool}
-                isProcessing={isProcessing}
-                onBackgroundProcess={handleBackgroundProcess}
-                exportProgress={exportProgress}
-                exportQuality={exportQuality}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-4">
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-elevation-2">
-                    <Play className="w-12 h-12 text-white" />
+    <div className="bg-background text-foreground flex flex-col">
+      {/* ======= Shared container for editor + button + timeline + toolbar ======= */}
+      <div className="mx-auto w-full max-w-screen-2xl px-8">
+        {/* Main Editor Layout (two columns) */}
+        <div className="flex flex-1 overflow-hidden py-4 gap-6 items-stretch">
+          {/* Left: Video Only (2/3) */}
+          <div className="flex-1 flex flex-col" style={{ width: "66.666%" }}>
+            {/* Video Player */}
+            <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 h-[670px]">
+              {uploadedVideo ? (
+                <EnhancedVideoPlayer
+                  ref={videoRef}
+                  src={uploadedVideo.url}
+                  poster={uploadedVideo.thumbnail}
+                  currentTime={currentTime}
+                  duration={duration}
+                  onTimeUpdate={setCurrentTime}
+                  onDurationChange={setDuration}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  className="w-full h-full"
+                  showWaveform
+                  showThumbnailScrubbing
+                  enableKeyboardShortcuts
+                  showMinimap
+                  enableGestures
+                  enablePiP
+                  selectedTool={selectedTool}
+                  isProcessing={isProcessing}
+                  onBackgroundProcess={handleBackgroundProcess}
+                  exportProgress={exportProgress}
+                  exportQuality={exportQuality}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center space-y-4">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-elevation-2">
+                      <Play className="w-12 h-12 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      No Video Loaded
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Upload a video from the Dashboard to start editing
+                    </p>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    No Video Loaded
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Upload a video from the Dashboard to start editing
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Sidebar Tabs (1/3) */}
+          <div
+            className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col"
+            style={{ width: "33.333%", height: "670px" }}
+          >
+            {/* Tabs */}
+            <div className="flex border-b border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("assistant")}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "assistant"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                AI Assistant
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("effects")}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "effects"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Effects
+              </button>
+            </div>
+
+            {/* Assistant Tab */}
+            {activeTab === "assistant" && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Header */}
+                <div className="pb-6 border-b-2 border-border mb-6 flex-shrink-0 px-6 pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold flex items-center">
+                      <Sparkles className="w-6 h-6 mr-3 text-primary" />
+                      AI Assistant
+                    </h3>
+                    <div className="flex items-center space-x-4">
+                      {memoryStats && (
+                        <div className="flex items-center space-x-2 text-xs text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full" />
+                            <span>
+                              Memory: {Math.round(memoryStats.used / 1024 / 1024)}
+                              MB
+                            </span>
+                          </div>
+                          {cacheStats && (
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                              <span>Cache: {cacheStats.hitRate}%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Ask me anything about video editing
                   </p>
+
+                  {isProcessing && (
+                    <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-blue-400">
+                          Processing...
+                        </span>
+                        <span className="text-sm text-blue-400">
+                          {Math.round(processingProgress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${processingProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Messages */}
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 overflow-y-auto min-h-0 px-6"
+                  style={{ scrollbarWidth: "thin" }}
+                >
+                  <div className="space-y-6 pb-6">
+                    {chatMessages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.type === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] p-3 rounded-lg shadow-elevation-1 ${
+                            message.type === "user"
+                              ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-elevation-2 mr-2"
+                              : "bg-muted text-muted-foreground border-2 border-border ml-2"
+                          }`}
+                        >
+                          <p className="text-sm break-words">
+                            {message.content}
+                          </p>
+                          <span className="text-xs opacity-70 mt-1 block">
+                            {new Date().toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {isChatLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted p-3 rounded-lg border-2 border-border shadow-elevation-1 ml-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                            <div
+                              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            />
+                            <div
+                              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Input */}
+                <div className="pt-2 border-t-2 border-border mt-auto flex-shrink-0 bg-card/50 backdrop-blur-sm px-6 pb-2">
+                  <div className="flex space-x-3">
+                    <textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
+                      className="flex-1 bg-background border-2 border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
+                      rows={1}
+                      onInput={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = Math.min(
+                          e.target.scrollHeight,
+                          120
+                        ) + "px";
+                      }}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim()}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
+                    >
+                      <Send className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Effects Tab */}
+            {activeTab === "effects" && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4">
+                  <EffectsLibrary
+                    onApplyEffect={(effect, params) => {
+                      console.log("Applying effect:", effect, params);
+                    }}
+                    selectedClips={tracks.flatMap((track) =>
+                      track.clips.filter((clip) => clip.selected)
+                    )}
+                  />
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Sidebar Tabs (1/3) */}
-        <div
-          className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col"
-          style={{ width: "33.333%", height: "700px" }}
+        {/* Show/Hide Timeline button (spans full editor width) */}
+        <button
+          type="button"
+          aria-expanded={showTimeline}
+          onClick={() => setShowTimeline((v) => !v)}
+          className="w-full block mb-4 flex items-center justify-between px-8 py-4 rounded-lg border border-border bg-card hover:bg-muted transition-all duration-200 shadow-elevation-1 text-base"
         >
-          {/* Tabs */}
-          <div className="flex border-b border-border">
-            <button
-              type="button"
-              onClick={() => setActiveTab("assistant")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === "assistant"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              AI Assistant
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("effects")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === "effects"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Effects
-            </button>
-          </div>
+          <span className="font-medium text-foreground">
+            {showTimeline ? "Hide Timeline" : "Show Timeline"}
+          </span>
+          <svg
+            className={`w-4 h-4 text-foreground transition-transform duration-200 ${
+              showTimeline ? "rotate-180" : ""
+            }`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              d="m6 9 6 6 6-6"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
 
-          {/* Assistant Tab */}
-          {activeTab === "assistant" && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              {/* Header */}
-              <div className="pb-6 border-b-2 border-border mb-6 flex-shrink-0 px-6 pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold flex items-center">
-                    <Sparkles className="w-6 h-6 mr-3 text-primary" />
-                    AI Assistant
-                  </h3>
-                  <div className="flex items-center space-x-4">
-                    {memoryStats && (
-                      <div className="flex items-center space-x-2 text-xs text-gray-400">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full" />
-                          <span>
-                            Memory: {Math.round(memoryStats.used / 1024 / 1024)}
-                            MB
-                          </span>
-                        </div>
-                        {cacheStats && (
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                            <span>Cache: {cacheStats.hitRate}%</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Ask me anything about video editing
-                </p>
-
-                {isProcessing && (
-                  <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-blue-400">
-                        Processing...
-                      </span>
-                      <span className="text-sm text-blue-400">
-                        {Math.round(processingProgress)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${processingProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+        {/* Collapsible Timeline (aligned to the same container) */}
+        {showTimeline && (
+          <div className="pb-0">
+            <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
+              <div className="p-4 border-b border-border bg-card/50">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Timeline
+                </h3>
               </div>
 
-              {/* Messages */}
-              <div
-                className="flex-1 overflow-y-auto min-h-0 px-6"
-                style={{ scrollbarWidth: "thin" }}
-              >
-                <div className="space-y-6 pb-6">
-                  {chatMessages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.type === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[85%] p-3 rounded-lg shadow-elevation-1 ${
-                          message.type === "user"
-                            ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-elevation-2 mr-2"
-                            : "bg-muted text-muted-foreground border-2 border-border ml-2"
-                        }`}
-                      >
-                        <p className="text-sm break-words">{message.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {new Date().toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {isChatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-muted p-3 rounded-lg border-2 border-border shadow-elevation-1 ml-2">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          />
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Input */}
-              <div className="pt-4 border-t-2 border-border mt-auto flex-shrink-0 bg-card/50 backdrop-blur-sm px-6 pb-4">
-                <div className="flex space-x-3">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
-                    className="flex-1 bg-background border-2 border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
-                    rows={1}
-                    onInput={(e) => {
-                      e.target.style.height = "auto";
-                      e.target.style.height =
-                        Math.min(e.target.scrollHeight, 120) + "px";
-                    }}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
-                  >
-                    <Send className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-              </div>
+              <EnhancedTimeline
+                tracks={tracks}
+                currentTime={currentTime}
+                duration={duration || 30}
+                zoom={timelineZoom}
+                isPlaying={isPlaying}
+                theme="dark"
+                onTimeChange={handleTimeChange}
+                onZoomChange={setTimelineZoom}
+                onPlay={() => {
+                  setIsPlaying(true);
+                  videoRef?.current?.play();
+                }}
+                onPause={() => {
+                  setIsPlaying(false);
+                  videoRef?.current?.pause();
+                }}
+                onTracksChange={setTracks}
+                addTrack={addTrack}
+                className="min-h-[200px]"
+              />
             </div>
-          )}
-
-          {/* Effects Tab */}
-          {activeTab === "effects" && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4">
-                <EffectsLibrary
-                  onApplyEffect={(effect, params) => {
-                    console.log("Applying effect:", effect, params);
-                  }}
-                  selectedClips={tracks.flatMap((track) =>
-                    track.clips.filter((clip) => clip.selected)
-                  )}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Full-Width Timeline (below both columns) */}
-      <div className="px-8 pb-8">
-        <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
-          <div className="p-4 border-b border-border bg-card/50">
-            <h3 className="text-lg font-semibold text-foreground">Timeline</h3>
           </div>
+        )}
 
-          <EnhancedTimeline
-            tracks={tracks}
-            currentTime={currentTime}
-            duration={duration || 30}
-            zoom={timelineZoom}
-            isPlaying={isPlaying}
-            theme="dark"
-            onTimeChange={handleTimeChange}
-            onZoomChange={setTimelineZoom}
-            onPlay={() => {
-              setIsPlaying(true);
-              videoRef?.current?.play();
-            }}
-            onPause={() => {
-              setIsPlaying(false);
-              videoRef?.current?.pause();
-            }}
-            onTracksChange={setTracks}
-            addTrack={addTrack}
-            className="min-h-[200px]"
-          />
-
-          {/* Global Actions */}
-          <div className="border-t-2 border-border px-6 py-4 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between bg-card">
+        {/* ===== Global Toolbar (Centered, Scrolls with Page) ===== */}
+        <div className="w-full flex justify-center mt-4 mb-8">
+          <div className="bg-card/95 backdrop-blur border-2 border-border rounded-xl shadow-elevation-2 px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
+            {/* Left side: Undo + Settings */}
             <div className="flex gap-3">
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
-                <RotateCcw className="w-4 h-4 mr-2" />
+              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border">
+                <RotateCcw className="w-4 h-4 mr-2 inline-block" />
                 Undo
               </button>
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
-                <Settings className="w-4 h-4 mr-2" />
+              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border">
+                <Settings className="w-4 h-4 mr-2 inline-block" />
                 Settings
               </button>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right side: Project name + Save + Export */}
+            <div className="flex items-center gap-3 md:ml-3">
               <input
                 type="text"
                 value={projectName}
@@ -1251,22 +1023,23 @@ const AIEditor = () => {
               <button
                 onClick={saveProject}
                 disabled={isSaving || !uploadedVideo}
-                className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 ${
+                className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 ${
                   isSaving || !uploadedVideo
                     ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
                     : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500"
                 }`}
               >
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 mr-2 inline-block" />
                 {isSaving ? "Saving..." : "Save Project"}
               </button>
-              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-blue-500">
-                <Download className="w-4 h-4 mr-2" />
+              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 border border-blue-500">
+                <Download className="w-4 h-4 mr-2 inline-block" />
                 Export Video
               </button>
             </div>
           </div>
         </div>
+        {/* ===== End Global Toolbar ===== */}
       </div>
 
       {/* Background Tasks Panel */}
