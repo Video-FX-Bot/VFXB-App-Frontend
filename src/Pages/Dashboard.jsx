@@ -532,59 +532,13 @@ const NewDashboard = () => {
                    )}
                  </div>
 
-                 {/* Video Categories */}
                  <motion.div 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
                    transition={{ delay: 0.3 }}
                    className="space-y-6"
                  >
-                   <h3 className="text-xl font-semibold text-foreground flex items-center space-x-2">
-                     <Folder className="w-5 h-5 text-purple-600" />
-                     <span>Choose Video Category</span>
-                   </h3>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                     {videoCategories.map((category, index) => {
-                       const IconComponent = category.icon;
-                       return (
-                         <motion.button
-                           key={category.id}
-                           initial={{ opacity: 0, y: 20 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           transition={{ delay: 0.3 + index * 0.1 }}
-                           onClick={() => setSelectedCategory(category.id)}
-                           className={`group p-4 rounded-xl border-2 transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-[1.02] hover:-translate-y-1 ${
-                             selectedCategory === category.id
-                               ? 'border-purple-500 bg-purple-500/10 shadow-elevation-2'
-                               : 'border-gray-300 dark:border-gray-600 bg-card/50 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-card/70'
-                           }`}
-                         >
-                           <div className="text-center space-y-3">
-                             <div className={`${category.color} p-3 rounded-lg mx-auto w-fit shadow-elevation-1 group-hover:scale-110 transition-transform`}>
-                               <IconComponent className="w-6 h-6 text-white" />
-                             </div>
-                             <div>
-                               <h4 className="font-semibold text-foreground group-hover:text-purple-600 transition-colors">
-                                 {category.name}
-                               </h4>
-                               <p className="text-xs text-muted-foreground mt-1">
-                                 {category.description}
-                               </p>
-                             </div>
-                             {selectedCategory === category.id && (
-                               <motion.div
-                                 initial={{ scale: 0 }}
-                                 animate={{ scale: 1 }}
-                                 className="flex justify-center"
-                               >
-                                 <CheckCircle className="w-5 h-5 text-purple-600" />
-                               </motion.div>
-                             )}
-                           </div>
-                         </motion.button>
-                       );
-                     })}
-                   </div>
+                  
                    
                    <motion.button
                      initial={{ opacity: 0, y: 20 }}
