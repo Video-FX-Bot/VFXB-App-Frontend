@@ -44,7 +44,7 @@ import socketService from "../services/socketService";
 import projectService from "../services/projectService";
 function FrameStrip({
   videoUrl,
-  duration,          // may be wrong/short; we won't trust it
+  duration, // may be wrong/short; we won't trust it
   currentTime,
   height = 72,
   frames = 30,
@@ -85,7 +85,10 @@ function FrameStrip({
         video.load();
       });
 
-      const actual = Math.max(0.1, Number(video.duration) || Number(duration) || 0.1);
+      const actual = Math.max(
+        0.1,
+        Number(video.duration) || Number(duration) || 0.1
+      );
       if (!cancelled) setMediaDuration(actual);
 
       const canvas = document.createElement("canvas");
@@ -105,7 +108,10 @@ function FrameStrip({
             try {
               ctx.clearRect(0, 0, canvas.width, canvas.height);
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              out.push({ time: t, dataUrl: canvas.toDataURL("image/jpeg", 0.7) });
+              out.push({
+                time: t,
+                dataUrl: canvas.toDataURL("image/jpeg", 0.7),
+              });
             } catch {}
             video.removeEventListener("seeked", onSeek);
             res();
@@ -122,7 +128,9 @@ function FrameStrip({
       setMediaDuration(Number(duration) || 0);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [videoUrl, duration, frames]);
 
   // Fixed tile width so content is scrollable; hide scrollbar in CSS
@@ -151,7 +159,10 @@ function FrameStrip({
                  [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       style={{ height }}
     >
-      <div className="relative flex" style={{ height, width: contentWidth || "100%" }}>
+      <div
+        className="relative flex"
+        style={{ height, width: contentWidth || "100%" }}
+      >
         {thumbs.map((t, i) => (
           <div
             key={i}
@@ -176,12 +187,17 @@ function FrameStrip({
           <div
             className="absolute inset-y-0 pointer-events-none"
             style={{
-              left: `${((Math.min(currentTime ?? 0, mediaDuration)) / mediaDuration) * contentWidth}px`,
+              left: `${
+                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
+                contentWidth
+              }px`,
             }}
           >
             <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            <div className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
-                            px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70">
+            <div
+              className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
+                            px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
+            >
               {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
             </div>
           </div>
@@ -191,13 +207,11 @@ function FrameStrip({
   );
 }
 
-
-
-
 const AIEditor = () => {
   const [activeTab, setActiveTab] = useState("assistant");
   const chatScrollRef = useRef(null);
   const location = useLocation();
+  const [suppressHotkeys, setSuppressHotkeys] = useState(false);
   const videoRef = useRef(null);
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -869,7 +883,7 @@ const AIEditor = () => {
                   fitMode="cover"
                   showWaveform
                   showThumbnailScrubbing
-                  enableKeyboardShortcuts
+                  enableKeyboardShortcuts={!suppressHotkeys}
                   showMinimap
                   enableGestures
                   enablePiP
@@ -1042,10 +1056,25 @@ const AIEditor = () => {
                     <textarea
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
+                      onFocus={() => setSuppressHotkeys(true)}
+                      onBlur={() => setSuppressHotkeys(false)}
+                      onKeyDown={(e) => {
+                        const key = (e.key || "").toLowerCase();
+
+                        // prevent video hotkeys when typing
+                        if (key === " " || key === "f" || key === "m") {
+                          e.stopPropagation();
+                        }
+
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();
+                        }
+                      }}
+                      onKeyDownCapture={(e) => {
+                        const key = (e.key || "").toLowerCase();
+                        if (key === " " || key === "f" || key === "m") {
+                          e.stopPropagation();
                         }
                       }}
                       placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
