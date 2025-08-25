@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import EnhancedTimeline from "../components/EnhancedTimeline";
 import { useLocation } from "react-router-dom";
 import {
   Play,
@@ -31,7 +32,7 @@ import {
   Settings,
 } from "lucide-react";
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
-import EnhancedTimeline from "../components/EnhancedTimeline";
+// import EnhancedTimeline from "../components/EnhancedTimeline"; // ⛔️ removed
 import EffectsLibrary from "../components/effects/EffectsLibrary";
 import {
   videoWorker,
@@ -41,6 +42,157 @@ import {
 } from "../utils/performanceOptimizer";
 import socketService from "../services/socketService";
 import projectService from "../services/projectService";
+function FrameStrip({
+  videoUrl,
+  duration,          // may be wrong/short; we won't trust it
+  currentTime,
+  height = 72,
+  frames = 30,
+  isPlaying = false,
+}) {
+  const [thumbs, setThumbs] = React.useState([]);
+  const [mediaDuration, setMediaDuration] = React.useState(null); // real video duration
+  const containerRef = React.useRef(null);
+
+  // helper: mm:ss
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const formatTime = (s) => {
+    const mm = Math.floor(s / 60);
+    const ss = Math.floor(s % 60);
+    return `${pad2(mm)}:${pad2(ss)}`;
+  };
+
+  // Generate thumbnails across the FULL media duration (not clamped to prop)
+  React.useEffect(() => {
+    if (!videoUrl) return;
+
+    let cancelled = false;
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.preload = "metadata";
+    video.src = videoUrl;
+
+    const generate = async () => {
+      // wait for metadata to get actual duration
+      await new Promise((res, rej) => {
+        const to = setTimeout(() => rej(new Error("metadata timeout")), 15000);
+        video.onloadedmetadata = () => {
+          clearTimeout(to);
+          res();
+        };
+        video.onerror = () => rej(new Error("video load error"));
+        video.load();
+      });
+
+      const actual = Math.max(0.1, Number(video.duration) || Number(duration) || 0.1);
+      if (!cancelled) setMediaDuration(actual);
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 160;
+      canvas.height = 90;
+
+      // how many thumbs? cap to frames, but spread across FULL duration
+      const count = Math.max(1, Math.min(frames, Math.floor(actual)));
+      const out = [];
+
+      for (let i = 0; i < count; i++) {
+        if (cancelled) return;
+        const t = (actual / count) * i;
+        await new Promise((res) => {
+          const onSeek = () => {
+            try {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              out.push({ time: t, dataUrl: canvas.toDataURL("image/jpeg", 0.7) });
+            } catch {}
+            video.removeEventListener("seeked", onSeek);
+            res();
+          };
+          video.addEventListener("seeked", onSeek);
+          video.currentTime = Math.max(0, Math.min(actual - 0.05, t));
+        });
+      }
+      if (!cancelled) setThumbs(out);
+    };
+
+    generate().catch(() => {
+      setThumbs([]);
+      setMediaDuration(Number(duration) || 0);
+    });
+
+    return () => { cancelled = true; };
+  }, [videoUrl, duration, frames]);
+
+  // Fixed tile width so content is scrollable; hide scrollbar in CSS
+  const tileW = 96;
+  const contentWidth = thumbs.length * tileW;
+
+  // Auto-center the playhead using the REAL mediaDuration
+  React.useEffect(() => {
+    if (!containerRef.current || !thumbs.length || !mediaDuration) return;
+
+    const el = containerRef.current;
+    const safeDur = mediaDuration || 0.0001;
+    const clampedT = Math.max(0, Math.min(currentTime ?? 0, safeDur));
+    const playheadX = (clampedT / safeDur) * contentWidth;
+
+    el.scrollTo({
+      left: Math.max(0, playheadX - el.clientWidth / 2),
+      behavior: isPlaying ? "smooth" : "auto",
+    });
+  }, [currentTime, mediaDuration, thumbs.length, isPlaying, contentWidth]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full overflow-x-auto rounded-lg border border-border bg-black/40
+                 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      style={{ height }}
+    >
+      <div className="relative flex" style={{ height, width: contentWidth || "100%" }}>
+        {thumbs.map((t, i) => (
+          <div
+            key={i}
+            className="relative shrink-0 select-none"
+            style={{ width: tileW, height }}
+            title={formatTime(t.time)}
+          >
+            <img
+              src={t.dataUrl}
+              alt={`frame ${i}`}
+              className="h-full w-full object-cover pointer-events-none"
+              draggable={false}
+            />
+            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
+              {formatTime(t.time)}
+            </span>
+          </div>
+        ))}
+
+        {/* Blue playhead + floating time bubble, based on REAL media duration */}
+        {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              left: `${((Math.min(currentTime ?? 0, mediaDuration)) / mediaDuration) * contentWidth}px`,
+            }}
+          >
+            <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+            <div className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
+                            px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70">
+              {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
 
 const AIEditor = () => {
   const [activeTab, setActiveTab] = useState("assistant");
@@ -53,10 +205,7 @@ const AIEditor = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-
-  // Timeline toggle (sits directly under the preview, spans both columns)
   const [showTimeline, setShowTimeline] = useState(false);
-
   const [chatMessages, setChatMessages] = useState([
     {
       type: "ai",
@@ -182,12 +331,14 @@ const AIEditor = () => {
           resolution: `${video.videoWidth || 1920}x${
             video.videoHeight || 1080
           }`,
+        };
+        cleanup();
+        resolve({
+          ...metadata,
           fps: 30,
           fileSize: videoFile.size || 0,
           format: videoFile.type || "video/mp4",
-        };
-        cleanup();
-        resolve(metadata);
+        });
       };
 
       video.onerror = (error) => {
@@ -235,7 +386,6 @@ const AIEditor = () => {
       const video = location.state.video;
       const autoAnalyze = location.state?.autoAnalyze;
 
-      // FIXED: removed stray "the:" that caused a syntax error
       setUploadedVideo(video);
 
       extractVideoMetadata(video)
@@ -349,7 +499,10 @@ const AIEditor = () => {
               autoProjectData,
               true
             );
-            console.log("Project automatically created and saved:", savedProject);
+            console.log(
+              "Project automatically created and saved:",
+              savedProject
+            );
           } catch (error) {
             console.error("Failed to auto-save project:", error);
           }
@@ -693,7 +846,7 @@ const AIEditor = () => {
 
   return (
     <div className="bg-background text-foreground flex flex-col">
-      {/* ======= Shared container for editor + button + timeline + toolbar ======= */}
+      {/* ======= Shared container for editor + filmstrip + toolbar ======= */}
       <div className="mx-auto w-full max-w-screen-2xl px-8">
         {/* Main Editor Layout (two columns) */}
         <div className="flex flex-1 overflow-hidden py-4 gap-6 items-stretch">
@@ -713,6 +866,7 @@ const AIEditor = () => {
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   className="w-full h-full"
+                  fitMode="cover"
                   showWaveform
                   showThumbnailScrubbing
                   enableKeyboardShortcuts
@@ -790,7 +944,8 @@ const AIEditor = () => {
                           <div className="flex items-center space-x-1">
                             <div className="w-2 h-2 bg-green-500 rounded-full" />
                             <span>
-                              Memory: {Math.round(memoryStats.used / 1024 / 1024)}
+                              Memory:{" "}
+                              {Math.round(memoryStats.used / 1024 / 1024)}
                               MB
                             </span>
                           </div>
@@ -898,10 +1053,8 @@ const AIEditor = () => {
                       rows={1}
                       onInput={(e) => {
                         e.target.style.height = "auto";
-                        e.target.style.height = Math.min(
-                          e.target.scrollHeight,
-                          120
-                        ) + "px";
+                        e.target.style.height =
+                          Math.min(e.target.scrollHeight, 120) + "px";
                       }}
                     />
                     <button
@@ -934,43 +1087,57 @@ const AIEditor = () => {
           </div>
         </div>
 
-        {/* Show/Hide Timeline button (spans full editor width) */}
-        <button
-          type="button"
-          aria-expanded={showTimeline}
-          onClick={() => setShowTimeline((v) => !v)}
-          className="w-full block mb-4 flex items-center justify-between px-8 py-4 rounded-lg border border-border bg-card hover:bg-muted transition-all duration-200 shadow-elevation-1 text-base"
-        >
-          <span className="font-medium text-foreground">
-            {showTimeline ? "Hide Timeline" : "Show Timeline"}
-          </span>
-          <svg
-            className={`w-4 h-4 text-foreground transition-transform duration-200 ${
-              showTimeline ? "rotate-180" : ""
-            }`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              d="m6 9 6 6 6-6"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
-        {/* Collapsible Timeline (aligned to the same container) */}
-        {showTimeline && (
-          <div className="pb-0">
+        {/* ===== Timeline area: filmstrip OR enhanced timeline ===== */}
+        <div className="w-full mb-4">
+          {!showTimeline ? (
+            uploadedVideo ? (
+              <div
+                onClick={() => setShowTimeline(true)}
+                className="cursor-pointer overflow-hidden w-full"
+              >
+                <FrameStrip
+                  videoUrl={uploadedVideo.url}
+                  duration={
+                    duration ||
+                    tracks.find((t) => t.type === "video")?.clips?.[0]
+                      ?.duration ||
+                    30
+                  }
+                  currentTime={currentTime}
+                  onSeek={(t) => {
+                    handleTimeChange(t);
+                    setShowTimeline(true);
+                  }}
+                  height={72}
+                  frames={Math.max(
+                    24,
+                    Math.min(80, Math.floor(duration || 60))
+                  )}
+                  isPlaying={isPlaying}
+                  autoScroll={false} // turn off auto horizontal scrolling
+                  stretchToFit // (if your FrameStrip component supports it)
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                Upload a video to see the frame strip.
+              </div>
+            )
+          ) : (
             <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
-              <div className="p-4 border-b border-border bg-card/50">
+              <div className="p-4 border-b border-border bg-card/50 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">
                   Timeline
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowTimeline(false)}
+                  className="text-sm px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                  title="Collapse back to mini timeline"
+                >
+                  Back to mini timeline
+                </button>
               </div>
-
               <EnhancedTimeline
                 tracks={tracks}
                 currentTime={currentTime}
@@ -993,8 +1160,8 @@ const AIEditor = () => {
                 className="min-h-[200px]"
               />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ===== Global Toolbar (Centered, Scrolls with Page) ===== */}
         <div className="w-full flex justify-center mt-4 mb-8">
