@@ -1021,8 +1021,8 @@ const EnhancedTimeline = ({
               variant="ghost"
               size="sm"
               onClick={() => {
-                const newTime = Math.min(duration, currentTime + 1/30); // 1 frame at 30fps
-                onTimeChange?.(newTime);
+                const newTime = Math.min(timelineDuration, currentTime + 1/30);
+                onTimeChange?.(timelineDuration)
               }}
               className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Next Frame (Right Arrow)"
@@ -1051,7 +1051,7 @@ const EnhancedTimeline = ({
               </div>
               <div className="text-gray-500 font-mono text-sm">/</div>
               <div className="text-sm font-mono text-gray-300">
-                {formatTime(duration)}
+                {formatTime(timelineDuration)}
               </div>
             </div>
           </div>
