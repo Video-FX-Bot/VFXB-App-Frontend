@@ -42,6 +42,7 @@ import {
 } from "../utils/performanceOptimizer";
 import socketService from "../services/socketService";
 import projectService from "../services/projectService";
+
 function FrameStrip({
   videoUrl,
   duration, // may be wrong/short; we won't trust it
@@ -49,6 +50,7 @@ function FrameStrip({
   height = 72,
   frames = 30,
   isPlaying = false,
+  isGenerating = false,
 }) {
   const [thumbs, setThumbs] = React.useState([]);
   const [mediaDuration, setMediaDuration] = React.useState(null); // real video duration
@@ -152,59 +154,100 @@ function FrameStrip({
     });
   }, [currentTime, mediaDuration, thumbs.length, isPlaying, contentWidth]);
 
-  return (
+return (
+  <div
+    ref={containerRef}
+    className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
+               [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+    style={{ height }}
+  >
+    {/* --- TIMELINE CONTENT (spans full contentWidth) --- */}
     <div
-      ref={containerRef}
-      className="w-full overflow-x-auto rounded-lg border border-border bg-black/40
-                 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      style={{ height }}
+      className="relative z-0 flex"
+      style={{ height, width: contentWidth || "100%" }}
     >
-      <div
-        className="relative flex"
-        style={{ height, width: contentWidth || "100%" }}
-      >
-        {thumbs.map((t, i) => (
-          <div
-            key={i}
-            className="relative shrink-0 select-none"
-            style={{ width: tileW, height }}
-            title={formatTime(t.time)}
-          >
-            <img
-              src={t.dataUrl}
-              alt={`frame ${i}`}
-              className="h-full w-full object-cover pointer-events-none"
-              draggable={false}
-            />
-            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
-              {formatTime(t.time)}
-            </span>
-          </div>
-        ))}
+      {/* LEFT → RIGHT SHIMMER OVERLAY (fades in from the left, fades out on the right) */}
+      {isGenerating && (
+        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+          <div className="shimmer-bar h-full w-[22%]" />
+        </div>
+      )}
 
-        {/* Blue playhead + floating time bubble, based on REAL media duration */}
-        {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+      {/* Thumbnails */}
+      {thumbs.map((t, i) => (
+        <div
+          key={i}
+          className="relative shrink-0 select-none"
+          style={{ width: tileW, height }}
+          title={formatTime(t.time)}
+        >
+          <img
+            src={t.dataUrl}
+            alt={`frame ${i}`}
+            className="h-full w-full object-cover pointer-events-none"
+            draggable={false}
+          />
+          <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
+            {formatTime(t.time)}
+          </span>
+        </div>
+      ))}
+
+      {/* Playhead + time bubble */}
+      {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+        <div
+          className="absolute inset-y-0 pointer-events-none"
+          style={{
+            left: `${
+              (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
+              contentWidth
+            }px`,
+          }}
+        >
+          <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
           <div
-            className="absolute inset-y-0 pointer-events-none"
-            style={{
-              left: `${
-                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
-                contentWidth
-              }px`,
-            }}
+            className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
+                       px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
           >
-            <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            <div
-              className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
-                            px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
-            >
-              {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
-            </div>
+            {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
-  );
+
+    {/* Keyframes + class for a soft, blended shimmer */}
+    <style>
+      {`
+        .shimmer-bar {
+          /* Soft bright core with feathered edges */
+          background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.6) 50%,
+            rgba(255,255,255,0) 100%
+          );
+          filter: blur(0.5px);               /* tiny blur for smoother blend */
+          will-change: transform, opacity;
+          animation: shimmerLTR 3.6s linear infinite;
+          transform: translate3d(-50%, 0, 0); /* start well off-screen left */
+          opacity: 0;                         /* invisible at the very start */
+        }
+
+        @keyframes shimmerLTR {
+          0%   { transform: translate3d(-50%, 0, 0); opacity: 0; }
+          8%   { opacity: 1; }   /* fade in as it enters the first frame */
+          92%  { opacity: 1; }   /* stay visible through most of the sweep */
+          100% { transform: translate3d(150%, 0, 0); opacity: 0; } /* fade out off right */
+        }
+      `}
+    </style>
+  </div>
+);
+
+
+
+
+
 }
 
 const AIEditor = () => {
@@ -212,6 +255,7 @@ const AIEditor = () => {
   const chatScrollRef = useRef(null);
   const location = useLocation();
   const [suppressHotkeys, setSuppressHotkeys] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const videoRef = useRef(null);
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -569,6 +613,10 @@ const AIEditor = () => {
       ]);
       setIsTyping(false);
       setIsChatLoading(false);
+      setIsGeneratingVideo(false);
+    });
+    socketService.onVideoAnalysisComplete((data) => {
+      setIsGeneratingVideo(false);
     });
 
     socketService.onVideoAnalysisComplete((data) => {
@@ -596,6 +644,7 @@ const AIEditor = () => {
       ]);
       setIsTyping(false);
       setIsChatLoading(false);
+      setIsGeneratingVideo(false);
     });
 
     socketService.onAITyping((data) => {
@@ -697,7 +746,13 @@ const AIEditor = () => {
     setNewMessage("");
     setIsChatLoading(true);
     setIsTyping(true);
+    setIsGeneratingVideo(true);
 
+   // Pause the video if it's playing
+  if (videoRef.current && !videoRef.current.paused) {
+    videoRef.current.pause();
+    setIsPlaying(false);
+  }
     try {
       await socketService.sendChatMessage({
         message: newMessage,
@@ -908,6 +963,16 @@ const AIEditor = () => {
                   </div>
                 </div>
               )}
+
+              {isGeneratingVideo && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                  {/* spinner */}
+                  <div className="w-12 h-12 rounded-full border-4 border-white/30 border-t-transparent animate-spin mb-4" />
+                  <div className="text-white text-sm font-medium tracking-wide">
+                    Generating video…
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1060,12 +1125,11 @@ const AIEditor = () => {
                       onBlur={() => setSuppressHotkeys(false)}
                       onKeyDown={(e) => {
                         const key = (e.key || "").toLowerCase();
-
-                        // prevent video hotkeys when typing
-                        if (key === " " || key === "f" || key === "m") {
+                        const isSpace = key === " " || e.code === "Space";
+                        const blocked =
+                          isSpace || key === "f" || key === "m" || key === "b";
+                        if (blocked && !e.ctrlKey && !e.metaKey && !e.altKey)
                           e.stopPropagation();
-                        }
-
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();
@@ -1073,19 +1137,25 @@ const AIEditor = () => {
                       }}
                       onKeyDownCapture={(e) => {
                         const key = (e.key || "").toLowerCase();
-                        if (key === " " || key === "f" || key === "m") {
+                        const isSpace = key === " " || e.code === "Space";
+                        const blocked =
+                          isSpace || key === "f" || key === "m" || key === "b";
+                        if (blocked && !e.ctrlKey && !e.metaKey && !e.altKey)
                           e.stopPropagation();
-                        }
                       }}
                       placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
-                      className="flex-1 bg-background border-2 border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
+                      className="flex-1 bg-background border-2 border-border rounded-lg px-5 pt-2 pb-3 text-sm leading-[1.3] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[52px] max-h-[120px] overflow-hidden"
                       rows={1}
                       onInput={(e) => {
-                        e.target.style.height = "auto";
-                        e.target.style.height =
-                          Math.min(e.target.scrollHeight, 120) + "px";
+                        const el = e.currentTarget;
+                        el.style.height = "auto";
+                        el.style.height =
+                          Math.min(el.scrollHeight + 2, 120) + "px";
+                        el.style.overflowY =
+                          el.scrollHeight + 2 > 120 ? "auto" : "hidden";
                       }}
                     />
+
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
@@ -1145,6 +1215,7 @@ const AIEditor = () => {
                   isPlaying={isPlaying}
                   autoScroll={false} // turn off auto horizontal scrolling
                   stretchToFit // (if your FrameStrip component supports it)
+                  isGenerating={isGeneratingVideo}
                 />
               </div>
             ) : (
