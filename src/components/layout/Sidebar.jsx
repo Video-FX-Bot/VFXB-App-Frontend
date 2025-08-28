@@ -71,95 +71,65 @@ const Sidebar = () => {
     return project;
   };
 
-  // Load recent projects from backend API with localStorage fallback
-  useEffect(() => {
-    const loadRecentProjects = async () => {
-      try {
-        const recentProjects = await projectService.loadRecentProjects();
+useEffect(() => {
+  const defaultProjects = [
+    {
+      id: 1,
+      name: "Summer Vacation Video",
+      thumbnail:
+        "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
+      duration: "2:45",
+      lastModified: "2 hours ago",
+      status: "draft",
+    },
+    {
+      id: 2,
+      name: "Product Demo",
+      thumbnail:
+        "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
+      duration: "1:30",
+      lastModified: "1 day ago",
+      status: "completed",
+    },
+    {
+      id: 3,
+      name: "Wedding Highlights",
+      thumbnail:
+        "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=160",
+      duration: "3:20",
+      lastModified: "3 days ago",
+      status: "completed",
+    },
+    {
+      id: 4,
+      name: "Travel Vlog",
+      thumbnail:
+        "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
+      duration: "4:15",
+      lastModified: "5 days ago",
+      status: "draft",
+    },
+    {
+      id: 5,
+      name: "Corporate Training",
+      thumbnail:
+        "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=160",
+      duration: "6:30",
+      lastModified: "1 week ago",
+      status: "completed",
+    },
+  ];
 
-        if (recentProjects.length === 0) {
-          // Default recent projects if none saved
-          const defaultProjects = [
-            {
-              id: 1,
-              name: "Summer Vacation Video",
-              thumbnail:
-                "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "2:45",
-              lastModified: "2 hours ago",
-              status: "draft",
-            },
-            {
-              id: 2,
-              name: "Product Demo",
-              thumbnail:
-                "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "1:30",
-              lastModified: "1 day ago",
-              status: "completed",
-            },
-            {
-              id: 3,
-              name: "Wedding Highlights",
-              thumbnail:
-                "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "3:20",
-              lastModified: "3 days ago",
-              status: "completed",
-            },
-            {
-              id: 4,
-              name: "Travel Vlog",
-              thumbnail:
-                "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "4:15",
-              lastModified: "5 days ago",
-              status: "draft",
-            },
-            {
-              id: 5,
-              name: "Corporate Training",
-              thumbnail:
-                "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "6:30",
-              lastModified: "1 week ago",
-              status: "completed",
-            },
-          ];
-          setProjects(defaultProjects);
-        } else {
-          // Process projects to generate thumbnails if needed
-          const processedProjects = await Promise.all(
-            recentProjects.map(async (project) => {
-              return await generateThumbnailForProject(project);
-            })
-          );
-          setProjects(processedProjects);
-        }
-      } catch (error) {
-        console.error("Error loading recent projects:", error);
-        // Fallback to empty array on error
-        setProjects([]);
-      }
-    };
+  // Always show defaults
+  setProjects(defaultProjects);
 
-    loadRecentProjects();
+  // Optional: refresh every few seconds if you want it to "constantly" reset
+  const interval = setInterval(() => {
+    setProjects(defaultProjects);
+  }, 5000);
 
-    // Listen for storage changes to update recent projects
-    const handleStorageChange = () => {
-      loadRecentProjects();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also check for updates every 5 seconds (reduced frequency for API calls)
-    const interval = setInterval(loadRecentProjects, 5000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
+  return () => clearInterval(interval);
+}, []);
 
   const sidebarItems = [
     {

@@ -154,70 +154,70 @@ function FrameStrip({
     });
   }, [currentTime, mediaDuration, thumbs.length, isPlaying, contentWidth]);
 
-return (
-  <div
-    ref={containerRef}
-    className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
-               [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-    style={{ height }}
-  >
-    {/* --- TIMELINE CONTENT (spans full contentWidth) --- */}
+  return (
     <div
-      className="relative z-0 flex"
-      style={{ height, width: contentWidth || "100%" }}
+      ref={containerRef}
+      className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
+               [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      style={{ height }}
     >
-      {/* LEFT → RIGHT SHIMMER OVERLAY (fades in from the left, fades out on the right) */}
-      {isGenerating && (
-        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-          <div className="shimmer-bar h-full w-[22%]" />
-        </div>
-      )}
-
-      {/* Thumbnails */}
-      {thumbs.map((t, i) => (
-        <div
-          key={i}
-          className="relative shrink-0 select-none"
-          style={{ width: tileW, height }}
-          title={formatTime(t.time)}
-        >
-          <img
-            src={t.dataUrl}
-            alt={`frame ${i}`}
-            className="h-full w-full object-cover pointer-events-none"
-            draggable={false}
-          />
-          <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
-            {formatTime(t.time)}
-          </span>
-        </div>
-      ))}
-
-      {/* Playhead + time bubble */}
-      {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
-        <div
-          className="absolute inset-y-0 pointer-events-none"
-          style={{
-            left: `${
-              (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
-              contentWidth
-            }px`,
-          }}
-        >
-          <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-          <div
-            className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
-                       px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
-          >
-            {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+      {/* --- TIMELINE CONTENT (spans full contentWidth) --- */}
+      <div
+        className="relative z-0 flex"
+        style={{ height, width: contentWidth || "100%" }}
+      >
+        {/* LEFT → RIGHT SHIMMER OVERLAY (fades in from the left, fades out on the right) */}
+        {isGenerating && (
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+            <div className="shimmer-bar h-full w-[22%]" />
           </div>
-        </div>
-      )}
-    </div>
+        )}
 
-    {/* Keyframes + class for a soft, blended shimmer */}
-    <style>
-      {`
+        {/* Thumbnails */}
+        {thumbs.map((t, i) => (
+          <div
+            key={i}
+            className="relative shrink-0 select-none"
+            style={{ width: tileW, height }}
+            title={formatTime(t.time)}
+          >
+            <img
+              src={t.dataUrl}
+              alt={`frame ${i}`}
+              className="h-full w-full object-cover pointer-events-none"
+              draggable={false}
+            />
+            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
+              {formatTime(t.time)}
+            </span>
+          </div>
+        ))}
+
+        {/* Playhead + time bubble */}
+        {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              left: `${
+                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
+                contentWidth
+              }px`,
+            }}
+          >
+            <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+            <div
+              className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
+                       px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
+            >
+              {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Keyframes + class for a soft, blended shimmer */}
+      <style>
+        {`
         .shimmer-bar {
           /* Soft bright core with feathered edges */
           background: linear-gradient(
@@ -240,14 +240,9 @@ return (
           100% { transform: translate3d(150%, 0, 0); opacity: 0; } /* fade out off right */
         }
       `}
-    </style>
-  </div>
-);
-
-
-
-
-
+      </style>
+    </div>
+  );
 }
 
 const AIEditor = () => {
@@ -257,6 +252,16 @@ const AIEditor = () => {
   const [suppressHotkeys, setSuppressHotkeys] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const videoRef = useRef(null);
+  const demoResponses = useRef([
+    "Absolutely!",
+    "You got it!",
+    "Sure thing!",
+    "Done!",
+    "All set!",
+    "On it!",
+    "Consider it done!",
+  ]);
+  const demoIndex = useRef(0);
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -348,95 +353,21 @@ const AIEditor = () => {
   const [projectName, setProjectName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Extract video metadata
-  const extractVideoMetadata = (videoFile) => {
-    return new Promise((resolve) => {
-      if (
-        !videoFile ||
-        !(videoFile instanceof File || videoFile instanceof Blob)
-      ) {
-        console.error("Invalid video file provided to extractVideoMetadata");
-        resolve({
-          duration: 30,
-          width: 1920,
-          height: 1080,
-          resolution: "1920x1080",
-          fps: 30,
-          fileSize: 0,
-          format: "video/mp4",
-        });
-        return;
-      }
-
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      let objectURL = null;
-
-      const cleanup = () => {
-        if (objectURL) {
-          URL.revokeObjectURL(objectURL);
-          objectURL = null;
-        }
-        video.removeAttribute("src");
-        video.load();
-      };
-
-      video.onloadedmetadata = () => {
-        const metadata = {
-          duration: video.duration || 30,
-          width: video.videoWidth || 1920,
-          height: video.videoHeight || 1080,
-          resolution: `${video.videoWidth || 1920}x${
-            video.videoHeight || 1080
-          }`,
-        };
-        cleanup();
-        resolve({
-          ...metadata,
-          fps: 30,
-          fileSize: videoFile.size || 0,
-          format: videoFile.type || "video/mp4",
-        });
-      };
-
-      video.onerror = (error) => {
-        console.error("Video metadata extraction error:", error);
-        cleanup();
-        resolve({
-          duration: 30,
-          width: 1920,
-          height: 1080,
-          resolution: "1920x1080",
-          fps: 30,
-          fileSize: videoFile.size || 0,
-          format: videoFile.type || "video/mp4",
-        });
-      };
-
-      try {
-        objectURL = URL.createObjectURL(videoFile);
-        video.src = objectURL;
-      } catch (error) {
-        console.error("Failed to create object URL:", error);
-        cleanup();
-        resolve({
-          duration: 30,
-          width: 1920,
-          height: 1080,
-          resolution: "1920x1080",
-          fps: 30,
-          fileSize: videoFile.size || 0,
-          format: videoFile.type || "video/mp4",
-        });
-      }
-    });
-  };
+  // NEW: timeout ref to auto-hide the overlay safely
+  const genTimeoutRef = useRef(null);
 
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [chatMessages, isChatLoading]);
+
+  // Cleanup any pending overlay timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
+    };
+  }, []);
 
   // Load video from navigation state
   useEffect(() => {
@@ -716,6 +647,89 @@ const AIEditor = () => {
     }
   };
 
+  const extractVideoMetadata = (videoFile) => {
+    return new Promise((resolve) => {
+      if (
+        !videoFile ||
+        !(videoFile instanceof File || videoFile instanceof Blob)
+      ) {
+        console.error("Invalid video file provided to extractVideoMetadata");
+        resolve({
+          duration: 30,
+          width: 1920,
+          height: 1080,
+          resolution: "1920x1080",
+          fps: 30,
+          fileSize: 0,
+          format: "video/mp4",
+        });
+        return;
+      }
+
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      let objectURL = null;
+
+      const cleanup = () => {
+        if (objectURL) {
+          URL.revokeObjectURL(objectURL);
+          objectURL = null;
+        }
+        video.removeAttribute("src");
+        video.load();
+      };
+
+      video.onloadedmetadata = () => {
+        const metadata = {
+          duration: video.duration || 30,
+          width: video.videoWidth || 1920,
+          height: video.videoHeight || 1080,
+          resolution: `${video.videoWidth || 1920}x${
+            video.videoHeight || 1080
+          }`,
+        };
+        cleanup();
+        resolve({
+          ...metadata,
+          fps: 30,
+          fileSize: videoFile.size || 0,
+          format: videoFile.type || "video/mp4",
+        });
+      };
+
+      video.onerror = (error) => {
+        console.error("Video metadata extraction error:", error);
+        cleanup();
+        resolve({
+          duration: 30,
+          width: 1920,
+          height: 1080,
+          resolution: "1920x1080",
+          fps: 30,
+          fileSize: videoFile.size || 0,
+          format: videoFile.type || "video/mp4",
+        });
+      };
+
+      try {
+        objectURL = URL.createObjectURL(videoFile);
+        video.src = objectURL;
+      } catch (error) {
+        console.error("Failed to create object URL:", error);
+        cleanup();
+        resolve({
+          duration: 30,
+          width: 1920,
+          height: 1080,
+          resolution: "1920x1080",
+          fps: 30,
+          fileSize: videoFile.size || 0,
+          format: videoFile.type || "video/mp4",
+        });
+      }
+    });
+  };
+
   const addTrack = (type) => {
     const newTrack = {
       id: `${type}-track-${Date.now()}`,
@@ -732,69 +746,44 @@ const AIEditor = () => {
     setTracks((prev) => [...prev, newTrack]);
   };
 
+  // ********** TEMPORARY SIMPLE HANDLER FOR YOUR DEMO **********
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+  if (!newMessage.trim()) return;
 
-    const userMessage = {
-      type: "user",
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-    };
+  setChatMessages((prev) => [
+    ...prev,
+    { type: "user", content: newMessage, timestamp: new Date().toISOString() },
+  ]);
+  setNewMessage("");
 
-    setChatMessages((prev) => [...prev, userMessage]);
-    setChatHistory((prev) => [...prev, newMessage]);
-    setNewMessage("");
-    setIsChatLoading(true);
-    setIsTyping(true);
-    setIsGeneratingVideo(true);
-
-   // Pause the video if it's playing
   if (videoRef.current && !videoRef.current.paused) {
     videoRef.current.pause();
     setIsPlaying(false);
   }
-    try {
-      await socketService.sendChatMessage({
-        message: newMessage,
-        videoMetadata: uploadedVideo
-          ? {
-              name: uploadedVideo.name,
-              duration: duration,
-              size: uploadedVideo.size,
-              type: uploadedVideo.type,
-            }
-          : null,
-        chatHistory: chatHistory,
-        projectContext: {
-          tracks: tracks,
-          currentTime: currentTime,
-          projectName: projectName,
-        },
-      });
 
-      if (uploadedVideo && chatHistory.length === 0) {
-        await socketService.notifyVideoUpload({
-          videoName: uploadedVideo.name,
-          videoSize: uploadedVideo.size,
-          videoType: uploadedVideo.type,
-          duration: duration,
-        });
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          content:
-            "Sorry, I encountered an error while processing your message. Please try again.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      setIsChatLoading(false);
-      setIsTyping(false);
-    }
-  };
+  setIsGeneratingVideo(true);
+
+  // cycle through phrases
+  const reply = demoResponses.current[demoIndex.current];
+  demoIndex.current =
+    (demoIndex.current + 1) % demoResponses.current.length;
+
+  setChatMessages((prev) => [
+    ...prev,
+    {
+      type: "ai",
+      content: reply,
+      timestamp: new Date().toISOString(),
+    },
+  ]);
+
+  if (genTimeoutRef.current) clearTimeout(genTimeoutRef.current);
+  genTimeoutRef.current = setTimeout(() => {
+    setIsGeneratingVideo(false);
+  }, 5000);
+};
+
+  // ************************************************************
 
   useEffect(() => {
     const monitorPerformance = () => {
@@ -1089,7 +1078,7 @@ const AIEditor = () => {
                             {message.content}
                           </p>
                           <span className="text-xs opacity-70 mt-1 block">
-                            {new Date().toLocaleTimeString()}
+                           
                           </span>
                         </div>
                       </div>
