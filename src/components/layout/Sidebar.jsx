@@ -76,7 +76,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                 "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
               duration: "2:45",
               lastModified: "2 hours ago",
-              status: "draft",
+              status: "completed",
             },
             {
               id: 2,
@@ -85,7 +85,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                 "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
               duration: "1:30",
               lastModified: "1 day ago",
-              status: "completed",
+              status: "draft",
             },
             {
               id: 3,

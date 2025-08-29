@@ -603,26 +603,26 @@ const EnhancedVideoPlayer = forwardRef(
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="sm"
                     onClick={() => skip(-30)}
-                    className="text-white hover:bg-gray-700 hover:bg-opacity-80"
+                    className="text-white"
                   >
                     <RotateCcw className="w-4 h-4 text-white" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="sm"
                     onClick={() => skip(-10)}
-                    className="text-white hover:bg-gray-700 hover:bg-opacity-80"
+                    className="text-white"
                   >
                     <SkipBack className="w-5 h-5 text-white" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="lg"
                     onClick={togglePlay}
-                    className="text-white hover:bg-gray-700 hover:bg-opacity-80 bg-gray-800 bg-opacity-60"
+                    className="text-white"
                   >
                     {isPlaying ? (
                       <Pause className="w-6 h-6 text-white" />
@@ -631,22 +631,20 @@ const EnhancedVideoPlayer = forwardRef(
                     )}
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="sm"
                     onClick={() => skip(10)}
-                    className="text-white hover:bg-gray-700 hover:bg-opacity-80"
+                    className="text-white"
                   >
                     <SkipForward className="w-5 h-5 text-white" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="sm"
                     onClick={() =>
                       setLoopMode(loopMode === "none" ? "single" : "none")
                     }
-                    className={`text-white hover:bg-gray-700 hover:bg-opacity-80 ${
-                      loopMode !== "none" ? "bg-gray-700 bg-opacity-60" : ""
-                    }`}
+                    className={`text-white ${loopMode !== "none" ? 'bg-white/10' : ''}`}
                   >
                     {loopMode === "single" ? (
                       <Repeat1 className="w-4 h-4 text-white" />
@@ -658,10 +656,10 @@ const EnhancedVideoPlayer = forwardRef(
                   {/* Volume */}
                   <div className="flex items-center space-x-2">
                     <Button
-                      variant="ghost"
+                      variant="clear"
                       size="sm"
                       onClick={toggleMute}
-                      className="text-white hover:bg-gray-700 hover:bg-opacity-80"
+                      className="text-white"
                     >
                       {isMuted ? (
                         <VolumeX className="w-4 h-4 text-white" />
@@ -683,10 +681,10 @@ const EnhancedVideoPlayer = forwardRef(
                   {/* Playback Speed */}
                   <div className="relative">
                     <Button
-                      variant="ghost"
+                      variant="clear"
                       size="sm"
                       onClick={() => setShowSettings(!showSettings)}
-                      className="text-white hover:bg-gray-700 hover:bg-opacity-80 flex items-center space-x-1"
+                      className="text-white flex items-center space-x-1"
                     >
                       <Gauge className="w-4 h-4 text-white" />
                       <span className="text-xs text-white">
@@ -735,22 +733,20 @@ const EnhancedVideoPlayer = forwardRef(
 
                   {enablePiP && (
                     <Button
-                      variant="ghost"
+                      variant="clear"
                       size="sm"
                       onClick={togglePiP}
-                      className={`text-white hover:bg-gray-700 hover:bg-opacity-80 ${
-                        isPiP ? "bg-gray-700 bg-opacity-60" : ""
-                      }`}
+                      className={`text-white ${isPiP ? 'bg-white/10' : ''}`}
                     >
                       <PictureInPicture className="w-4 h-4 text-white" />
                     </Button>
                   )}
                
                   <Button
-                    variant="ghost"
+                    variant="clear"
                     size="sm"
                     onClick={toggleFullscreen}
-                    className="text-white hover:bg-gray-700 hover:bg-opacity-80"
+                    className="text-white"
                   >
                     {isFullscreen ? (
                       <Minimize className="w-4 h-4 text-white" />

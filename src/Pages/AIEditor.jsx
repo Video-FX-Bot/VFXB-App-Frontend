@@ -1193,7 +1193,7 @@ return (
                       disabled={!newMessage.trim()}
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
                     >
-                      <Send className="w-4 h-4 text-white" />
+                      <Send className="w-4 h-4 text-foreground" />
                     </button>
                   </div>
                 </div>

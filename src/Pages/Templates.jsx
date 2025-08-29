@@ -181,7 +181,7 @@ const Templates = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2 pb-2">
             Video Templates
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -209,10 +209,10 @@ const Templates = () => {
               <select
                 value={selectedFilter}
                 onChange={(e) => setSelectedFilter(e.target.value)}
-                className="bg-card border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none pr-10"
+                className="px-4 py-3 bg-muted themed-select border-2 border-border rounded-xl text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none pr-10"
               >
                 {filters.map(filter => (
-                  <option key={filter.id} value={filter.id} className="text-black">{filter.name}</option>
+                  <option key={filter.id} value={filter.id} className="bg-background text-foreground">{filter.name}</option>
                 ))}
               </select>
               <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 pointer-events-none" />
