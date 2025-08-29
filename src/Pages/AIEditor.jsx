@@ -56,6 +56,14 @@ function FrameStrip({
   const [mediaDuration, setMediaDuration] = React.useState(null); // real video duration
   const containerRef = React.useRef(null);
 
+
+  const [isIOS, setIsIOS] = React.useState(false);
+  React.useEffect(() => {
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setIsIOS(ios);
+  }, []);
   // helper: mm:ss
   const pad2 = (n) => String(n).padStart(2, "0");
   const formatTime = (s) => {
@@ -154,100 +162,86 @@ function FrameStrip({
     });
   }, [currentTime, mediaDuration, thumbs.length, isPlaying, contentWidth]);
 
-return (
-  <div
-    ref={containerRef}
-    className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
-               [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-    style={{ height }}
-  >
-    {/* --- TIMELINE CONTENT (spans full contentWidth) --- */}
+  return (
     <div
-      className="relative z-0 flex"
-      style={{ height, width: contentWidth || "100%" }}
+      ref={containerRef}
+      className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
+                 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      style={{ height }}
     >
-      {/* LEFT → RIGHT SHIMMER OVERLAY (fades in from the left, fades out on the right) */}
-      {isGenerating && (
-        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-          <div className="shimmer-bar h-full w-[22%]" />
-        </div>
-      )}
-
-      {/* Thumbnails */}
-      {thumbs.map((t, i) => (
-        <div
-          key={i}
-          className="relative shrink-0 select-none"
-          style={{ width: tileW, height }}
-          title={formatTime(t.time)}
-        >
-          <img
-            src={t.dataUrl}
-            alt={`frame ${i}`}
-            className="h-full w-full object-cover pointer-events-none"
-            draggable={false}
-          />
-          <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
-            {formatTime(t.time)}
-          </span>
-        </div>
-      ))}
-
-      {/* Playhead + time bubble */}
-      {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
-        <div
-          className="absolute inset-y-0 pointer-events-none"
-          style={{
-            left: `${
-              (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
-              contentWidth
-            }px`,
-          }}
-        >
-          <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-          <div
-            className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium
-                       px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70"
-          >
-            {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+      <div className="relative z-0 flex" style={{ height, width: contentWidth || "100%" }}>
+        {/* ✅ Disable shimmer on iOS and small screens */}
+        {isGenerating && !isIOS && (
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+            <div className="shimmer-bar h-full w-[22%]" />
           </div>
-        </div>
-      )}
-    </div>
+        )}
 
-    {/* Keyframes + class for a soft, blended shimmer */}
-    <style>
-      {`
+        {/* Thumbnails */}
+        {thumbs.map((t, i) => (
+          <div key={i} className="relative shrink-0 select-none" style={{ width: tileW, height }} title={formatTime(t.time)}>
+            <img src={t.dataUrl} alt={`frame ${i}`} className="h-full w-full object-cover pointer-events-none" draggable={false} />
+            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">{formatTime(t.time)}</span>
+          </div>
+        ))}
+
+        {/* Playhead */}
+        {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              left: `${
+                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) * contentWidth
+              }px`,
+            }}
+          >
+            <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+            <div className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70">
+              {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CSS: remove blur, kill shimmer on iOS/small screens/reduced motion */}
+      <style>{`
         .shimmer-bar {
-          /* Soft bright core with feathered edges */
           background: linear-gradient(
             90deg,
             rgba(255,255,255,0) 0%,
-            rgba(255,255,255,0.6) 50%,
+            rgba(255,255,255,0.35) 50%,
             rgba(255,255,255,0) 100%
           );
-          filter: blur(0.5px);               /* tiny blur for smoother blend */
-          will-change: transform, opacity;
+          /* 🔧 removed filter: blur(...) which triggers the iOS bug */
+          will-change: transform;
           animation: shimmerLTR 3.6s linear infinite;
-          transform: translate3d(-50%, 0, 0); /* start well off-screen left */
-          opacity: 0;                         /* invisible at the very start */
+          transform: translate3d(-50%, 0, 0);
+          opacity: 0;
         }
-
         @keyframes shimmerLTR {
           0%   { transform: translate3d(-50%, 0, 0); opacity: 0; }
-          8%   { opacity: 1; }   /* fade in as it enters the first frame */
-          92%  { opacity: 1; }   /* stay visible through most of the sweep */
-          100% { transform: translate3d(150%, 0, 0); opacity: 0; } /* fade out off right */
+          8%   { opacity: 1; }
+          92%  { opacity: 1; }
+          100% { transform: translate3d(150%, 0, 0); opacity: 0; }
         }
-      `}
-    </style>
-  </div>
-);
 
+        /* iOS-only: completely disable shimmer to avoid painting bug */
+        @supports (-webkit-touch-callout: none) {
+          .shimmer-bar { display: none !important; }
+        }
 
+        /* Small screens: disable shimmer (optional) */
+        @media (max-width: 640px) {
+          .shimmer-bar { display: none !important; }
+        }
 
-
-
+        /* Accessibility: honor reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .shimmer-bar { animation: none !important; display: none !important; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 const AIEditor = () => {
@@ -748,11 +742,11 @@ const AIEditor = () => {
     setIsTyping(true);
     setIsGeneratingVideo(true);
 
-   // Pause the video if it's playing
-  if (videoRef.current && !videoRef.current.paused) {
-    videoRef.current.pause();
-    setIsPlaying(false);
-  }
+    // Pause the video if it's playing
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
     try {
       await socketService.sendChatMessage({
         message: newMessage,
@@ -913,16 +907,29 @@ const AIEditor = () => {
     }
   };
 
-  return (
-    <div className="bg-background text-foreground flex flex-col">
+return (
+  <div
+    className="ai-editor-page bg-background text-foreground flex flex-col overflow-x-hidden"
+    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
+  >
+    <style>{`
+      /* Stop iOS input zoom on small screens by keeping fields >= 16px */
+      @media (max-width: 640px) {
+        .ai-editor-page input,
+        .ai-editor-page textarea,
+        .ai-editor-page select {
+          font-size: 16px !important;
+        }
+      }
+    `}</style>
       {/* ======= Shared container for editor + filmstrip + toolbar ======= */}
-      <div className="mx-auto w-full max-w-screen-2xl px-8">
-        {/* Main Editor Layout (two columns) */}
-        <div className="flex flex-1 overflow-hidden py-4 gap-6 items-stretch">
-          {/* Left: Video Only (2/3) */}
-          <div className="flex-1 flex flex-col" style={{ width: "66.666%" }}>
+      <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 md:px-8">
+        {/* Main Editor Layout (responsive: column on mobile, row on md+) */}
+        <div className="flex flex-1 overflow-visible md:overflow-hidden py-4 md:gap-6 gap-4 items-stretch flex-col md:flex-row">
+          {/* Left: Video (full width on mobile, 2/3 on md+) */}
+          <div className="flex-1 flex flex-col w-full md:w-2/3">
             {/* Video Player */}
-            <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 h-[670px]">
+            <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 aspect-video md:aspect-auto md:h-[670px]">
               {uploadedVideo ? (
                 <EnhancedVideoPlayer
                   ref={videoRef}
@@ -976,11 +983,36 @@ const AIEditor = () => {
             </div>
           </div>
 
-          {/* Right: Sidebar Tabs (1/3) */}
-          <div
-            className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col"
-            style={{ width: "33.333%", height: "670px" }}
-          >
+          {/* Mobile-only mini timeline (above AI chat) */}
+          {!showTimeline && uploadedVideo && (
+            <div className="md:hidden -mt-2 mb-3">
+              <div
+                onClick={() => setShowTimeline(true)}
+                className="cursor-pointer overflow-hidden w-full"
+              >
+                <FrameStrip
+                  videoUrl={uploadedVideo.url}
+                  duration={
+                    duration ||
+                    tracks.find((t) => t.type === "video")?.clips?.[0]
+                      ?.duration ||
+                    30
+                  }
+                  currentTime={currentTime}
+                  height={72}
+                  frames={Math.max(
+                    24,
+                    Math.min(80, Math.floor(duration || 60))
+                  )}
+                  isPlaying={isPlaying}
+                  isGenerating={isGeneratingVideo}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Right: Sidebar Tabs (full width on mobile, 1/3 on md+) */}
+          <div className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col w-full md:w-1/3 md:h-[670px]">
             {/* Tabs */}
             <div className="flex border-b border-border">
               <button
@@ -1065,7 +1097,7 @@ const AIEditor = () => {
                 {/* Messages */}
                 <div
                   ref={chatScrollRef}
-                  className="flex-1 overflow-y-auto min-h-0 px-6"
+                  className="flex-1 overflow-y-auto min-h-0 px-6 md:max-h-none max-h-[50vh]"
                   style={{ scrollbarWidth: "thin" }}
                 >
                   <div className="space-y-6 pb-6">
@@ -1144,7 +1176,7 @@ const AIEditor = () => {
                           e.stopPropagation();
                       }}
                       placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
-                      className="flex-1 bg-background border-2 border-border rounded-lg px-5 pt-2 pb-3 text-sm leading-[1.3] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[52px] max-h-[120px] overflow-hidden"
+                      className="flex-1 bg-background border-2 border-border rounded-lg px-5 pt-2 pb-3 text-base md:text-sm leading-[1.3] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[52px] max-h-[120px] overflow-hidden"
                       rows={1}
                       onInput={(e) => {
                         const el = e.currentTarget;
@@ -1171,7 +1203,7 @@ const AIEditor = () => {
             {/* Effects Tab */}
             {activeTab === "effects" && (
               <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4 md:max-h-none max-h-[60vh]">
                   <EffectsLibrary
                     onApplyEffect={(effect, params) => {
                       console.log("Applying effect:", effect, params);
@@ -1187,7 +1219,7 @@ const AIEditor = () => {
         </div>
 
         {/* ===== Timeline area: filmstrip OR enhanced timeline ===== */}
-        <div className="w-full mb-4">
+       <div className={`w-full mb-4 ${showTimeline ? "" : "hidden md:block"}`}>
           {!showTimeline ? (
             uploadedVideo ? (
               <div
@@ -1263,43 +1295,63 @@ const AIEditor = () => {
           )}
         </div>
 
-        {/* ===== Global Toolbar (Centered, Scrolls with Page) ===== */}
-        <div className="w-full flex justify-center mt-4 mb-8">
-          <div className="bg-card/95 backdrop-blur border-2 border-border rounded-xl shadow-elevation-2 px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
+        {/* ===== Global Toolbar (Centered, Responsive) ===== */}
+        <div className="w-full flex justify-center mt-4 md:mb-8 mb-4">
+          <div
+            className="
+      bg-card/95 backdrop-blur border-2 border-border rounded-xl shadow-elevation-2
+      w-full max-w-[680px] md:max-w-[1000px]
+      px-3 py-3 md:px-4
+      flex flex-col md:flex-row md:items-center md:justify-between
+      gap-2 md:gap-3
+      overflow-hidden
+    "
+          >
+            
             {/* Left side: Undo + Settings */}
-            <div className="flex gap-3">
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border">
+            <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
+              <button className="bg-card hover:bg-muted text-foreground px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border w-full sm:w-auto">
                 <RotateCcw className="w-4 h-4 mr-2 inline-block" />
                 Undo
               </button>
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border">
+              <button className="bg-card hover:bg-muted text-foreground px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border w-full sm:w-auto">
                 <Settings className="w-4 h-4 mr-2 inline-block" />
                 Settings
               </button>
             </div>
 
             {/* Right side: Project name + Save + Export */}
-            <div className="flex items-center gap-3 md:ml-3">
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 w-full md:w-auto">
               <input
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="Enter project name..."
-                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-elevation-1 transition-all duration-200 w-56"
+                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-base md:text-sm text-foreground placeholder-muted-foreground
+          focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+          shadow-elevation-1 transition-all duration-200
+          w-full md:w-64 min-w-0 flex-1
+        "
               />
               <button
                 onClick={saveProject}
                 disabled={isSaving || !uploadedVideo}
-                className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 ${
-                  isSaving || !uploadedVideo
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500"
-                }`}
+                className={`
+          rounded-lg font-medium transition-all duration-200
+          shadow-elevation-1 hover:shadow-elevation-2
+          px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm
+          w-full sm:w-auto
+          ${
+            isSaving || !uploadedVideo
+              ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+              : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500"
+          }
+        `}
               >
                 <Save className="w-4 h-4 mr-2 inline-block" />
                 {isSaving ? "Saving..." : "Save Project"}
               </button>
-              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 border border-blue-500">
+              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-elevation-1 border border-blue-500 px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2 inline-block" />
                 Export Video
               </button>

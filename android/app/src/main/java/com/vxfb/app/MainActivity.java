@@ -1,4 +1,4 @@
-package vfxb.com;
+package com.vxfb.app;
 
 import com.getcapacitor.BridgeActivity;
 
