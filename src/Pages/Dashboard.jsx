@@ -305,7 +305,7 @@ const NewDashboard = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 pb-2">
                 VFXB Studio Dashboard
               </h1>
               <p className="text-muted-foreground text-lg flex items-center space-x-2">
@@ -692,7 +692,9 @@ const NewDashboard = () => {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm transition-all ${
-                    viewMode === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    viewMode === 'grid' 
+                      ? 'bg-primary/10 text-primary-700 border border-primary/30 shadow-sm dark:bg-background dark:text-foreground dark:border-border' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <Grid3X3 className="w-4 h-4" />
@@ -701,7 +703,9 @@ const NewDashboard = () => {
                 <button
                   onClick={() => setViewMode('list')}
                   className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm transition-all ${
-                    viewMode === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    viewMode === 'list' 
+                      ? 'bg-primary/10 text-primary-700 border border-primary/30 shadow-sm dark:bg-background dark:text-foreground dark:border-border' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <List className="w-4 h-4" />
@@ -713,7 +717,7 @@ const NewDashboard = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&>option]:bg-background [&>option]:text-foreground"
+                className="px-2 py-2 bg-muted themed-select border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option value="recent" className="bg-background text-foreground">Last Edited</option>
                 <option value="name" className="bg-background text-foreground">Title</option>
@@ -747,7 +751,7 @@ const NewDashboard = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:shadow-elevation-2 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 group"
+                    className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:shadow-elevation-2 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 group flex flex-col"
                   >
                     <div className="relative">
                       <img
@@ -757,9 +761,10 @@ const NewDashboard = () => {
                       />
                       <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                          project.status === 'Completed' ? 'bg-green-500/20 text-green-600 border border-green-500/30' :
-                          project.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30' :
-                          'bg-blue-500/20 text-blue-600 border border-blue-500/30'
+                          project.status === 'Completed' ? 'bg-green-500/70 text-green-200 border-2 border-green-500/50 shadow-sm' :
+                          project.status === 'In Progress' ? 'bg-blue-500/70 text-blue-200 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm' :
+                          'bg-yellow-500/70 text-yellow-200 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm'
+                          
                         }`}>
                           {project.status}
                         </span>
@@ -778,7 +783,7 @@ const NewDashboard = () => {
                       </div>
                     </div>
                     
-                    <div className="p-4">
+                    <div className="p-4 flex-1 flex flex-col">
                       <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
                         {project.title}
                       </h3>
@@ -798,48 +803,50 @@ const NewDashboard = () => {
                       </div>
                       
                       {/* Collaboration Section */}
-                      <div className="mb-4 space-y-2">
-                        {project.collaborators.length > 0 && (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <div className="flex -space-x-1">
-                                {project.collaborators.slice(0, 3).map((collaborator, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-background"
-                                    title={`${collaborator.name} (${collaborator.role})`}
-                                  >
-                                    {collaborator.avatar}
-                                  </div>
-                                ))}
-                                {project.collaborators.length > 3 && (
-                                  <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium border-2 border-background">
-                                    +{project.collaborators.length - 3}
-                                  </div>
-                                )}
+                      <div className="mb-4 space-y-2 min-h-[32px]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            {project.collaborators.length > 0 ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="flex -space-x-1">
+                                  {project.collaborators.slice(0, 3).map((collaborator, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-background"
+                                      title={`${collaborator.name} (${collaborator.role})`}
+                                    >
+                                      {collaborator.avatar}
+                                    </div>
+                                  ))}
+                                  {project.collaborators.length > 3 && (
+                                    <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium border-2 border-background">
+                                      +{project.collaborators.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {project.collaborators.length} collaborator{project.collaborators.length !== 1 ? 's' : ''}
+                                </span>
                               </div>
-                              <span className="text-xs text-muted-foreground">
-                                {project.collaborators.length} collaborator{project.collaborators.length !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                            {project.isShared && (
-                              <div className="flex items-center space-x-1 text-green-600">
-                                <Link2 className="w-3 h-3" />
-                                <span className="text-xs">Shared</span>
-                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">0 collaborators</span>
                             )}
                           </div>
-                        )}
-                        
-                        {project.comments > 0 && (
-                          <div className="flex items-center space-x-1 text-muted-foreground">
-                            <MessageCircle className="w-3 h-3" />
-                            <span className="text-xs">{project.comments} comment{project.comments !== 1 ? 's' : ''}</span>
-                          </div>
-                        )}
+                          {project.isShared && (
+                            <div className="flex items-center space-x-1 text-green-600">
+                              <Link2 className="w-3 h-3" />
+                              <span className="text-xs">Shared</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-1 text-muted-foreground">
+                          <MessageCircle className="w-3 h-3" />
+                          <span className="text-xs">{project.comments} comment{project.comments !== 1 ? 's' : ''}</span>
+                        </div>
                       </div>
                       
-                      <div className="flex items-center justify-between">
+                      <div className="mt-auto flex items-center justify-between">
                         <button className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all text-sm shadow-elevation-1 hover:shadow-elevation-2">
                           <Play className="w-4 h-4" />
                           <span>Continue</span>
@@ -883,11 +890,11 @@ const NewDashboard = () => {
                           alt={project.title}
                           className="w-16 h-16 object-cover rounded-lg group-hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="absolute -top-1 -right-1">
-                          <span className={`w-3 h-3 rounded-full ${
+                        <div className="absolute -top-3 -right-1">
+                          <span className={`inline-block w-3 h-3 rounded-full ${
                             project.status === 'Completed' ? 'bg-green-500' :
-                            project.status === 'In Progress' ? 'bg-yellow-500' :
-                            'bg-blue-500'
+                            project.status === 'In Progress' ? 'bg-blue-500' :
+                            'bg-yellow-500'
                           }`} />
                         </div>
                       </div>

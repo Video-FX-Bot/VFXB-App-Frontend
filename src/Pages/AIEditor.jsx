@@ -1161,7 +1161,7 @@ const AIEditor = () => {
                       disabled={!newMessage.trim()}
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
                     >
-                      <Send className="w-4 h-4 text-white" />
+                      <Send className="w-4 h-4 text-foreground" />
                     </button>
                   </div>
                 </div>
@@ -1285,7 +1285,7 @@ const AIEditor = () => {
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="Enter project name..."
-                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-elevation-1 transition-all duration-200 w-56"
+                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder-foreground/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-elevation-1 transition-all duration-200 w-56"
               />
               <button
                 onClick={saveProject}

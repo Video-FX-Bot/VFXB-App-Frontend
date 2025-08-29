@@ -598,3 +598,25 @@
   background: hsl(var(--primary) / 0.8);
   transform: scale(1.1);
 }
+
+/* Theme-aware select control and options */
+.themed-select {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.themed-select option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .themed-select {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.dark .themed-select option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+

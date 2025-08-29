@@ -121,12 +121,12 @@ export default function Profile() {
                   onChange={(e) => setFormData({...formData, notifications: e.target.checked})}
                   className="sr-only"
                 />
-                <div className={`w-11 h-6 rounded-full transition-all duration-300 ${
+                <div className={`w-10 h-6 rounded-full transition-all duration-300 relative ${
                   formData.notifications ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-muted'
                 }`}>
-                  <div className={`w-5 h-5 bg-white rounded-full transition-all duration-300 transform ${
-                    formData.notifications ? 'translate-x-5' : 'translate-x-0.5'
-                  } mt-0.5`} />
+                  <div className={`absolute top-1/2 left-0.5 w-5 h-5 bg-white rounded-full transition-all duration-300 transform -translate-y-1/2 ${
+                    formData.notifications ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
                 </div>
               </label>
             </div>

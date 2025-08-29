@@ -87,7 +87,7 @@ const Sidebar = () => {
                 "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
               duration: "2:45",
               lastModified: "2 hours ago",
-              status: "draft",
+              status: "completed",
             },
             {
               id: 2,
@@ -96,7 +96,7 @@ const Sidebar = () => {
                 "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
               duration: "1:30",
               lastModified: "1 day ago",
-              status: "completed",
+              status: "draft",
             },
             {
               id: 3,
@@ -469,11 +469,11 @@ const Sidebar = () => {
                             <span
                               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                                 project.status === "completed"
-                                  ? "bg-success-light text-success-light border border-green-500/30"
+                                  ? "bg-green-500/70 text-green-200 dark:text-green-300 border-2 border-green-500/50 shadow-sm"
                                   : project.status === "draft"
-                                  ? "bg-warning-light text-warning-light border border-yellow-500/30"
+                                  ? "bg-yellow-500/70 text-yellow-200 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm"
                                   : project.status === "processing"
-                                  ? "bg-info-light text-info-light border border-blue-500/30"
+                                  ? "bg-blue-500/70 text-blue-200 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm"
                                   : "bg-muted text-muted-foreground border border-border"
                               }`}
                             >

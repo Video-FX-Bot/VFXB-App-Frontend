@@ -153,15 +153,11 @@ const Projects = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-      case 'Completed':
-        return 'bg-green-500/20 text-green-300 border-green-500/30';
+        return 'bg-green-500/70 text-green-200 dark:text-green-300 border-2 border-green-500/50 shadow-sm';
       case 'editing':
-      case 'processing':
-      case 'In Progress':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+        return 'bg-blue-500/70 text-blue-200 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm';
       case 'draft':
-      case 'Draft':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+        return 'bg-yellow-500/70 text-yellow-200 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm';
       default:
         return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
@@ -320,7 +316,7 @@ const Projects = () => {
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2 pb-2">
                 My Projects
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -352,12 +348,12 @@ const Projects = () => {
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-card text-muted-foreground focus:outline-none"
+              className="px-4 py-2 bg-muted themed-select border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="all" className="text-black">All Projects</option>
-              <option value="recent" className="text-black">Recent</option>
-              <option value="favorites" className="text-black">Favorites</option>
-              <option value="completed" className="text-black">Completed</option>
+              <option value="all" className="bg-background text-foreground">All Projects</option>
+              <option value="recent" className="bg-background text-foreground">Recent</option>
+              <option value="favorites" className="bg-background text-foreground">Favorites</option>
+              <option value="completed" className="bg-background text-foreground">Completed</option>
             </select>
 
             <div className="flex items-center gap-2 border border-border rounded-lg p-1">
@@ -447,7 +443,7 @@ const Projects = () => {
                       <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                         <div className="flex items-center space-x-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)}`}>
-                            {project.status}
+                            {getStatusText(project.status)}
                           </span>
                         </div>
                         <span className="bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-medium">
