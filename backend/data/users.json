@@ -1,0 +1,21 @@
+[
+  {
+    "_id": "f848aa3b-dab5-46cd-83ea-c94f8f8c2795",
+    "email": "test@example.com",
+    "username": "testuser123",
+    "firstName": "Test",
+    "lastName": "User",
+    "passwordHash": "$2b$12$UJfgHcfveQMXHnNtmj0udeOXy0LL6W9saI7xYdcDYcOoQOs0EyyB2",
+    "verificationToken": "891b7d336ccf677f840b7f64fa605d6d36943ef28c8229c5302deb63b51f67c0",
+    "isVerified": false,
+    "isActive": true,
+    "roles": [
+      "user"
+    ],
+    "loginAttempts": 0,
+    "lastLoginAt": "2025-09-02T10:51:28.552Z",
+    "createdAt": "2025-09-02T09:45:18.178Z",
+    "updatedAt": "2025-09-02T10:52:28.100Z",
+    "analytics.lastActiveAt": "2025-09-02T10:52:28.100Z"
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "_id": "mock-3",
+    "title": "Wedding Highlights",
+    "description": "Beautiful moments from Sarah and John's wedding",
+    "status": "completed",
+    "visibility": "public",
+    "ownerId": "user-1",
+    "createdAt": "2025-08-28T07:16:45.388Z",
+    "updatedAt": "2025-08-28T07:16:45.388Z",
+    "lastAccessedAt": "2025-08-28T07:16:45.388Z"
+  },
+  {
+    "_id": "mock-2",
+    "title": "Product Demo Video",
+    "description": "Demonstration of our latest product features",
+    "status": "draft",
+    "visibility": "private",
+    "ownerId": "user-1",
+    "createdAt": "2025-08-28T07:16:45.211Z",
+    "updatedAt": "2025-08-28T07:16:45.211Z",
+    "lastAccessedAt": "2025-08-28T07:16:45.211Z"
+  },
+  {
+    "_id": "mock-1",
+    "title": "Summer Vacation Highlights",
+    "description": "Family vacation memories from our trip to the mountains",
+    "status": "completed",
+    "visibility": "private",
+    "ownerId": "user-1",
+    "createdAt": "2025-08-28T07:16:44.711Z",
+    "updatedAt": "2025-08-28T07:16:44.711Z",
+    "lastAccessedAt": "2025-08-28T07:16:44.711Z"
+  }
+]
