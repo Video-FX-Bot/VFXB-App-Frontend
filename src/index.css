@@ -52,6 +52,13 @@
     --info-bg: 221 83% 96%;
   }
 
+  /* iOS safe-area helpers */
+@supports (padding: max(0px)) {
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 16px); }
+  .mb-safe { margin-bottom: max(env(safe-area-inset-bottom), 16px); }
+  .sticky-safe-bottom { position: sticky; bottom: env(safe-area-inset-bottom); }
+}
+
   .dark {
     /* Enhanced Dark Theme - Professional and Modern */
     --background: 220 45% 8%;
@@ -140,7 +147,7 @@
     color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
     margin: 0;
-    min-height: 100vh;
+    min-height: 100dvh;
     background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 50%, hsl(0 0% 100%) 100%);
   }
   
@@ -598,3 +605,25 @@
   background: hsl(var(--primary) / 0.8);
   transform: scale(1.1);
 }
+
+/* Theme-aware select control and options */
+.themed-select {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.themed-select option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .themed-select {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.dark .themed-select option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+

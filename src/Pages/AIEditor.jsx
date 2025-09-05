@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import EnhancedTimeline from "../components/EnhancedTimeline";
 import { useLocation } from "react-router-dom";
 import {
   Play,
@@ -31,9 +32,8 @@ import {
   Settings,
 } from "lucide-react";
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
-import EnhancedTimeline from "../components/EnhancedTimeline";
+// import EnhancedTimeline from "../components/EnhancedTimeline"; // ⛔️ removed
 import EffectsLibrary from "../components/effects/EffectsLibrary";
-// Removed ProfessionalToolPalette import as per user request
 import {
   videoWorker,
   smartCache,
@@ -43,10 +43,213 @@ import {
 import socketService from "../services/socketService";
 import projectService from "../services/projectService";
 
+function FrameStrip({
+  videoUrl,
+  duration, // may be wrong/short; we won't trust it
+  currentTime,
+  height = 72,
+  frames = 30,
+  isPlaying = false,
+  isGenerating = false,
+}) {
+  const [thumbs, setThumbs] = React.useState([]);
+  const [mediaDuration, setMediaDuration] = React.useState(null); // real video duration
+  const containerRef = React.useRef(null);
+
+
+  const [isIOS, setIsIOS] = React.useState(false);
+  React.useEffect(() => {
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setIsIOS(ios);
+  }, []);
+  // helper: mm:ss
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const formatTime = (s) => {
+    const mm = Math.floor(s / 60);
+    const ss = Math.floor(s % 60);
+    return `${pad2(mm)}:${pad2(ss)}`;
+  };
+
+  // Generate thumbnails across the FULL media duration (not clamped to prop)
+  React.useEffect(() => {
+    if (!videoUrl) return;
+
+    let cancelled = false;
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.preload = "metadata";
+    video.src = videoUrl;
+
+    const generate = async () => {
+      // wait for metadata to get actual duration
+      await new Promise((res, rej) => {
+        const to = setTimeout(() => rej(new Error("metadata timeout")), 15000);
+        video.onloadedmetadata = () => {
+          clearTimeout(to);
+          res();
+        };
+        video.onerror = () => rej(new Error("video load error"));
+        video.load();
+      });
+
+      const actual = Math.max(
+        0.1,
+        Number(video.duration) || Number(duration) || 0.1
+      );
+      if (!cancelled) setMediaDuration(actual);
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 160;
+      canvas.height = 90;
+
+      // how many thumbs? cap to frames, but spread across FULL duration
+      const count = Math.max(1, Math.min(frames, Math.floor(actual)));
+      const out = [];
+
+      for (let i = 0; i < count; i++) {
+        if (cancelled) return;
+        const t = (actual / count) * i;
+        await new Promise((res) => {
+          const onSeek = () => {
+            try {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              out.push({
+                time: t,
+                dataUrl: canvas.toDataURL("image/jpeg", 0.7),
+              });
+            } catch {}
+            video.removeEventListener("seeked", onSeek);
+            res();
+          };
+          video.addEventListener("seeked", onSeek);
+          video.currentTime = Math.max(0, Math.min(actual - 0.05, t));
+        });
+      }
+      if (!cancelled) setThumbs(out);
+    };
+
+    generate().catch(() => {
+      setThumbs([]);
+      setMediaDuration(Number(duration) || 0);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [videoUrl, duration, frames]);
+
+  // Fixed tile width so content is scrollable; hide scrollbar in CSS
+  const tileW = 96;
+  const contentWidth = thumbs.length * tileW;
+
+  // Auto-center the playhead using the REAL mediaDuration
+  React.useEffect(() => {
+    if (!containerRef.current || !thumbs.length || !mediaDuration) return;
+
+    const el = containerRef.current;
+    const safeDur = mediaDuration || 0.0001;
+    const clampedT = Math.max(0, Math.min(currentTime ?? 0, safeDur));
+    const playheadX = (clampedT / safeDur) * contentWidth;
+
+    el.scrollTo({
+      left: Math.max(0, playheadX - el.clientWidth / 2),
+      behavior: isPlaying ? "smooth" : "auto",
+    });
+  }, [currentTime, mediaDuration, thumbs.length, isPlaying, contentWidth]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-x-auto rounded-lg border border-border bg-black/40
+                 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      style={{ height }}
+    >
+      <div className="relative z-0 flex" style={{ height, width: contentWidth || "100%" }}>
+        {/* ✅ Disable shimmer on iOS and small screens */}
+        {isGenerating && !isIOS && (
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+            <div className="shimmer-bar h-full w-[22%]" />
+          </div>
+        )}
+
+        {/* Thumbnails */}
+        {thumbs.map((t, i) => (
+          <div key={i} className="relative shrink-0 select-none" style={{ width: tileW, height }} title={formatTime(t.time)}>
+            <img src={t.dataUrl} alt={`frame ${i}`} className="h-full w-full object-cover pointer-events-none" draggable={false} />
+            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">{formatTime(t.time)}</span>
+          </div>
+        ))}
+
+        {/* Playhead */}
+        {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              left: `${
+                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) * contentWidth
+              }px`,
+            }}
+          >
+            <div className="w-0.5 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+            <div className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium px-2 py-[2px] rounded bg-blue-600 text-white border border-blue-400/70">
+              {formatTime(Math.min(currentTime ?? 0, mediaDuration))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CSS: remove blur, kill shimmer on iOS/small screens/reduced motion */}
+      <style>{`
+        .shimmer-bar {
+          background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.35) 50%,
+            rgba(255,255,255,0) 100%
+          );
+          /* 🔧 removed filter: blur(...) which triggers the iOS bug */
+          will-change: transform;
+          animation: shimmerLTR 3.6s linear infinite;
+          transform: translate3d(-50%, 0, 0);
+          opacity: 0;
+        }
+        @keyframes shimmerLTR {
+          0%   { transform: translate3d(-50%, 0, 0); opacity: 0; }
+          8%   { opacity: 1; }
+          92%  { opacity: 1; }
+          100% { transform: translate3d(150%, 0, 0); opacity: 0; }
+        }
+
+        /* iOS-only: completely disable shimmer to avoid painting bug */
+        @supports (-webkit-touch-callout: none) {
+          .shimmer-bar { display: none !important; }
+        }
+
+        /* Small screens: disable shimmer (optional) */
+        @media (max-width: 640px) {
+          .shimmer-bar { display: none !important; }
+        }
+
+        /* Accessibility: honor reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .shimmer-bar { animation: none !important; display: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 const AIEditor = () => {
   const [activeTab, setActiveTab] = useState("assistant");
   const chatScrollRef = useRef(null);
   const location = useLocation();
+  const [suppressHotkeys, setSuppressHotkeys] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const videoRef = useRef(null);
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,6 +257,7 @@ const AIEditor = () => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     {
       type: "ai",
@@ -71,7 +275,6 @@ const AIEditor = () => {
     },
   ]);
 
-  // Enhanced AI Chat features
   const [isTyping, setIsTyping] = useState(false);
   const [contextAwareSuggestions, setContextAwareSuggestions] = useState([]);
   const [voiceCommandActive, setVoiceCommandActive] = useState(false);
@@ -85,7 +288,6 @@ const AIEditor = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
 
-  // Professional tools and performance state
   const [selectedTool, setSelectedTool] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -181,18 +383,19 @@ const AIEditor = () => {
           resolution: `${video.videoWidth || 1920}x${
             video.videoHeight || 1080
           }`,
-          fps: 30, // Default, would need more complex detection for actual FPS
-          fileSize: videoFile.size || 0,
-          format: videoFile.type || "video/mp4",
         };
         cleanup();
-        resolve(metadata);
+        resolve({
+          ...metadata,
+          fps: 30,
+          fileSize: videoFile.size || 0,
+          format: videoFile.type || "video/mp4",
+        });
       };
 
       video.onerror = (error) => {
         console.error("Video metadata extraction error:", error);
         cleanup();
-        // Fallback metadata
         resolve({
           duration: 30,
           width: 1920,
@@ -222,27 +425,25 @@ const AIEditor = () => {
       }
     });
   };
+
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
-    // Always scroll to the bottom when messages or loading state change
     el.scrollTop = el.scrollHeight;
   }, [chatMessages, isChatLoading]);
-  // Get video from navigation state
+
+  // Load video from navigation state
   useEffect(() => {
     if (location.state?.video) {
       const video = location.state.video;
       const autoAnalyze = location.state?.autoAnalyze;
-      const fromDashboard = location.state?.fromDashboard;
 
       setUploadedVideo(video);
 
-      // Extract actual video metadata
       extractVideoMetadata(video)
         .then(async (videoMetadata) => {
           console.log("Extracted video metadata:", videoMetadata);
 
-          // Automatically add video to timeline with detailed processing
           const videoClip = {
             id: `clip-${Date.now()}`,
             name: video.name || "Video Clip",
@@ -292,7 +493,6 @@ const AIEditor = () => {
             },
           };
 
-          // Update tracks with the new video
           setTracks([
             {
               id: "video-track-1",
@@ -316,13 +516,11 @@ const AIEditor = () => {
             },
           ]);
 
-          // Set duration and project name
           setDuration(videoMetadata.duration);
           const newProjectName =
             video.name?.replace(/\.[^/.]+$/, "") || "Untitled Project";
           setProjectName(newProjectName);
 
-          // Automatically create and save project when video is loaded
           const autoProjectData = {
             name: newProjectName,
             video: video,
@@ -348,7 +546,6 @@ const AIEditor = () => {
             autoSaved: true,
           };
 
-          // Save project using projectService with fallback to localStorage
           try {
             const savedProject = await projectService.saveProject(
               autoProjectData,
@@ -362,7 +559,6 @@ const AIEditor = () => {
             console.error("Failed to auto-save project:", error);
           }
 
-          // Add AI welcome message with video details
           setChatMessages((prev) => [
             ...prev,
             {
@@ -383,50 +579,9 @@ const AIEditor = () => {
               timestamp: new Date().toISOString(),
             },
           ]);
-
-          // Trigger automatic video analysis if requested from dashboard
-          if (autoAnalyze && fromDashboard) {
-            setTimeout(() => {
-              setIsChatLoading(true);
-              setIsProcessing(true);
-              setProcessingProgress(0);
-
-              // Simulate analysis progress
-              const progressInterval = setInterval(() => {
-                setProcessingProgress((prev) => {
-                  if (prev >= 100) {
-                    clearInterval(progressInterval);
-                    setIsProcessing(false);
-                    setIsChatLoading(false);
-
-                    // Add analysis results message
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        type: "ai",
-                        content: `🔍 **Video Analysis Complete!**\n\nI've automatically analyzed your video and here's what I found:\n\n🎬 **Content Analysis:**\n- Scene Detection: ${videoClip.scenes.length} scenes identified\n- Video Quality: ${videoMetadata.resolution} - Good quality\n- Audio Quality: Clear audio detected\n\n💡 **AI Recommendations:**\n- Consider adding smooth transitions between scenes\n- The lighting could benefit from color correction\n- Audio levels are balanced\n- Perfect for adding background music\n\n✨ **Quick Actions Available:**\n- Apply cinematic color grading\n- Add fade transitions\n- Enhance audio quality\n- Create title sequence\n\nWhat would you like to work on first?`,
-                        timestamp: new Date().toISOString(),
-                        suggestions: [
-                          "🎨 Apply cinematic color grading",
-                          "🔄 Add smooth transitions",
-                          "🎵 Add background music",
-                          "📝 Create title sequence",
-                          "⚡ Enhance video quality",
-                        ],
-                      },
-                    ]);
-
-                    return 100;
-                  }
-                  return prev + 10;
-                });
-              }, 200);
-            }, 1000);
-          }
         })
         .catch((error) => {
           console.error("Error extracting video metadata:", error);
-          // Fallback with default duration
           setDuration(30);
           setProjectName(
             video.name?.replace(/\.[^/.]+$/, "") || "Untitled Project"
@@ -435,12 +590,10 @@ const AIEditor = () => {
     }
   }, [location.state]);
 
-  // Socket connection setup
+  // Socket setup
   useEffect(() => {
-    // Connect to socket service
     socketService.connect();
 
-    // Set up event listeners
     socketService.onAIResponse((data) => {
       setChatMessages((prev) => [
         ...prev,
@@ -453,7 +606,11 @@ const AIEditor = () => {
         },
       ]);
       setIsTyping(false);
-      setIsLoading(false);
+      setIsChatLoading(false);
+      setIsGeneratingVideo(false);
+    });
+    socketService.onVideoAnalysisComplete((data) => {
+      setIsGeneratingVideo(false);
     });
 
     socketService.onVideoAnalysisComplete((data) => {
@@ -480,7 +637,8 @@ const AIEditor = () => {
         },
       ]);
       setIsTyping(false);
-      setIsLoading(false);
+      setIsChatLoading(false);
+      setIsGeneratingVideo(false);
     });
 
     socketService.onAITyping((data) => {
@@ -498,13 +656,11 @@ const AIEditor = () => {
       ]);
     });
 
-    // Cleanup on unmount
     return () => {
       socketService.disconnect();
     };
   }, []);
 
-  // Video control functions
   const togglePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -584,9 +740,14 @@ const AIEditor = () => {
     setNewMessage("");
     setIsChatLoading(true);
     setIsTyping(true);
+    setIsGeneratingVideo(true);
 
+    // Pause the video if it's playing
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
     try {
-      // Send message through socket service
       await socketService.sendChatMessage({
         message: newMessage,
         videoMetadata: uploadedVideo
@@ -605,7 +766,6 @@ const AIEditor = () => {
         },
       });
 
-      // If there's an uploaded video and this is the first message about it, trigger video analysis
       if (uploadedVideo && chatHistory.length === 0) {
         await socketService.notifyVideoUpload({
           videoName: uploadedVideo.name,
@@ -630,7 +790,6 @@ const AIEditor = () => {
     }
   };
 
-  // Performance monitoring and optimization
   useEffect(() => {
     const monitorPerformance = () => {
       const stats = memoryManager.getMemoryStats();
@@ -644,27 +803,20 @@ const AIEditor = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Tool handling functions
   const handleToolSelect = useCallback((tool) => {
     setSelectedTool(tool);
-
-    // Execute tool-specific actions
     switch (tool.id) {
       case "cut":
-        // Handle cut operation
         break;
       case "trim":
-        // Handle trim operation
         break;
       case "color-correction":
-        // Handle color correction
         break;
       default:
         console.log(`Tool selected: ${tool.name}`);
     }
   }, []);
 
-  // Background processing handler
   const handleBackgroundProcess = useCallback(async (task) => {
     setIsProcessing(true);
     setProcessingProgress(0);
@@ -691,184 +843,13 @@ const AIEditor = () => {
     }
   }, []);
 
-  // Keyboard shortcuts for professional tools
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only handle shortcuts if not typing in an input, textarea, or contenteditable element
-      if (
-        e.target.tagName === "INPUT" ||
-        e.target.tagName === "TEXTAREA" ||
-        e.target.contentEditable === "true" ||
-        e.target.closest('[contenteditable="true"]') ||
-        e.target.closest("textarea") ||
-        e.target.closest("input")
-      ) {
-        return;
-      }
-
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case "x":
-            e.preventDefault();
-            handleToolSelect({ id: "cut", name: "Cut" });
-            break;
-          case "c":
-            e.preventDefault();
-            handleToolSelect({ id: "copy", name: "Copy" });
-            break;
-          case "v":
-            e.preventDefault();
-            handleToolSelect({ id: "paste", name: "Paste" });
-            break;
-          case "z":
-            e.preventDefault();
-            if (e.shiftKey) {
-              // Redo
-              console.log("Redo");
-            } else {
-              // Undo
-              console.log("Undo");
-            }
-            break;
-          case "s":
-            e.preventDefault();
-            // Save project
-            console.log("Save project");
-            break;
-          case "e":
-            e.preventDefault();
-            // Export
-            handleBackgroundProcess({ type: "export", quality: exportQuality });
-            break;
-        }
-      } else {
-        switch (e.key) {
-          case "Delete":
-          case "Backspace":
-            handleToolSelect({ id: "delete", name: "Delete" });
-            break;
-          case " ":
-            e.preventDefault();
-            togglePlayPause();
-            break;
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    isPlaying,
-    exportQuality,
-    handleToolSelect,
-    handleBackgroundProcess,
-    togglePlayPause,
-  ]);
-
-  // Enhanced AI response generator with natural language processing
-  const generateEnhancedAIResponse = (message, video, history) => {
-    const lowerMessage = message.toLowerCase();
-
-    // Context-aware responses based on video content and history
-    const responses = {
-      // Editing commands
-      cut: {
-        content:
-          "I'll help you cut your video. You can use the scissors tool in the timeline or tell me the specific timestamps where you'd like to make cuts.",
-        suggestions: [
-          "Cut at current time",
-          "Split clip in half",
-          "Remove middle section",
-        ],
-        actions: ["enableCutTool", "highlightTimeline"],
-      },
-      trim: {
-        content:
-          "Let's trim your video! You can drag the clip edges in the timeline or specify the start and end times you want to keep.",
-        suggestions: ["Trim beginning", "Trim end", "Keep middle section"],
-        actions: ["enableTrimTool", "showTrimControls"],
-      },
-      transition: {
-        content:
-          "I can add smooth transitions between your clips. What type of transition would you like? Fade, dissolve, wipe, or something more creative?",
-        suggestions: [
-          "Add fade transition",
-          "Cross dissolve",
-          "Wipe transition",
-          "Zoom transition",
-        ],
-        actions: ["openTransitionLibrary"],
-      },
-      effect: {
-        content:
-          "Great! I have over 50 professional effects available. What kind of look are you going for? Cinematic, vintage, artistic, or something specific?",
-        suggestions: [
-          "Color grading",
-          "Blur effects",
-          "Artistic filters",
-          "Lighting effects",
-        ],
-        actions: ["openEffectsLibrary"],
-      },
-      music: {
-        content:
-          "Adding music will make your video more engaging! I can help you add background music, sync it to the beat, or adjust audio levels.",
-        suggestions: [
-          "Add background music",
-          "Sync to beat",
-          "Adjust audio levels",
-          "Add fade in/out",
-        ],
-        actions: ["openMusicLibrary", "showAudioControls"],
-      },
-      text: {
-        content:
-          "Let's add some text to your video! I can create titles, subtitles, captions, or animated text overlays. What would you like to add?",
-        suggestions: [
-          "Add title",
-          "Create subtitles",
-          "Animated text",
-          "Lower thirds",
-        ],
-        actions: ["openTextEditor", "showTextTemplates"],
-      },
-    };
-
-    // Find matching response
-    for (const [key, response] of Object.entries(responses)) {
-      if (lowerMessage.includes(key)) {
-        return {
-          ...response,
-          contextSuggestions: generateContextSuggestions(video, history),
-        };
-      }
-    }
-
-    // Default enhanced response
-    return {
-      content:
-        "I'm here to help you create amazing videos! You can ask me to add effects, transitions, music, text, or perform any editing operation. What would you like to work on?",
-      suggestions: [
-        "Show me effects",
-        "Add transitions",
-        "Help with audio",
-        "Create titles",
-      ],
-      actions: ["showTutorial"],
-      contextSuggestions: generateContextSuggestions(video, history),
-    };
-  };
-
-  // Generate context-aware suggestions based on video content
   const generateContextSuggestions = (video, history) => {
     const suggestions = [];
-
     if (video) {
       suggestions.push("Enhance video quality");
       suggestions.push("Add color grading");
       suggestions.push("Create highlight reel");
     }
-
     if (history.length > 0) {
       const recentTopics = history.slice(-3);
       if (recentTopics.some((topic) => topic.includes("color"))) {
@@ -878,7 +859,6 @@ const AIEditor = () => {
         suggestions.push("Noise reduction");
       }
     }
-
     return suggestions;
   };
 
@@ -916,7 +896,6 @@ const AIEditor = () => {
     };
 
     try {
-      // Save project using projectService with fallback to localStorage
       const savedProject = await projectService.saveProject(projectData, true);
       console.log("Project saved successfully:", savedProject);
       alert("Project saved successfully!");
@@ -928,345 +907,458 @@ const AIEditor = () => {
     }
   };
 
-  const effects = [
-    {
-      name: "Color Grading",
-      icon: Palette,
-      description: "Enhance colors and mood",
-    },
-    { name: "Transitions", icon: Zap, description: "Smooth scene transitions" },
-    {
-      name: "Text Overlay",
-      icon: Type,
-      description: "Add titles and captions",
-    },
-    {
-      name: "Audio Enhancement",
-      icon: Music,
-      description: "Improve audio quality",
-    },
-    { name: "Stabilization", icon: Eye, description: "Remove camera shake" },
-    {
-      name: "Speed Control",
-      icon: Clock,
-      description: "Slow motion & time-lapse",
-    },
-  ];
-
-  const suggestions = [
-    "Add smooth transitions between scenes",
-    "Enhance audio quality and remove background noise",
-    "Apply color grading for cinematic look",
-    "Add text overlays for key moments",
-    "Create slow-motion effects for highlights",
-    "Generate automatic subtitles",
-  ];
-
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Main Editor Layout (two columns) */}
-      <div className="flex flex-1 overflow-hidden px-8 py-4 gap-6">
-        {/* Left: Video Only (2/3) */}
-        <div className="flex-1 flex flex-col" style={{ width: "66.666%" }}>
-          {/* Video Player */}
-          <div className="bg-black relative p-4 rounded-lg shadow-elevation-2 flex-1 min-h-[700px]">
-            {uploadedVideo ? (
-              <EnhancedVideoPlayer
-                ref={videoRef}
-                src={uploadedVideo.url}
-                poster={uploadedVideo.thumbnail}
-                currentTime={currentTime}
-                duration={duration}
-                onTimeUpdate={setCurrentTime}
-                onDurationChange={setDuration}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                className="w-full h-full"
-                showWaveform
-                showThumbnailScrubbing
-                enableKeyboardShortcuts
-                showMinimap
-                enableGestures
-                enablePiP
-                selectedTool={selectedTool}
-                isProcessing={isProcessing}
-                onBackgroundProcess={handleBackgroundProcess}
-                exportProgress={exportProgress}
-                exportQuality={exportQuality}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-4">
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-elevation-2">
-                    <Play className="w-12 h-12 text-white" />
+return (
+  <div
+    className="ai-editor-page bg-background text-foreground flex flex-col overflow-x-hidden"
+    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
+  >
+    <style>{`
+      /* Stop iOS input zoom on small screens by keeping fields >= 16px */
+      @media (max-width: 640px) {
+        .ai-editor-page input,
+        .ai-editor-page textarea,
+        .ai-editor-page select {
+          font-size: 16px !important;
+        }
+      }
+    `}</style>
+      {/* ======= Shared container for editor + filmstrip + toolbar ======= */}
+      <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 md:px-8">
+        {/* Main Editor Layout (responsive: column on mobile, row on md+) */}
+        <div className="flex flex-1 overflow-visible md:overflow-hidden py-4 md:gap-6 gap-4 items-stretch flex-col md:flex-row">
+          {/* Left: Video (full width on mobile, 2/3 on md+) */}
+          <div className="flex-1 flex flex-col w-full md:w-2/3">
+            {/* Video Player */}
+            <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 aspect-video md:aspect-auto md:h-[670px]">
+              {uploadedVideo ? (
+                <EnhancedVideoPlayer
+                  ref={videoRef}
+                  src={uploadedVideo.url}
+                  poster={uploadedVideo.thumbnail}
+                  currentTime={currentTime}
+                  duration={duration}
+                  onTimeUpdate={setCurrentTime}
+                  onDurationChange={setDuration}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  className="w-full h-full"
+                  fitMode="cover"
+                  showWaveform
+                  showThumbnailScrubbing
+                  enableKeyboardShortcuts={!suppressHotkeys}
+                  showMinimap
+                  enableGestures
+                  enablePiP
+                  selectedTool={selectedTool}
+                  isProcessing={isProcessing}
+                  onBackgroundProcess={handleBackgroundProcess}
+                  exportProgress={exportProgress}
+                  exportQuality={exportQuality}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center space-y-4">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-elevation-2">
+                      <Play className="w-12 h-12 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      No Video Loaded
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Upload a video from the Dashboard to start editing
+                    </p>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    No Video Loaded
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Upload a video from the Dashboard to start editing
+                </div>
+              )}
+
+              {isGeneratingVideo && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                  {/* spinner */}
+                  <div className="w-12 h-12 rounded-full border-4 border-white/30 border-t-transparent animate-spin mb-4" />
+                  <div className="text-white text-sm font-medium tracking-wide">
+                    Generating video…
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile-only mini timeline (above AI chat) */}
+          {!showTimeline && uploadedVideo && (
+            <div className="md:hidden -mt-2 mb-3">
+              <div
+                onClick={() => setShowTimeline(true)}
+                className="cursor-pointer overflow-hidden w-full"
+              >
+                <FrameStrip
+                  videoUrl={uploadedVideo.url}
+                  duration={
+                    duration ||
+                    tracks.find((t) => t.type === "video")?.clips?.[0]
+                      ?.duration ||
+                    30
+                  }
+                  currentTime={currentTime}
+                  height={72}
+                  frames={Math.max(
+                    24,
+                    Math.min(80, Math.floor(duration || 60))
+                  )}
+                  isPlaying={isPlaying}
+                  isGenerating={isGeneratingVideo}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Right: Sidebar Tabs (full width on mobile, 1/3 on md+) */}
+          <div className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col w-full md:w-1/3 md:h-[670px]">
+            {/* Tabs */}
+            <div className="flex border-b border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("assistant")}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "assistant"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                AI Assistant
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("effects")}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  activeTab === "effects"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Effects
+              </button>
+            </div>
+
+            {/* Assistant Tab */}
+            {activeTab === "assistant" && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Header */}
+                <div className="pb-6 border-b-2 border-border mb-6 flex-shrink-0 px-6 pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold flex items-center">
+                      <Sparkles className="w-6 h-6 mr-3 text-primary" />
+                      AI Assistant
+                    </h3>
+                    <div className="flex items-center space-x-4">
+                      {memoryStats && (
+                        <div className="flex items-center space-x-2 text-xs text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full" />
+                            <span>
+                              Memory:{" "}
+                              {Math.round(memoryStats.used / 1024 / 1024)}
+                              MB
+                            </span>
+                          </div>
+                          {cacheStats && (
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                              <span>Cache: {cacheStats.hitRate}%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Ask me anything about video editing
                   </p>
+
+                  {isProcessing && (
+                    <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-blue-400">
+                          Processing...
+                        </span>
+                        <span className="text-sm text-blue-400">
+                          {Math.round(processingProgress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${processingProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Messages */}
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 overflow-y-auto min-h-0 px-6 md:max-h-none max-h-[50vh]"
+                  style={{ scrollbarWidth: "thin" }}
+                >
+                  <div className="space-y-6 pb-6">
+                    {chatMessages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.type === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] p-3 rounded-lg shadow-elevation-1 ${
+                            message.type === "user"
+                              ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-elevation-2 mr-2"
+                              : "bg-muted text-muted-foreground border-2 border-border ml-2"
+                          }`}
+                        >
+                          <p className="text-sm break-words">
+                            {message.content}
+                          </p>
+                          <span className="text-xs opacity-70 mt-1 block">
+                            {new Date().toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {isChatLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted p-3 rounded-lg border-2 border-border shadow-elevation-1 ml-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                            <div
+                              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            />
+                            <div
+                              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Input */}
+                <div className="pt-2 border-t-2 border-border mt-auto flex-shrink-0 bg-card/50 backdrop-blur-sm px-6 pb-2">
+                  <div className="flex space-x-3">
+                    <textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onFocus={() => setSuppressHotkeys(true)}
+                      onBlur={() => setSuppressHotkeys(false)}
+                      onKeyDown={(e) => {
+                        const key = (e.key || "").toLowerCase();
+                        const isSpace = key === " " || e.code === "Space";
+                        const blocked =
+                          isSpace || key === "f" || key === "m" || key === "b";
+                        if (blocked && !e.ctrlKey && !e.metaKey && !e.altKey)
+                          e.stopPropagation();
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      onKeyDownCapture={(e) => {
+                        const key = (e.key || "").toLowerCase();
+                        const isSpace = key === " " || e.code === "Space";
+                        const blocked =
+                          isSpace || key === "f" || key === "m" || key === "b";
+                        if (blocked && !e.ctrlKey && !e.metaKey && !e.altKey)
+                          e.stopPropagation();
+                      }}
+                      placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
+                      className="flex-1 bg-background border-2 border-border rounded-lg px-5 pt-2 pb-3 text-base md:text-sm leading-[1.3] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[52px] max-h-[120px] overflow-hidden"
+                      rows={1}
+                      onInput={(e) => {
+                        const el = e.currentTarget;
+                        el.style.height = "auto";
+                        el.style.height =
+                          Math.min(el.scrollHeight + 2, 120) + "px";
+                        el.style.overflowY =
+                          el.scrollHeight + 2 > 120 ? "auto" : "hidden";
+                      }}
+                    />
+
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim()}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
+                    >
+                      <Send className="w-4 h-4 text-foreground" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Effects Tab */}
+            {activeTab === "effects" && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 md:max-h-none max-h-[60vh]">
+                  <EffectsLibrary
+                    onApplyEffect={(effect, params) => {
+                      console.log("Applying effect:", effect, params);
+                    }}
+                    selectedClips={tracks.flatMap((track) =>
+                      track.clips.filter((clip) => clip.selected)
+                    )}
+                  />
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Sidebar Tabs (1/3) */}
-        <div
-          className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col"
-          style={{ width: "33.333%", height: "700px" }}
-        >
-          {/* Tabs */}
-          <div className="flex border-b border-border">
-            <button
-              type="button"
-              onClick={() => setActiveTab("assistant")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === "assistant"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              AI Assistant
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("effects")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === "effects"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Effects
-            </button>
-          </div>
-
-          {/* Assistant Tab */}
-          {activeTab === "assistant" && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              {/* Header */}
-              <div className="pb-6 border-b-2 border-border mb-6 flex-shrink-0 px-6 pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold flex items-center">
-                    <Sparkles className="w-6 h-6 mr-3 text-primary" />
-                    AI Assistant
-                  </h3>
-                  <div className="flex items-center space-x-4">
-                    {memoryStats && (
-                      <div className="flex items-center space-x-2 text-xs text-gray-400">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full" />
-                          <span>
-                            Memory: {Math.round(memoryStats.used / 1024 / 1024)}
-                            MB
-                          </span>
-                        </div>
-                        {cacheStats && (
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                            <span>Cache: {cacheStats.hitRate}%</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Ask me anything about video editing
-                </p>
-
-                {isProcessing && (
-                  <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-blue-400">
-                        Processing...
-                      </span>
-                      <span className="text-sm text-blue-400">
-                        {Math.round(processingProgress)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${processingProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Messages */}
+        {/* ===== Timeline area: filmstrip OR enhanced timeline ===== */}
+       <div className={`w-full mb-4 ${showTimeline ? "" : "hidden md:block"}`}>
+          {!showTimeline ? (
+            uploadedVideo ? (
               <div
-                className="flex-1 overflow-y-auto min-h-0 px-6"
-                style={{ scrollbarWidth: "thin" }}
+                onClick={() => setShowTimeline(true)}
+                className="cursor-pointer overflow-hidden w-full"
               >
-                <div className="space-y-6 pb-6">
-                  {chatMessages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${
-                        message.type === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[85%] p-3 rounded-lg shadow-elevation-1 ${
-                          message.type === "user"
-                            ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-elevation-2 mr-2"
-                            : "bg-muted text-muted-foreground border-2 border-border ml-2"
-                        }`}
-                      >
-                        <p className="text-sm break-words">{message.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {new Date().toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {isChatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-muted p-3 rounded-lg border-2 border-border shadow-elevation-1 ml-2">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          />
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Input */}
-              <div className="pt-4 border-t-2 border-border mt-auto flex-shrink-0 bg-card/50 backdrop-blur-sm px-6 pb-4">
-                <div className="flex space-x-3">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder="Ask me to edit your video... (Press Enter to send, Shift+Enter for new line)"
-                    className="flex-1 bg-background border-2 border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-foreground shadow-elevation-1 transition-all duration-200 resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
-                    rows={1}
-                    onInput={(e) => {
-                      e.target.style.height = "auto";
-                      e.target.style.height =
-                        Math.min(e.target.scrollHeight, 120) + "px";
-                    }}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:bg-muted disabled:cursor-not-allowed p-3 rounded-lg transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 min-w-[48px] flex items-center justify-center self-end"
-                  >
-                    <Send className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Effects Tab */}
-          {activeTab === "effects" && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4">
-                <EffectsLibrary
-                  onApplyEffect={(effect, params) => {
-                    console.log("Applying effect:", effect, params);
+                <FrameStrip
+                  videoUrl={uploadedVideo.url}
+                  duration={
+                    duration ||
+                    tracks.find((t) => t.type === "video")?.clips?.[0]
+                      ?.duration ||
+                    30
+                  }
+                  currentTime={currentTime}
+                  onSeek={(t) => {
+                    handleTimeChange(t);
+                    setShowTimeline(true);
                   }}
-                  selectedClips={tracks.flatMap((track) =>
-                    track.clips.filter((clip) => clip.selected)
+                  height={72}
+                  frames={Math.max(
+                    24,
+                    Math.min(80, Math.floor(duration || 60))
                   )}
+                  isPlaying={isPlaying}
+                  autoScroll={false} // turn off auto horizontal scrolling
+                  stretchToFit // (if your FrameStrip component supports it)
+                  isGenerating={isGeneratingVideo}
                 />
               </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                Upload a video to see the frame strip.
+              </div>
+            )
+          ) : (
+            <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
+              <div className="p-4 border-b border-border bg-card/50 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Timeline
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowTimeline(false)}
+                  className="text-sm px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+                  title="Collapse back to mini timeline"
+                >
+                  Back to mini timeline
+                </button>
+              </div>
+              <EnhancedTimeline
+                tracks={tracks}
+                currentTime={currentTime}
+                duration={duration || 30}
+                zoom={timelineZoom}
+                isPlaying={isPlaying}
+                theme="dark"
+                onTimeChange={handleTimeChange}
+                onZoomChange={setTimelineZoom}
+                onPlay={() => {
+                  setIsPlaying(true);
+                  videoRef?.current?.play();
+                }}
+                onPause={() => {
+                  setIsPlaying(false);
+                  videoRef?.current?.pause();
+                }}
+                onTracksChange={setTracks}
+                addTrack={addTrack}
+                className="min-h-[200px]"
+              />
             </div>
           )}
         </div>
-      </div>
 
-      {/* Full-Width Timeline (below both columns) */}
-      <div className="px-8 pb-8">
-        <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
-          <div className="p-4 border-b border-border bg-card/50">
-            <h3 className="text-lg font-semibold text-foreground">Timeline</h3>
-          </div>
-
-          <EnhancedTimeline
-            tracks={tracks}
-            currentTime={currentTime}
-            duration={duration || 30}
-            zoom={timelineZoom}
-            isPlaying={isPlaying}
-            theme="dark"
-            onTimeChange={handleTimeChange}
-            onZoomChange={setTimelineZoom}
-            onPlay={() => {
-              setIsPlaying(true);
-              videoRef?.current?.play();
-            }}
-            onPause={() => {
-              setIsPlaying(false);
-              videoRef?.current?.pause();
-            }}
-            onTracksChange={setTracks}
-            addTrack={addTrack}
-            className="min-h-[200px]"
-          />
-
-          {/* Global Actions */}
-          <div className="border-t-2 border-border px-6 py-4 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between bg-card">
-            <div className="flex gap-3">
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
-                <RotateCcw className="w-4 h-4 mr-2" />
+        {/* ===== Global Toolbar (Centered, Responsive) ===== */}
+        <div className="w-full flex justify-center mt-4 md:mb-8 mb-4">
+          <div
+            className="
+      bg-card/95 backdrop-blur border-2 border-border rounded-xl shadow-elevation-2
+      w-full max-w-[680px] md:max-w-[1000px]
+      px-3 py-3 md:px-4
+      flex flex-col md:flex-row md:items-center md:justify-between
+      gap-2 md:gap-3
+      overflow-hidden
+    "
+          >
+            
+            {/* Left side: Undo + Settings */}
+            <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
+              <button className="bg-card hover:bg-muted text-foreground px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border w-full sm:w-auto">
+                <RotateCcw className="w-4 h-4 mr-2 inline-block" />
                 Undo
               </button>
-              <button className="bg-card hover:bg-muted text-foreground px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-border">
-                <Settings className="w-4 h-4 mr-2" />
+              <button className="bg-card hover:bg-muted text-foreground px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border w-full sm:w-auto">
+                <Settings className="w-4 h-4 mr-2 inline-block" />
                 Settings
               </button>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right side: Project name + Save + Export */}
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 w-full md:w-auto">
               <input
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="Enter project name..."
-                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-elevation-1 transition-all duration-200 w-56"
+                className="bg-card border-2 border-border rounded-lg px-4 py-2.5 text-base md:text-sm text-foreground placeholder-muted-foreground
+          focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+          shadow-elevation-1 transition-all duration-200
+          w-full md:w-64 min-w-0 flex-1
+        "
               />
               <button
                 onClick={saveProject}
                 disabled={isSaving || !uploadedVideo}
-                className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 ${
-                  isSaving || !uploadedVideo
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                    : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500"
-                }`}
+                className={`
+          rounded-lg font-medium transition-all duration-200
+          shadow-elevation-1 hover:shadow-elevation-2
+          px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm
+          w-full sm:w-auto
+          ${
+            isSaving || !uploadedVideo
+              ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+              : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border border-green-500"
+          }
+        `}
               >
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 mr-2 inline-block" />
                 {isSaving ? "Saving..." : "Save Project"}
               </button>
-              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-105 border border-blue-500">
-                <Download className="w-4 h-4 mr-2" />
+              <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-elevation-1 border border-blue-500 px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm w-full sm:w-auto">
+                <Download className="w-4 h-4 mr-2 inline-block" />
                 Export Video
               </button>
             </div>
           </div>
         </div>
+        {/* ===== End Global Toolbar ===== */}
       </div>
 
       {/* Background Tasks Panel */}
