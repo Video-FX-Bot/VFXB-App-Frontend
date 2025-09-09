@@ -1,10 +1,1 @@
-[
-  {
-    "_id": "session_001",
-    "userId": "user_001",
-    "token": "demo-token-user-001",
-    "expiresAt": "2024-12-31T23:59:59.000Z",
-    "createdAt": "2024-01-15T10:00:00.000Z",
-    "lastActivity": "2024-01-15T11:00:00.000Z"
-  }
-]
+[]

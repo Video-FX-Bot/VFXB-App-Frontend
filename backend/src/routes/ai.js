@@ -97,14 +97,16 @@ router.post('/chat',
       await userMessage.save();
       
       // Get conversation history for context
-      const recentMessagesResult = await ChatMessage.findByUser(req.user._id, {
+      const recentMessages = await ChatMessage.find({
         conversationId: finalConversationId,
-        limit: 10
-      });
-      const recentMessages = recentMessagesResult.messages;
+        userId: req.user.id
+      })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('type content aiProcessing.intent aiProcessing.parameters videoOperation');
       
       // Process message with AI
-      const aiResponse = await aiService.processChatMessage(
+      const aiResponse = await aiService.processMessage(
         message.trim(),
         {
           userId: req.user.id,
@@ -245,8 +247,8 @@ router.get('/conversations',
       // Populate video information
       for (const conversation of conversations) {
         if (conversation.videoId) {
-          const video = await Video.findById(conversation.videoId);
-           // Note: Video model uses local storage, select not needed
+          const video = await Video.findById(conversation.videoId)
+            .select('title status metadata.duration');
           conversation.video = video;
         }
       }

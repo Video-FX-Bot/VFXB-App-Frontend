@@ -110,18 +110,6 @@ class LocalStorageService {
     }
   }
 
-  async findUserByEmailOrUsername(identifier) {
-    try {
-      const users = await this.readCollection('users');
-      return users.find(user => 
-        user.email === identifier || user.username === identifier
-      ) || null;
-    } catch (error) {
-      console.error('Error finding user by email or username:', error);
-      return null;
-    }
-  }
-
   async updateUser(id, updateData) {
     try {
       const users = await this.readCollection('users');
@@ -254,41 +242,6 @@ class LocalStorageService {
     } catch (error) {
       console.error('Error finding chat messages:', error);
       return [];
-    }
-  }
-
-  async updateChatMessage(messageId, updateData) {
-    try {
-      const messages = await this.readCollection('chatMessages');
-      const messageIndex = messages.findIndex(message => message._id === messageId);
-      
-      if (messageIndex === -1) {
-        throw new Error(`Chat message with ID ${messageId} not found`);
-      }
-      
-      messages[messageIndex] = {
-        ...messages[messageIndex],
-        ...updateData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      await this.writeCollection('chatMessages', messages);
-      return messages[messageIndex];
-    } catch (error) {
-      console.error('Error updating chat message:', error);
-      throw error;
-    }
-  }
-
-  async deleteChatMessage(messageId) {
-    try {
-      const messages = await this.readCollection('chatMessages');
-      const filteredMessages = messages.filter(message => message._id !== messageId);
-      await this.writeCollection('chatMessages', filteredMessages);
-      return true;
-    } catch (error) {
-      console.error('Error deleting chat message:', error);
-      throw error;
     }
   }
 

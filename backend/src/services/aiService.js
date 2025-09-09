@@ -105,29 +105,6 @@ class AIService {
       return JSON.parse(response);
     } catch (error) {
       logger.error('Error analyzing intent:', error);
-      
-      // Handle OpenAI quota/auth errors gracefully
-      if (error.status === 429 || error.status === 401) {
-        // Fallback intent analysis based on keywords
-        const lowerMessage = message.toLowerCase();
-        if (lowerMessage.includes('trim') || lowerMessage.includes('cut')) {
-          return {
-            action: 'trim',
-            parameters: { startTime: 0, duration: 30 },
-            confidence: 0.7,
-            explanation: 'Detected trim/cut request - using fallback analysis'
-          };
-        }
-        if (lowerMessage.includes('effect') || lowerMessage.includes('filter')) {
-          return {
-            action: 'apply_effect',
-            parameters: { effectType: 'blur' },
-            confidence: 0.7,
-            explanation: 'Detected effect request - using fallback analysis'
-          };
-        }
-      }
-      
       return {
         action: 'chat',
         parameters: {},
@@ -194,40 +171,8 @@ class AIService {
       };
     } catch (error) {
       logger.error('Error generating response:', error);
-      
-      // Handle specific OpenAI errors
-      if (error.status === 429) {
-        return {
-          message: 'I\'m currently experiencing high demand. Here are some things you can try while I recover: trim your video, apply effects, or adjust playback settings.',
-          actions: [
-            {"label": "Trim Video", "command": "trim from 0 to 30 seconds", "type": "primary"},
-            {"label": "Apply Effect", "command": "apply blur effect", "type": "secondary"},
-            {"label": "Adjust Speed", "command": "change speed to 1.5x", "type": "secondary"}
-          ],
-          tips: ["Video editing operations still work normally", "Try basic commands while AI chat recovers"],
-          intent: intent,
-          timestamp: new Date().toISOString(),
-          type: 'ai',
-          fallback: true
-        };
-      }
-      
-      if (error.status === 401) {
-        return {
-          message: 'AI service temporarily unavailable. You can still use manual video editing tools.',
-          actions: this.generateSuggestedActions(intent),
-          tips: ["Use the timeline controls for manual editing", "Effects library is still available"],
-          intent: intent,
-          timestamp: new Date().toISOString(),
-          type: 'ai',
-          fallback: true
-        };
-      }
-      
       return {
         message: 'I\'m here to help with your video editing! What would you like to do?',
-        actions: this.generateSuggestedActions(intent),
-        tips: this.generateTips(intent),
         intent: intent,
         timestamp: new Date().toISOString(),
         type: 'ai'
@@ -296,12 +241,8 @@ class AIService {
       // Analyze video content with AI
       const analysis = await this.analyzeVideoContent(videoPath, transcription);
 
-      // Generate improvement suggestions
-      const suggestions = await this.generateVideoSuggestions(metadata, transcription, analysis);
-
       return {
         success: true,
-        suggestions,
         metadata,
         transcription,
         analysis
@@ -377,90 +318,6 @@ class AIService {
     } catch (error) {
       logger.error('Error generating suggestions:', error);
       return 'I can help you improve your video! Try adjusting the color balance or adding some transitions.';
-    }
-  }
-
-  // Generate video improvement suggestions
-  async generateVideoSuggestions(metadata, transcription, analysis) {
-    try {
-      const suggestions = [];
-      
-      // Audio quality suggestions
-      if (metadata.hasAudio && metadata.audioQuality < 0.7) {
-        suggestions.push({
-          type: 'audio_enhancement',
-          title: 'Enhance Audio Quality',
-          description: 'Your audio could benefit from noise reduction and volume normalization',
-          action: 'enhance audio with noise reduction',
-          priority: 'high',
-          icon: 'volume-2'
-        });
-      }
-      
-      // Video quality suggestions
-      if (metadata.resolution && metadata.resolution.width < 1920) {
-        suggestions.push({
-          type: 'upscale',
-          title: 'Upscale Video Resolution',
-          description: 'Increase video resolution for better quality',
-          action: 'upscale video to 1080p',
-          priority: 'medium',
-          icon: 'maximize'
-        });
-      }
-      
-      // Lighting suggestions
-      if (analysis && analysis.lighting === 'poor') {
-        suggestions.push({
-          type: 'color_correction',
-          title: 'Improve Lighting',
-          description: 'Adjust brightness and contrast for better visibility',
-          action: 'apply brightness and contrast adjustment',
-          priority: 'high',
-          icon: 'sun'
-        });
-      }
-      
-      // Stabilization suggestions
-      if (analysis && analysis.stability === 'shaky') {
-        suggestions.push({
-          type: 'stabilization',
-          title: 'Stabilize Video',
-          description: 'Reduce camera shake for smoother playback',
-          action: 'apply video stabilization',
-          priority: 'medium',
-          icon: 'move'
-        });
-      }
-      
-      // Content-based suggestions
-      if (transcription && transcription.text) {
-        suggestions.push({
-          type: 'captions',
-          title: 'Add Captions',
-          description: 'Automatically generate captions from your audio',
-          action: 'generate captions from audio',
-          priority: 'medium',
-          icon: 'type'
-        });
-      }
-      
-      // Duration suggestions
-      if (metadata.duration > 300) { // 5 minutes
-        suggestions.push({
-          type: 'trim',
-          title: 'Consider Trimming',
-          description: 'Long videos perform better when trimmed to key moments',
-          action: 'trim video to highlights',
-          priority: 'low',
-          icon: 'scissors'
-        });
-      }
-      
-      return suggestions;
-    } catch (error) {
-      logger.error('Error generating video suggestions:', error);
-      return [];
     }
   }
 

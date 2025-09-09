@@ -21,44 +21,17 @@ export const authenticateToken = async (req, res, next) => {
     // Handle demo tokens in development
     if (process.env.NODE_ENV === 'development' && token.startsWith('demo-token-')) {
       // Create a demo user for development
-      const demoUserData = {
-        _id: 'demo-user-001',
-        username: 'demo_user',
+      const demoUser = {
+        _id: 'demo-user-id',
+        username: 'demo-user',
         email: 'demo@example.com',
         firstName: 'Demo',
         lastName: 'User',
         isActive: true,
-        role: 'user',
-        subscription: {
-          tier: 'premium',
-          plan: 'premium',
-          status: 'active',
-          startDate: new Date().toISOString(),
-          endDate: null,
-          features: {
-            maxProjects: 100,
-            maxStorageGB: 10,
-            aiCredits: 1000,
-            exportQuality: 'HD',
-            collaborators: 5
-          }
-        },
-        usage: {
-          videosThisMonth: 0,
-          aiRequestsToday: 0,
-          storageUsed: 0
-        },
-        stats: {
-          totalProjects: 0,
-          totalVideosProcessed: 0,
-          totalStorageUsed: 0,
-          aiCreditsUsed: 0,
-          lastLoginAt: null,
-          accountCreatedAt: new Date().toISOString()
-        }
+        role: 'user'
       };
       
-      req.user = new User(demoUserData);
+      req.user = demoUser;
       return next();
     }
     

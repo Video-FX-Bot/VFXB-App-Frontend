@@ -248,17 +248,8 @@ class ChatMessage {
         }
       }
       
-      let savedMessage;
-      if (this._id) {
-        // Update existing message
-        savedMessage = await localStorageService.updateChatMessage(this._id, this.toObject());
-      } else {
-        // Create new message
-        savedMessage = await localStorageService.createChatMessage(this.toObject());
-        this._id = savedMessage._id;
-      }
-      
-      return new ChatMessage(savedMessage);
+      const updatedMessage = await localStorageService.updateChatMessage(this._id, this.toObject());
+      return new ChatMessage(updatedMessage);
     } catch (error) {
       throw error;
     }

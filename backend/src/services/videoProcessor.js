@@ -1,37 +1,19 @@
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
-import ffprobeStatic from 'ffprobe-static';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import cloudinary from '../config/cloudinary.js';
 
-// Debug: Check what ffprobe-static exports
-console.log('ffmpegStatic:', ffmpegStatic, typeof ffmpegStatic);
-console.log('ffprobeStatic:', ffprobeStatic, typeof ffprobeStatic);
-
-// Set FFmpeg and FFprobe paths
+// Set FFmpeg path
 ffmpeg.setFfmpegPath(ffmpegStatic);
-// Handle ffprobe-static which might export an object with a path property
-const ffprobePath = typeof ffprobeStatic === 'string' ? ffprobeStatic : ffprobeStatic.path;
-console.log('Using ffprobe path:', ffprobePath);
-ffmpeg.setFfprobePath(ffprobePath);
 
 export class VideoProcessor {
   constructor() {
     this.outputDir = process.env.UPLOAD_PATH || './uploads';
     this.tempDir = path.join(this.outputDir, 'temp');
-    this.maxConcurrentProcesses = parseInt(process.env.MAX_CONCURRENT_PROCESSES) || 3;
-    this.activeProcesses = new Set();
-    this.processQueue = [];
     this.ensureDirectories();
-    
-    // Cleanup temp files on startup
-    this.cleanupTempFiles();
-    
-    // Setup periodic cleanup
-    setInterval(() => this.cleanupTempFiles(), 30 * 60 * 1000); // Every 30 minutes
   }
 
   async ensureDirectories() {
@@ -40,63 +22,6 @@ export class VideoProcessor {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
       logger.error('Error creating directories:', error);
-    }
-  }
-
-  // Cleanup temporary files older than 1 hour
-  async cleanupTempFiles() {
-    try {
-      const files = await fs.readdir(this.tempDir);
-      const now = Date.now();
-      const maxAge = 60 * 60 * 1000; // 1 hour
-      
-      for (const file of files) {
-        const filePath = path.join(this.tempDir, file);
-        try {
-          const stats = await fs.stat(filePath);
-          if (now - stats.mtime.getTime() > maxAge) {
-            await fs.unlink(filePath);
-            logger.info(`Cleaned up temp file: ${file}`);
-          }
-        } catch (error) {
-          // File might have been deleted already, ignore
-        }
-      }
-    } catch (error) {
-      logger.error('Error cleaning up temp files:', error);
-    }
-  }
-
-  // Process queue management for concurrent processing
-  async processWithQueue(processFunction) {
-    return new Promise((resolve, reject) => {
-      const task = { processFunction, resolve, reject };
-      
-      if (this.activeProcesses.size < this.maxConcurrentProcesses) {
-        this.executeTask(task);
-      } else {
-        this.processQueue.push(task);
-      }
-    });
-  }
-
-  async executeTask(task) {
-    const processId = uuidv4();
-    this.activeProcesses.add(processId);
-    
-    try {
-      const result = await task.processFunction();
-      task.resolve(result);
-    } catch (error) {
-      task.reject(error);
-    } finally {
-      this.activeProcesses.delete(processId);
-      
-      // Process next task in queue
-      if (this.processQueue.length > 0) {
-        const nextTask = this.processQueue.shift();
-        this.executeTask(nextTask);
-      }
     }
   }
 
@@ -649,72 +574,6 @@ export class VideoProcessor {
       });
     } catch (error) {
       logger.error('Error in processBackground:', error);
-      throw error;
-    }
-  }
-
-  // Merge multiple videos into one
-  async mergeVideos(videoPaths, parameters = {}) {
-    try {
-      const { title = 'Merged Video', transition = 'none', transitionDuration = 1 } = parameters;
-      const outputPath = path.join(this.tempDir, `merged_${uuidv4()}.mp4`);
-
-      return new Promise((resolve, reject) => {
-        let command = ffmpeg();
-        
-        // Add all input videos
-        videoPaths.forEach(videoPath => {
-          command = command.input(videoPath);
-        });
-
-        // Create filter complex for concatenation
-        let filterComplex = [];
-        let inputs = [];
-        
-        for (let i = 0; i < videoPaths.length; i++) {
-          inputs.push(`[${i}:v][${i}:a]`);
-        }
-        
-        // Simple concatenation without transitions
-        if (transition === 'none') {
-          filterComplex.push(`${inputs.join('')}concat=n=${videoPaths.length}:v=1:a=1[outv][outa]`);
-        } else {
-          // For transitions, we need more complex filtering
-          // This is a simplified version - full implementation would handle various transition types
-          filterComplex.push(`${inputs.join('')}concat=n=${videoPaths.length}:v=1:a=1[outv][outa]`);
-        }
-
-        command
-          .complexFilter(filterComplex)
-          .map('[outv]')
-          .map('[outa]')
-          .videoCodec('libx264')
-          .audioCodec('aac')
-          .outputOptions([
-            '-preset', 'medium',
-            '-crf', '23'
-          ])
-          .output(outputPath)
-          .on('progress', (progress) => {
-            logger.info(`Merge progress: ${Math.round(progress.percent || 0)}%`);
-          })
-          .on('end', () => {
-            logger.info('Video merge completed:', outputPath);
-            resolve({
-              success: true,
-              outputPath,
-              operation: 'merge',
-              parameters: { videoPaths, title, transition }
-            });
-          })
-          .on('error', (err) => {
-            logger.error('Error merging videos:', err);
-            reject(err);
-          })
-          .run();
-      });
-    } catch (error) {
-      logger.error('Error in mergeVideos:', error);
       throw error;
     }
   }

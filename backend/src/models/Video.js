@@ -134,19 +134,8 @@ class Video {
   async save() {
     try {
       this.updatedAt = new Date().toISOString();
-      
-      // If no _id exists, this is a new video - create it
-      if (!this._id) {
-        const newVideo = await localStorageService.createVideo(this.toObject());
-        // Update this instance with the new ID
-        this._id = newVideo._id;
-        this.createdAt = newVideo.createdAt;
-        return new Video(newVideo);
-      } else {
-        // Existing video - update it
-        const updatedVideo = await localStorageService.updateVideo(this._id, this.toObject());
-        return new Video(updatedVideo);
-      }
+      const updatedVideo = await localStorageService.updateVideo(this._id, this.toObject());
+      return new Video(updatedVideo);
     } catch (error) {
       throw error;
     }

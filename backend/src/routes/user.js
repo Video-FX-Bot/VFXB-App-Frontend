@@ -369,18 +369,14 @@ router.get('/dashboard',
       const userId = req.user.id;
       
       // Get recent videos
-      const allVideos = await Video.findByUserId(userId);
-      const recentVideos = allVideos
-        .filter(video => !video.isDeleted)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 5)
-        .map(video => ({
-          title: video.title,
-          status: video.status,
-          metadata: { duration: video.metadata?.duration },
-          createdAt: video.createdAt,
-          thumbnails: video.thumbnails
-        }));
+      const recentVideos = await Video.find({
+        userId,
+        isDeleted: false
+      })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('title status metadata.duration createdAt thumbnails')
+      .lean();
       
       // Get recent chat conversations
       const recentChats = await ChatMessage.aggregate([

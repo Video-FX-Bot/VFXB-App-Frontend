@@ -125,13 +125,6 @@ router.post('/upload',
         });
       }
       
-      // Debug: Log file information
-      logger.info('File upload debug info:', {
-        filePath: req.file.path,
-        filePathType: typeof req.file.path,
-        fileObject: JSON.stringify(req.file, null, 2)
-      });
-      
       // Get video metadata
       const metadata = await videoProcessor.getVideoMetadata(req.file.path);
       
@@ -250,12 +243,10 @@ async function processVideoInBackground(videoId) {
     logger.error(`Video processing failed for ${videoId}:`, error);
     
     // Update video status to failed
-    const video = await Video.findById(videoId);
-     if (video) {
-       video.status = 'failed';
-       video.processingError = error.message;
-       // Note: Video model uses local storage, no save() method needed
-     }
+    await Video.findByIdAndUpdate(videoId, {
+      status: 'failed',
+      processingError: error.message
+    });
   }
 }
 
@@ -301,46 +292,14 @@ router.get('/',
         ];
       }
       
-      // Get videos for the authenticated user
-      const allVideos = await Video.findByUserId(req.user.id);
+      const videos = await Video.find(query)
+        .sort(sort)
+        .limit(parseInt(limit))
+        .skip((parseInt(page) - 1) * parseInt(limit))
+        .select('-filePath -editHistory')
+        .populate('userId', 'username avatar');
       
-      // Apply search filter if provided
-      let filteredVideos = allVideos;
-      if (search) {
-        filteredVideos = allVideos.filter(video => 
-          video.title.toLowerCase().includes(search.toLowerCase()) ||
-          video.description.toLowerCase().includes(search.toLowerCase()) ||
-          video.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
-        );
-      }
-      
-      // Apply sorting
-      filteredVideos.sort((a, b) => {
-        if (sort.startsWith('-')) {
-          const field = sort.substring(1);
-          if (field === 'createdAt') {
-            return new Date(b.createdAt) - new Date(a.createdAt);
-          }
-          if (field === 'title') {
-            return b.title.localeCompare(a.title);
-          }
-        } else {
-          if (sort === 'createdAt') {
-            return new Date(a.createdAt) - new Date(b.createdAt);
-          }
-          if (sort === 'title') {
-            return a.title.localeCompare(b.title);
-          }
-        }
-        return 0;
-      });
-      
-      // Apply pagination
-      const startIndex = (parseInt(page) - 1) * parseInt(limit);
-      const endIndex = startIndex + parseInt(limit);
-      const videos = filteredVideos.slice(startIndex, endIndex);
-      
-      const total = filteredVideos.length;
+      const total = await Video.countDocuments(query);
       
       res.json({
         success: true,
@@ -373,7 +332,9 @@ router.get('/:id',
   generalLimiter,
   async (req, res) => {
     try {
-      const video = await Video.findById(req.params.id);
+      const video = await Video.findById(req.params.id)
+        .populate('userId', 'username avatar')
+        .populate('collaborators.userId', 'username avatar');
       
       if (!video) {
         return res.status(404).json({
@@ -701,9 +662,12 @@ router.post('/:id/upload-to-cloud',
   logActivity('cloud_upload'),
   async (req, res) => {
     try {
-      const video = await Video.findById(req.params.id);
-        
-      if (!video || video.userId !== req.user.id) {
+      const video = await Video.findOne({
+        _id: req.params.id,
+        userId: req.user.id
+      });
+
+      if (!video) {
         return res.status(404).json({
           success: false,
           message: 'Video not found'
@@ -763,9 +727,12 @@ router.post('/:id/ai-enhance',
     try {
       const { enhancementType, options = {} } = req.body;
       
-      const video = await Video.findById(req.params.id);
-        
-      if (!video || video.userId !== req.user.id) {
+      const video = await Video.findOne({
+        _id: req.params.id,
+        userId: req.user.id
+      });
+
+      if (!video) {
         return res.status(404).json({
           success: false,
           message: 'Video not found'
@@ -846,9 +813,12 @@ router.get('/:id/ai-enhance/:predictionId/status',
   generalLimiter,
   async (req, res) => {
     try {
-      const video = await Video.findById(req.params.id);
-        
-      if (!video || video.userId !== req.user.id) {
+      const video = await Video.findOne({
+        _id: req.params.id,
+        userId: req.user.id
+      });
+
+      if (!video) {
         return res.status(404).json({
           success: false,
           message: 'Video not found'
@@ -912,9 +882,12 @@ router.post('/:id/generate-voiceover',
     try {
       const { text, voiceId, voiceSettings = {} } = req.body;
       
-      const video = await Video.findById(req.params.id);
-        
-      if (!video || video.userId !== req.user.id) {
+      const video = await Video.findOne({
+        _id: req.params.id,
+        userId: req.user.id
+      });
+
+      if (!video) {
         return res.status(404).json({
           success: false,
           message: 'Video not found'

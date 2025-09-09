@@ -48,8 +48,6 @@ class User {
       lastLoginAt: null,
       accountCreatedAt: new Date().toISOString()
     };
-    this.loginAttempts = userData.loginAttempts || 0;
-    this.lockUntil = userData.lockUntil || null;
     this.createdAt = userData.createdAt || new Date().toISOString();
     this.updatedAt = userData.updatedAt || new Date().toISOString();
   }
@@ -107,15 +105,6 @@ class User {
   static async findByEmailWithPassword(email) {
     try {
       const userData = await localStorageService.findUserByEmail(email);
-      return userData ? new User(userData) : null;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  static async findByEmailOrUsername(identifier) {
-    try {
-      const userData = await localStorageService.findUserByEmailOrUsername(identifier);
       return userData ? new User(userData) : null;
     } catch (error) {
       throw error;
@@ -204,69 +193,6 @@ class User {
     return (this.stats.totalStorageUsed + fileSizeBytes) <= maxStorageBytes;
   }
 
-  get isLocked() {
-    return !!(this.lockUntil && this.lockUntil > Date.now());
-  }
-
-  async incLoginAttempts() {
-    // If we have a previous lock that has expired, restart at 1
-    if (this.lockUntil && this.lockUntil < Date.now()) {
-      return this.update({
-        loginAttempts: 1,
-        lockUntil: null
-      });
-    }
-    
-    const updates = { loginAttempts: this.loginAttempts + 1 };
-    
-    // If we have max attempts and no lock, set lock
-    if (updates.loginAttempts >= 5 && !this.isLocked) {
-      updates.lockUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
-    }
-    
-    return this.update(updates);
-  }
-
-  async resetLoginAttempts() {
-    return this.update({
-      loginAttempts: 0,
-      lockUntil: null
-    });
-  }
-
-  async incrementUsage(type, amount) {
-    switch (type) {
-      case 'video':
-        this.stats.totalVideosProcessed += amount;
-        break;
-      case 'storage':
-        this.stats.totalStorageUsed += amount;
-        break;
-      case 'ai_request':
-        this.stats.aiCreditsUsed += amount;
-        break;
-      default:
-        throw new Error(`Unknown usage type: ${type}`);
-    }
-    
-    // Don't save demo users to storage
-    if (this._id === 'demo-user-001') {
-      return this;
-    }
-    
-    return this.save();
-  }
-
-  async update(updates) {
-    Object.assign(this, updates);
-    return this.save();
-  }
-
-  select(fields) {
-    // Mock select method for compatibility
-    return this;
-  }
-
   toObject() {
     return {
       _id: this._id,
@@ -282,8 +208,6 @@ class User {
       subscription: this.subscription,
       preferences: this.preferences,
       stats: this.stats,
-      loginAttempts: this.loginAttempts,
-      lockUntil: this.lockUntil,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
