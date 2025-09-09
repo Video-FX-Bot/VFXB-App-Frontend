@@ -10,6 +10,14 @@ try {
   console.error('Failed to create logs directory:', error);
 }
 
+// Performance metrics tracking
+const performanceMetrics = {
+  videoProcessingTimes: [],
+  apiResponseTimes: [],
+  errorCounts: { total: 0, byType: {} },
+  memoryUsage: []
+};
+
 // Custom format for logs
 const logFormat = winston.format.combine(
   winston.format.timestamp({
@@ -114,6 +122,87 @@ const logger = winston.createLogger({
   
   exitOnError: false
 });
+
+// Performance monitoring methods
+const performanceLogger = {
+  // Track video processing time
+  trackVideoProcessing: (operation, duration, metadata = {}) => {
+    const metric = {
+      operation,
+      duration,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    };
+    performanceMetrics.videoProcessingTimes.push(metric);
+    logger.info('Video processing completed', metric);
+  },
+  
+  // Track API response time
+  trackApiResponse: (endpoint, method, duration, statusCode) => {
+    const metric = {
+      endpoint,
+      method,
+      duration,
+      statusCode,
+      timestamp: new Date().toISOString()
+    };
+    performanceMetrics.apiResponseTimes.push(metric);
+    logger.info('API response tracked', metric);
+  },
+  
+  // Track memory usage
+  trackMemoryUsage: () => {
+    const memUsage = process.memoryUsage();
+    const metric = {
+      rss: memUsage.rss,
+      heapTotal: memUsage.heapTotal,
+      heapUsed: memUsage.heapUsed,
+      external: memUsage.external,
+      timestamp: new Date().toISOString()
+    };
+    performanceMetrics.memoryUsage.push(metric);
+    logger.info('Memory usage tracked', metric);
+  },
+  
+  // Track errors
+  trackError: (error, context = {}) => {
+    performanceMetrics.errorCounts.total++;
+    const errorType = error.name || 'UnknownError';
+    performanceMetrics.errorCounts.byType[errorType] = 
+      (performanceMetrics.errorCounts.byType[errorType] || 0) + 1;
+    
+    logger.error('Error tracked', {
+      error: error.message,
+      stack: error.stack,
+      type: errorType,
+      context,
+      timestamp: new Date().toISOString()
+    });
+  },
+  
+  // Get performance summary
+  getPerformanceSummary: () => {
+    return {
+      videoProcessing: {
+        count: performanceMetrics.videoProcessingTimes.length,
+        averageDuration: performanceMetrics.videoProcessingTimes.length > 0 ?
+          performanceMetrics.videoProcessingTimes.reduce((sum, m) => sum + m.duration, 0) / performanceMetrics.videoProcessingTimes.length : 0
+      },
+      apiResponses: {
+        count: performanceMetrics.apiResponseTimes.length,
+        averageDuration: performanceMetrics.apiResponseTimes.length > 0 ?
+          performanceMetrics.apiResponseTimes.reduce((sum, m) => sum + m.duration, 0) / performanceMetrics.apiResponseTimes.length : 0
+      },
+      errors: performanceMetrics.errorCounts,
+      memoryUsage: performanceMetrics.memoryUsage.slice(-10) // Last 10 readings
+    };
+  }
+};
+
+// Periodic memory monitoring
+setInterval(() => {
+  performanceLogger.trackMemoryUsage();
+}, 5 * 60 * 1000); // Every 5 minutes
 
 // Add request logging middleware
 logger.requestLogger = (req, res, next) => {
@@ -352,4 +441,4 @@ process.on('SIGINT', () => {
   logger.end();
 });
 
-export { logger };
+export { logger, performanceLogger };

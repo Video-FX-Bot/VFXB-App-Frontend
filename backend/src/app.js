@@ -20,6 +20,7 @@ import { authenticateToken, socketAuth, optionalAuth } from './middleware/auth.j
 // Import routes
 import authRoutes from './routes/auth.js';
 import videoRoutes from './routes/video.js';
+import videoEditRoutes from './routes/videoEdit.js';
 import aiRoutes from './routes/ai.js';
 import userRoutes from './routes/user.js';
 import projectRoutes from './routes/project.js';
@@ -202,6 +203,7 @@ app.get('/health', async (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/video-edit', videoEditRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);

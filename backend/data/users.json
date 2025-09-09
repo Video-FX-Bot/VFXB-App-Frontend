@@ -1,1 +1,48 @@
-[]
+[
+  {
+    "_id": "user_001",
+    "username": "demo_user",
+    "email": "demo@vfxb.com",
+    "password": "$2b$10$rOvHPGkwMkMZF8c8qGqOUeX.Zt8Z9vQqF8c8qGqOUeX.Zt8Z9vQqF8",
+    "firstName": "Demo",
+    "lastName": "User",
+    "role": "user",
+    "isActive": true,
+    "emailVerified": true,
+    "subscription": {
+      "plan": "free",
+      "status": "active",
+      "expiresAt": null
+    },
+    "preferences": {
+      "theme": "dark",
+      "notifications": true,
+      "autoSave": true
+    },
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  },
+  {
+    "_id": "user_002",
+    "username": "john_editor",
+    "email": "john@example.com",
+    "password": "$2b$10$rOvHPGkwMkMZF8c8qGqOUeX.Zt8Z9vQqF8c8qGqOUeX.Zt8Z9vQqF8",
+    "firstName": "John",
+    "lastName": "Editor",
+    "role": "user",
+    "isActive": true,
+    "emailVerified": true,
+    "subscription": {
+      "plan": "pro",
+      "status": "active",
+      "expiresAt": "2024-12-31T23:59:59.000Z"
+    },
+    "preferences": {
+      "theme": "light",
+      "notifications": true,
+      "autoSave": true
+    },
+    "createdAt": "2024-01-10T08:30:00.000Z",
+    "updatedAt": "2024-01-20T14:15:00.000Z"
+  }
+]

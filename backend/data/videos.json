@@ -1,1 +1,415 @@
-[]
+[
+  {
+    "_id": "video_001",
+    "userId": "user_001",
+    "projectId": "project_001",
+    "filename": "sample_video_1.mp4",
+    "originalName": "My Sample Video.mp4",
+    "path": "/uploads/videos/sample_video_1.mp4",
+    "size": 15728640,
+    "duration": 30,
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "frameRate": 30,
+    "format": "mp4",
+    "codec": "h264",
+    "status": "processed",
+    "thumbnailPath": "/uploads/thumbnails/sample_video_1_thumb.jpg",
+    "createdAt": "2024-01-15T10:35:00.000Z",
+    "updatedAt": "2024-01-15T10:40:00.000Z"
+  },
+  {
+    "_id": "video_002",
+    "userId": "user_002",
+    "projectId": "project_002",
+    "filename": "marketing_clip.mp4",
+    "originalName": "Marketing Footage.mp4",
+    "path": "/uploads/videos/marketing_clip.mp4",
+    "size": 25165824,
+    "duration": 45,
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "frameRate": 24,
+    "format": "mp4",
+    "codec": "h264",
+    "status": "processed",
+    "thumbnailPath": "/uploads/thumbnails/marketing_clip_thumb.jpg",
+    "createdAt": "2024-01-12T14:25:00.000Z",
+    "updatedAt": "2024-01-12T14:30:00.000Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "10956f61-ed07-4434-a888-ccd9c3f7a2f1_1757330039693.mp4",
+    "filePath": "uploads\\videos\\10956f61-ed07-4434-a888-ccd9c3f7a2f1_1757330039693.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:14:00.662Z",
+    "updatedAt": "2025-09-08T11:14:00.662Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "0e032a7b-9629-4e26-8de7-34c442154224_1757330106645.mp4",
+    "filePath": "uploads\\videos\\0e032a7b-9629-4e26-8de7-34c442154224_1757330106645.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:15:06.826Z",
+    "updatedAt": "2025-09-08T11:15:06.826Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "e231743e-6ee4-4e4d-bc01-971d14aa0644_1757330168173.mp4",
+    "filePath": "uploads\\videos\\e231743e-6ee4-4e4d-bc01-971d14aa0644_1757330168173.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:16:08.445Z",
+    "updatedAt": "2025-09-08T11:16:08.445Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "b586b5c6-d04e-46e9-9c6a-f454cf87231e_1757330292354.mp4",
+    "filePath": "uploads\\videos\\b586b5c6-d04e-46e9-9c6a-f454cf87231e_1757330292354.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:18:12.533Z",
+    "updatedAt": "2025-09-08T11:18:12.533Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "fda79600-f0fc-4eaf-9a7b-b7323adc0d80_1757330354617.mp4",
+    "filePath": "uploads\\videos\\fda79600-f0fc-4eaf-9a7b-b7323adc0d80_1757330354617.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:19:14.732Z",
+    "updatedAt": "2025-09-08T11:19:14.732Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "af6f5807-dc3a-4fee-b837-8976426a2ece_1757330398694.mp4",
+    "filePath": "uploads\\videos\\af6f5807-dc3a-4fee-b837-8976426a2ece_1757330398694.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "processing",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:19:58.799Z",
+    "updatedAt": "2025-09-08T11:19:58.799Z"
+  },
+  {
+    "title": "Test Video Upload",
+    "description": "Testing video upload pipeline",
+    "tags": [
+      "test",
+      "upload",
+      "pipeline"
+    ],
+    "originalFilename": "test_video.mp4",
+    "filename": "10956f61-ed07-4434-a888-ccd9c3f7a2f1_1757330039693.mp4",
+    "filePath": "uploads\\videos\\10956f61-ed07-4434-a888-ccd9c3f7a2f1_1757330039693.mp4",
+    "fileSize": 156,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 1,
+      "width": 0,
+      "height": 0,
+      "fps": 30,
+      "bitrate": 1248,
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": false
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-09-08T11:19:58.806Z",
+    "updatedAt": "2025-09-08T11:19:58.806Z"
+  }
+]

@@ -10,7 +10,6 @@
     "test": "jest",
     "lint": "eslint ."
   },
-
   "dependencies": {
     "assemblyai": "^4.15.0",
     "axios": "^1.6.2",
@@ -23,11 +22,13 @@
     "express-rate-limit": "^8.0.1",
     "express-validator": "^7.0.1",
     "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
     "fluent-ffmpeg": "^2.1.2",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
     "openai": "^4.20.1",
     "rate-limiter-flexible": "^2.4.2",

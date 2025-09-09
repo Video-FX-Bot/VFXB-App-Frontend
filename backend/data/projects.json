@@ -1,1 +1,58 @@
-[]
+[
+  {
+    "_id": "project_001",
+    "userId": "user_001",
+    "name": "My First Video Project",
+    "description": "A sample video editing project",
+    "status": "active",
+    "settings": {
+      "resolution": "1920x1080",
+      "frameRate": 30,
+      "duration": 120
+    },
+    "timeline": {
+      "tracks": [
+        {
+          "id": "track_1",
+          "type": "video",
+          "clips": []
+        },
+        {
+          "id": "track_2",
+          "type": "audio",
+          "clips": []
+        }
+      ]
+    },
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  },
+  {
+    "_id": "project_002",
+    "userId": "user_002",
+    "name": "Marketing Video Campaign",
+    "description": "Professional marketing video with effects",
+    "status": "active",
+    "settings": {
+      "resolution": "1920x1080",
+      "frameRate": 24,
+      "duration": 60
+    },
+    "timeline": {
+      "tracks": [
+        {
+          "id": "track_1",
+          "type": "video",
+          "clips": []
+        },
+        {
+          "id": "track_2",
+          "type": "audio",
+          "clips": []
+        }
+      ]
+    },
+    "createdAt": "2024-01-12T14:20:00.000Z",
+    "updatedAt": "2024-01-18T16:45:00.000Z"
+  }
+]
