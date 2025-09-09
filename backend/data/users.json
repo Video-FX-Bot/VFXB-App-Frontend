@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "_id": "b0fd86df-6085-4fc8-9698-8b7783152163",
+    "username": "nate123",
+    "email": "nate@example.com",
+    "password": "$2a$12$hNz1BoGgaFelVZITn6WH4eFE/vBEIvc1LvlB859jCRRR8TRlFWNse",
+    "firstName": "Nathan",
+    "lastName": "Wahba",
+    "createdAt": "2025-09-09T19:25:39.404Z",
+    "updatedAt": "2025-09-09T19:25:39.404Z"
+  }
+]

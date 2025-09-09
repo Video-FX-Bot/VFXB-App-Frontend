@@ -1,373 +1,316 @@
-import { authService } from './authService';
-import { generateVideoThumbnail, isVideoThumbnailSupported } from '../utils/videoThumbnailGenerator';
+import { authService } from "./authService";
+import {
+  generateVideoThumbnail,
+  isVideoThumbnailSupported,
+} from "../utils/videoThumbnailGenerator";
+
+function normalizeBase(url) {
+  // default to Vite proxy path if no env provided
+  const raw = url || "/api";
+  // remove trailing slash
+  const trimmed = raw.replace(/\/+$/, "");
+  // if a full URL without /api, append it; if it already ends with /api, keep it
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+  }
+  // relative ('/api' style) is fine
+  return trimmed;
+}
+
+function joinURL(base, path) {
+  return `${base}/${path.replace(/^\/+/, "")}`;
+}
 
 class ProjectService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Use direct backend URL if provided; otherwise rely on Vite proxy (/api)
+    this.baseURL = normalizeBase(import.meta.env.VITE_API_URL);
   }
 
-  // Get authentication headers
   getAuthHeaders() {
-    const token = authService.getToken();
+    const token = authService?.getToken?.();
     return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
-  // Handle API response
   async handleResponse(response) {
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      // ignore JSON parse error; we'll throw below if not ok
+    }
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      const msg =
+        (payload && (payload.message || payload.error)) ||
+        `HTTP ${response.status}`;
+      throw new Error(msg);
     }
-    return response.json();
+    return payload ?? {};
   }
 
-  // Create a new project
+  // ---------- Projects CRUD ----------
+
   async createProject(projectData) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(projectData)
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error;
-    }
+    const res = await fetch(joinURL(this.baseURL, "projects"), {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify(projectData),
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Get all projects for the current user
   async getProjects(options = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      if (options.page) queryParams.append('page', options.page);
-      if (options.limit) queryParams.append('limit', options.limit);
-      if (options.sort) queryParams.append('sort', options.sort);
-      if (options.order) queryParams.append('order', options.order);
-      if (options.filter) queryParams.append('filter', JSON.stringify(options.filter));
-      
-      const response = await fetch(`${this.baseURL}/projects?${queryParams}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      throw error;
-    }
+    const qs = new URLSearchParams();
+    if (options.page) qs.append("page", options.page);
+    if (options.limit) qs.append("limit", options.limit);
+    if (options.sort) qs.append("sort", options.sort);
+    if (options.order) qs.append("order", options.order);
+    if (options.filter) qs.append("filter", JSON.stringify(options.filter));
+
+    const url = joinURL(this.baseURL, `projects?${qs.toString()}`);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Get recent projects
   async getRecentProjects(limit = 5) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/recent?limit=${limit}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching recent projects:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/recent?limit=${limit}`);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Get favorite projects
   async getFavoriteProjects() {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/favorites`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching favorite projects:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, "projects/favorites");
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Get a specific project by ID
   async getProject(projectId) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching project:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}`);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Update a project
   async updateProject(projectId, updateData) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(updateData)
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error updating project:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}`);
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify(updateData),
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Delete a project
   async deleteProject(projectId) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}`, {
-        method: 'DELETE',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result;
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}`);
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result;
   }
 
-  // Toggle project favorite status
   async toggleFavorite(projectId) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}/favorite`, {
-        method: 'PATCH',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}/favorite`);
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Update project status
   async updateProjectStatus(projectId, status) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}/status`, {
-        method: 'PATCH',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ status })
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error updating project status:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}/status`);
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Duplicate a project
   async duplicateProject(projectId) {
-    try {
-      const response = await fetch(`${this.baseURL}/projects/${projectId}/duplicate`, {
-        method: 'POST',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error duplicating project:', error);
-      throw error;
-    }
+    const url = joinURL(this.baseURL, `projects/${projectId}/duplicate`);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Search projects
   async searchProjects(searchTerm, options = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('q', searchTerm);
-      
-      if (options.sort) queryParams.append('sort', options.sort);
-      if (options.order) queryParams.append('order', options.order);
-      
-      const response = await fetch(`${this.baseURL}/projects/search?${queryParams}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-      
-      const result = await this.handleResponse(response);
-      return result.data;
-    } catch (error) {
-      console.error('Error searching projects:', error);
-      throw error;
-    }
+    const qs = new URLSearchParams({ q: searchTerm });
+    if (options.sort) qs.append("sort", options.sort);
+    if (options.order) qs.append("order", options.order);
+
+    const url = joinURL(this.baseURL, `projects/search?${qs.toString()}`);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+      credentials: "include",
+    });
+    const result = await this.handleResponse(res);
+    return result.data;
   }
 
-  // Save project with fallback to localStorage
+  // ---------- Save/Load with localStorage fallback ----------
+
   async saveProject(projectData, fallbackToLocalStorage = true) {
     try {
-      // Generate thumbnail if video data is available and no thumbnail exists
+      // Auto-generate thumbnail if possible
       let projectWithThumbnail = { ...projectData };
-      
-      if (!projectData.thumbnail && projectData.videoData && isVideoThumbnailSupported()) {
+      if (
+        !projectData.thumbnail &&
+        projectData.videoData &&
+        isVideoThumbnailSupported()
+      ) {
         try {
-          const videoUrl = projectData.videoData.url || projectData.videoData.src;
+          const videoUrl =
+            projectData.videoData.url || projectData.videoData.src;
           if (videoUrl) {
-            console.log('Generating thumbnail for project:', projectData.name);
-            const thumbnail = await generateVideoThumbnail(videoUrl, 1, 160, 90);
+            const thumbnail = await generateVideoThumbnail(
+              videoUrl,
+              1,
+              160,
+              90
+            );
             projectWithThumbnail.thumbnail = thumbnail;
           }
-        } catch (thumbnailError) {
-          console.warn('Failed to generate thumbnail:', thumbnailError);
-          // Continue without thumbnail
+        } catch (e) {
+          console.warn("Failed to generate thumbnail:", e);
         }
       }
-      
-      // Try to save to backend first
+
       if (projectWithThumbnail._id || projectWithThumbnail.id) {
-        // Update existing project
-        const projectId = projectWithThumbnail._id || projectWithThumbnail.id;
-        return await this.updateProject(projectId, projectWithThumbnail);
+        const id = projectWithThumbnail._id || projectWithThumbnail.id;
+        return await this.updateProject(id, projectWithThumbnail);
       } else {
-        // Create new project
         return await this.createProject(projectWithThumbnail);
       }
     } catch (error) {
-      console.error('Backend save failed:', error);
-      
+      console.error("Backend save failed:", error);
       if (fallbackToLocalStorage) {
-        console.log('Falling back to localStorage save');
         return this.saveToLocalStorage(projectData);
       }
-      
       throw error;
     }
   }
 
-  // Fallback localStorage save method
   saveToLocalStorage(projectData) {
-    try {
-      const existingProjects = JSON.parse(localStorage.getItem('vfxb_projects') || '[]');
-      
-      // Generate ID if not present
-      if (!projectData.id && !projectData._id) {
-        projectData.id = Date.now();
-      }
-      
-      // Check if project already exists
-      const existingProjectIndex = existingProjects.findIndex(p => 
-        (p.id === projectData.id || p._id === projectData._id) ||
-        (p.video?.name === projectData.video?.name && p.video?.size === projectData.video?.size)
-      );
-      
-      let updatedProjects;
-      if (existingProjectIndex !== -1) {
-        // Update existing project
-        existingProjects[existingProjectIndex] = {
-          ...existingProjects[existingProjectIndex],
-          ...projectData,
-          updatedAt: new Date().toISOString(),
-          lastModified: 'Just now'
-        };
-        updatedProjects = existingProjects;
-      } else {
-        // Add new project
-        const newProject = {
+    const existing = JSON.parse(localStorage.getItem("vfxb_projects") || "[]");
+
+    if (!projectData.id && !projectData._id) {
+      projectData.id = Date.now();
+    }
+
+    const idx = existing.findIndex(
+      (p) =>
+        p.id === projectData.id ||
+        p._id === projectData._id ||
+        (p.video?.name === projectData.video?.name &&
+          p.video?.size === projectData.video?.size)
+    );
+
+    let updated;
+    if (idx !== -1) {
+      existing[idx] = {
+        ...existing[idx],
+        ...projectData,
+        updatedAt: new Date().toISOString(),
+        lastModified: "Just now",
+      };
+      updated = existing;
+    } else {
+      updated = [
+        {
           ...projectData,
           createdAt: projectData.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          lastModified: 'Just now'
-        };
-        updatedProjects = [newProject, ...existingProjects];
-      }
-      
-      // Save to localStorage
-      localStorage.setItem('vfxb_projects', JSON.stringify(updatedProjects));
-      
-      // Update recent projects
-      const recentProjects = updatedProjects.slice(0, 3);
-      localStorage.setItem('vfxb_recent_projects', JSON.stringify(recentProjects));
-      
-      return projectData;
-    } catch (error) {
-      console.error('localStorage save failed:', error);
-      throw error;
+          lastModified: "Just now",
+        },
+        ...existing,
+      ];
     }
+
+    localStorage.setItem("vfxb_projects", JSON.stringify(updated));
+    localStorage.setItem(
+      "vfxb_recent_projects",
+      JSON.stringify(updated.slice(0, 3))
+    );
+    return projectData;
   }
 
-  // Load projects with fallback to localStorage
   async loadProjects(fallbackToLocalStorage = true) {
     try {
-      // Try to load from backend first
       return await this.getProjects();
     } catch (error) {
-      console.error('Backend load failed:', error);
-      
-      if (fallbackToLocalStorage) {
-        console.log('Falling back to localStorage load');
-        return this.loadFromLocalStorage();
-      }
-      
+      console.error("Backend load failed:", error);
+      if (fallbackToLocalStorage) return this.loadFromLocalStorage();
       throw error;
     }
   }
 
-  // Fallback localStorage load method
   loadFromLocalStorage() {
     try {
-      const projects = JSON.parse(localStorage.getItem('vfxb_projects') || '[]');
-      return projects;
-    } catch (error) {
-      console.error('localStorage load failed:', error);
+      return JSON.parse(localStorage.getItem("vfxb_projects") || "[]");
+    } catch {
       return [];
     }
   }
 
-  // Load recent projects with fallback to localStorage
   async loadRecentProjects(fallbackToLocalStorage = true) {
     try {
-      // Try to load from backend first
       return await this.getRecentProjects();
     } catch (error) {
-      console.error('Backend recent projects load failed:', error);
-      
-      if (fallbackToLocalStorage) {
-        console.log('Falling back to localStorage for recent projects');
-        return this.loadRecentFromLocalStorage();
-      }
-      
+      console.error("Backend recent projects load failed:", error);
+      if (fallbackToLocalStorage) return this.loadRecentFromLocalStorage();
       throw error;
     }
   }
 
-  // Fallback localStorage recent projects load method
   loadRecentFromLocalStorage() {
     try {
-      const recentProjects = JSON.parse(localStorage.getItem('vfxb_recent_projects') || '[]');
-      return recentProjects;
-    } catch (error) {
-      console.error('localStorage recent projects load failed:', error);
+      return JSON.parse(localStorage.getItem("vfxb_recent_projects") || "[]");
+    } catch {
       return [];
     }
   }
 }
 
-// Create singleton instance
 const projectService = new ProjectService();
-
 export { projectService };
 export default projectService;

@@ -1,146 +1,216 @@
+// src/services/authService.js
+
 class AuthService {
   constructor() {
-    this.tokenKey = 'authToken';
-    this.userKey = 'currentUser';
+    this.tokenKey = "authToken";
+    this.userKey = "currentUser";
+    this.baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   }
 
-  // Get authentication token from localStorage
+  // ---------- storage ----------
   getToken() {
     try {
       return localStorage.getItem(this.tokenKey);
-    } catch (error) {
-      console.error('Error getting auth token:', error);
+    } catch {
       return null;
     }
   }
 
-  // Set authentication token in localStorage
   setToken(token) {
     try {
-      if (token) {
-        localStorage.setItem(this.tokenKey, token);
-      } else {
-        localStorage.removeItem(this.tokenKey);
-      }
-    } catch (error) {
-      console.error('Error setting auth token:', error);
-    }
+      if (token) localStorage.setItem(this.tokenKey, token);
+      else localStorage.removeItem(this.tokenKey);
+    } catch {}
   }
 
-  // Remove authentication token
   removeToken() {
-    try {
-      localStorage.removeItem(this.tokenKey);
-    } catch (error) {
-      console.error('Error removing auth token:', error);
-    }
+    this.setToken(null);
   }
 
-  // Get current user from localStorage
   getCurrentUser() {
     try {
-      const userStr = localStorage.getItem(this.userKey);
-      return userStr ? JSON.parse(userStr) : null;
-    } catch (error) {
-      console.error('Error getting current user:', error);
+      const s = localStorage.getItem(this.userKey);
+      return s ? JSON.parse(s) : null;
+    } catch {
       return null;
     }
   }
 
-  // Set current user in localStorage
   setCurrentUser(user) {
     try {
-      if (user) {
-        localStorage.setItem(this.userKey, JSON.stringify(user));
-      } else {
-        localStorage.removeItem(this.userKey);
-      }
-    } catch (error) {
-      console.error('Error setting current user:', error);
-    }
+      if (user) localStorage.setItem(this.userKey, JSON.stringify(user));
+      else localStorage.removeItem(this.userKey);
+    } catch {}
   }
 
-  // Check if user is authenticated
   isAuthenticated() {
-    const token = this.getToken();
-    const user = this.getCurrentUser();
-    return !!(token && user);
+    return !!(this.getToken() && this.getCurrentUser());
   }
 
-  // Get user ID
   getUserId() {
-    const user = this.getCurrentUser();
-    return user ? user.id || user._id : null;
+    const u = this.getCurrentUser();
+    return u ? u.id || u._id : null;
   }
 
-  // Login method (basic implementation)
-  async login(credentials) {
+  // ---------- helpers ----------
+  async _json(res) {
     try {
-      // For now, create a demo user since we don't have full auth implementation
-      const demoUser = {
-        id: 'demo-user-' + Date.now(),
-        username: credentials.username || 'demo-user',
-        email: credentials.email || 'demo@example.com',
-        firstName: 'Demo',
-        lastName: 'User'
-      };
-      
-      const demoToken = 'demo-token-' + Date.now();
-      
-      this.setToken(demoToken);
-      this.setCurrentUser(demoUser);
-      
-      return {
-        success: true,
-        user: demoUser,
-        token: demoToken
-      };
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      return await res.json();
+    } catch {
+      return {};
     }
   }
 
-  // Logout method
-  logout() {
+  _headers() {
+    return { "Content-Type": "application/json" };
+  }
+
+  // ---------- auth ----------
+  /**
+   * credentials: { identifier | email | username, password, rememberMe? }
+   */
+  async login(credentials) {
+    const identifier =
+      credentials.identifier || credentials.email || credentials.username;
+
+    const body = {
+      identifier,
+      password: credentials.password,
+      rememberMe: !!credentials.rememberMe,
+    };
+
+    const res = await fetch(`${this.baseURL}/auth/login`, {
+      method: "POST",
+      headers: this._headers(),
+      credentials: "include", // for httpOnly cookies
+      body: JSON.stringify(body),
+    });
+
+    const json = await this._json(res);
+    if (!res.ok || json.success === false) {
+      throw new Error(json.message || "Login failed");
+    }
+
+    // Support both:
+    // A) { token, user }
+    // B) { data: { user, tokens: { accessToken, refreshToken } } }
+    const user = json.user ?? json.data?.user ?? null;
+    const token = json.token ?? json.data?.tokens?.accessToken ?? null;
+
+    if (!user) throw new Error("No user in response");
+
+    // If you rely solely on httpOnly cookies, token may be null — that's OK.
+    if (token) this.setToken(token);
+    else this.removeToken();
+
+    this.setCurrentUser(user);
+
+    return { success: true, user, token };
+  }
+
+  async signup(payload) {
+    // Expecting backend /auth/register returns similar shape or { success, data: { user, tokens } }
+    const res = await fetch(`${this.baseURL}/auth/register`, {
+      method: "POST",
+      headers: this._headers(),
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const json = await this._json(res);
+    if (!res.ok || json.success === false) {
+      throw new Error(json.message || "Registration failed");
+    }
+
+    const user = json.user ?? json.data?.user ?? null;
+    const token = json.token ?? json.data?.tokens?.accessToken ?? null;
+
+    if (user) this.setCurrentUser(user);
+    if (token) this.setToken(token);
+    else this.removeToken();
+
+    return { success: true, user, token };
+  }
+
+  async me() {
+    const res = await fetch(`${this.baseURL}/auth/me`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        ...this._headers(),
+        ...(this.getToken() && { Authorization: `Bearer ${this.getToken()}` }),
+      },
+    });
+
+    const json = await this._json(res);
+    if (!res.ok || json.success === false) {
+      throw new Error(json.message || "Failed to fetch current user");
+    }
+
+    const user = json.data?.user || json.user || null;
+    if (user) this.setCurrentUser(user);
+    return user;
+  }
+
+  async refresh() {
+    // Works whether tokens are stored in cookies or body
+    const res = await fetch(`${this.baseURL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: this._headers(),
+      body: JSON.stringify({ refreshToken: this.getToken() || undefined }),
+    });
+
+    const json = await this._json(res);
+    if (!res.ok || json.success === false) {
+      throw new Error(json.message || "Refresh failed");
+    }
+
+    const newToken = json.token ?? json.data?.tokens?.accessToken ?? null;
+
+    if (newToken) this.setToken(newToken);
+    return newToken;
+  }
+
+  async logout() {
     try {
+      await fetch(`${this.baseURL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+    } finally {
       this.removeToken();
       this.setCurrentUser(null);
-      return { success: true };
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
     }
+    return { success: true };
   }
 
-  // Initialize demo user if no auth exists
+  // ---------- demo mode (optional) ----------
   initializeDemoUser() {
-    if (!this.isAuthenticated()) {
+    if (
+      import.meta.env.DEV &&
+      import.meta.env.VITE_DEMO_AUTH === "true" &&
+      !this.isAuthenticated()
+    ) {
       const demoUser = {
-        id: 'demo-user-default',
-        username: 'demo-user',
-        email: 'demo@example.com',
-        firstName: 'Demo',
-        lastName: 'User'
+        id: "demo-user-default",
+        username: "demo-user",
+        email: "demo@example.com",
+        firstName: "Demo",
+        lastName: "User",
       };
-      
-      const demoToken = 'demo-token-default';
-      
+      const demoToken = "demo-token-default";
       this.setToken(demoToken);
       this.setCurrentUser(demoUser);
-      
-      console.log('Demo user initialized for development');
+      console.log("Demo user initialized");
     }
   }
 }
 
-// Create singleton instance
 const authService = new AuthService();
 
-// Initialize demo user for development
-if (import.meta.env.DEV) {
-  authService.initializeDemoUser();
-}
+// Only enable demo auth when explicitly set
+authService.initializeDemoUser();
 
 export { authService };
 export default authService;
