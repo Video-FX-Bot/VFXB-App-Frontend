@@ -1,410 +1,244 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import useUIStore from '../context/uiStore';
-import { storage, debounce } from '../utils';
-import { UI_CONFIG, KEYBOARD_SHORTCUTS, STORAGE_KEYS } from '../constants';
+import { useCallback, useMemo, useEffect } from 'react';
+import { useUIStore, uiSelectors } from '../store';
+import { debounce } from '../utils/performance';
+import { getStoredTheme, setStoredTheme } from '../utils/theme';
 
-// Custom hook for UI state management
+/**
+ * Enhanced UI hook with Zustand store integration
+ * Optimized for performance with selective subscriptions
+ */
 export const useUI = () => {
+  // Selective subscriptions for optimal performance
+  const theme = useUIStore(uiSelectors.theme);
+  const sidebarOpen = useUIStore(uiSelectors.sidebarOpen);
+  const modals = useUIStore(uiSelectors.modals);
+  const loading = useUIStore(uiSelectors.loading);
+  const notifications = useUIStore(uiSelectors.notifications);
+  
+  // Get actions (these don't cause re-renders)
   const {
-    theme,
-    sidebarOpen,
-    sidebarCollapsed,
-    activeTab,
-    modalOpen,
-    modalProps,
-    loading,
-    loadingMessage,
-    notifications,
-    layout,
-    workspace,
-    performance: performanceSettings,
-    setTheme,
+    setTheme: setStoreTheme,
+    toggleTheme: toggleStoreTheme,
     setSidebarOpen,
-    setSidebarCollapsed,
-    setActiveTab,
-    setModalOpen,
-    setModalProps,
+    toggleSidebar,
+    openModal,
+    closeModal,
+    closeAllModals,
     setLoading,
-    setLoadingMessage,
     addNotification,
     removeNotification,
     clearNotifications,
-    setLayout,
-    setWorkspace,
-    updatePerformance,
+    windowSize,
+    setWindowSize,
+    keyboardShortcuts,
+    setKeyboardShortcuts,
+    loadingMessage,
   } = useUIStore();
 
-  const [windowSize, setWindowSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-  const [isMobile, setIsMobile] = useState(window.innerWidth < UI_CONFIG.BREAKPOINTS.MD);
-  const [isTablet, setIsTablet] = useState(
-    window.innerWidth >= UI_CONFIG.BREAKPOINTS.MD && 
-    window.innerWidth < UI_CONFIG.BREAKPOINTS.LG
+  // Debounced window resize handler
+  const debouncedResize = useMemo(
+    () => debounce(() => {
+      const newSize = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
+      setWindowSize(newSize);
+    }, 150),
+    [setWindowSize]
   );
-  const [keyboardShortcuts, setKeyboardShortcuts] = useState(new Map());
-  const resizeTimeoutRef = useRef(null);
 
-  // Handle window resize
-  const handleResize = useCallback(() => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+  // Window resize effect
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Set initial dimensions
+    const initialSize = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+    setWindowSize(initialSize);
+
+    // Add resize listener
+    window.addEventListener('resize', debouncedResize);
+    return () => window.removeEventListener('resize', debouncedResize);
+  }, [debouncedResize, setWindowSize]);
+
+  // Enhanced theme setter with persistence
+  const setTheme = useCallback((newTheme) => {
+    setStoreTheme(newTheme);
+    setStoredTheme(newTheme);
     
-    setWindowSize({ width, height });
-    setIsMobile(width < UI_CONFIG.BREAKPOINTS.MD);
-    setIsTablet(width >= UI_CONFIG.BREAKPOINTS.MD && width < UI_CONFIG.BREAKPOINTS.LG);
-    
-    // Auto-collapse sidebar on mobile
-    if (width < UI_CONFIG.BREAKPOINTS.MD && sidebarOpen) {
-      setSidebarOpen(false);
+    // Apply theme to document
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', newTheme);
+      document.documentElement.className = newTheme;
     }
-    
-    // Update layout based on screen size
-    setLayout(prevLayout => ({
-      ...prevLayout,
-      screenSize: width < UI_CONFIG.BREAKPOINTS.MD ? 'mobile' : 
-                  width < UI_CONFIG.BREAKPOINTS.LG ? 'tablet' : 'desktop',
-      sidebarWidth: sidebarCollapsed ? UI_CONFIG.SIDEBAR_COLLAPSED_WIDTH : UI_CONFIG.SIDEBAR_WIDTH,
-    }));
-  }, [sidebarOpen, sidebarCollapsed, setSidebarOpen, setLayout]);
+  }, [setStoreTheme]);
 
-  // Debounced resize handler
-  const debouncedResize = useCallback(
-    debounce(handleResize, 150),
-    [handleResize]
-  );
-
-  // Toggle theme
+  // Toggle theme with persistence
   const toggleTheme = useCallback(() => {
+    toggleStoreTheme();
     const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    storage.set(STORAGE_KEYS.THEME, newTheme);
+    setStoredTheme(newTheme);
     
-    // Apply theme to document using classList (matches UI store)
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    // Apply theme to document
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', newTheme);
+      document.documentElement.className = newTheme;
     }
-    
-    // Force apply CSS variables to body as well
-    const root = document.documentElement;
-    const body = document.body;
-    
-    // Get the computed styles from root to apply to body
-    const computedStyle = getComputedStyle(root);
-    const background = computedStyle.getPropertyValue('--background');
-    const foreground = computedStyle.getPropertyValue('--foreground');
-    const card = computedStyle.getPropertyValue('--card');
-    const cardForeground = computedStyle.getPropertyValue('--card-foreground');
-    
-    // Apply CSS variables directly to body
-    body.style.setProperty('--background', background);
-    body.style.setProperty('--foreground', foreground);
-    body.style.setProperty('--card', card);
-    body.style.setProperty('--card-foreground', cardForeground);
-    
+  }, [toggleStoreTheme, theme]);
 
-  }, [theme, setTheme, addNotification]);
-
-  // Toggle sidebar
-  const toggleSidebar = useCallback(() => {
-    if (isMobile) {
-      setSidebarOpen(!sidebarOpen);
-    } else {
-      setSidebarCollapsed(!sidebarCollapsed);
-    }
-    
-    // Save state
-    storage.set(STORAGE_KEYS.SIDEBAR_STATE, {
-      open: !sidebarOpen,
-      collapsed: !sidebarCollapsed,
-    });
-  }, [isMobile, sidebarOpen, sidebarCollapsed, setSidebarOpen, setSidebarCollapsed]);
-
-  // Open modal
-  const openModal = useCallback((component, props = {}) => {
-    setModalProps({ component, ...props });
-    setModalOpen(true);
-    
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-  }, [setModalProps, setModalOpen]);
-
-  // Close modal
-  const closeModal = useCallback(() => {
-    setModalOpen(false);
-    setModalProps({});
-    
-    // Restore body scroll
-    document.body.style.overflow = 'unset';
-  }, [setModalOpen, setModalProps]);
-
-  // Show loading
-  const showLoading = useCallback((message = 'Loading...') => {
-    setLoading(true);
-    setLoadingMessage(message);
-  }, [setLoading, setLoadingMessage]);
-
-  // Hide loading
-  const hideLoading = useCallback(() => {
-    setLoading(false);
-    setLoadingMessage('');
-  }, [setLoading, setLoadingMessage]);
-
-  // Show notification
+  // Enhanced notification system
   const showNotification = useCallback((notification) => {
-    const id = notification.id || `notification_${Date.now()}`;
-    const fullNotification = {
+    const id = Date.now().toString();
+    const enhancedNotification = {
       id,
       type: 'info',
       duration: 5000,
-      timestamp: new Date(),
-      read: false,
       ...notification,
     };
     
-    addNotification(fullNotification);
+    addNotification(enhancedNotification);
     
-    // Auto-remove after duration
-    if (fullNotification.duration > 0) {
+    // Auto-remove notification after duration
+    if (enhancedNotification.duration > 0) {
       setTimeout(() => {
         removeNotification(id);
-      }, fullNotification.duration);
+      }, enhancedNotification.duration);
     }
     
     return id;
   }, [addNotification, removeNotification]);
 
-  // Show success notification
-  const showSuccess = useCallback((message, title = 'Success') => {
+  // Convenience notification methods
+  const showSuccess = useCallback((message, options = {}) => {
     return showNotification({
       type: 'success',
-      title,
       message,
-      duration: 3000,
+      ...options,
     });
   }, [showNotification]);
 
-  // Show error notification
-  const showError = useCallback((message, title = 'Error') => {
+  const showError = useCallback((message, options = {}) => {
     return showNotification({
       type: 'error',
-      title,
       message,
-      duration: 0, // Don't auto-dismiss errors
+      duration: 8000, // Longer duration for errors
+      ...options,
     });
   }, [showNotification]);
 
-  // Show warning notification
-  const showWarning = useCallback((message, title = 'Warning') => {
+  const showWarning = useCallback((message, options = {}) => {
     return showNotification({
       type: 'warning',
-      title,
       message,
-      duration: 5000,
+      duration: 6000,
+      ...options,
     });
   }, [showNotification]);
 
-  // Register keyboard shortcut
-  const registerShortcut = useCallback((key, handler, description = '') => {
-    setKeyboardShortcuts(prev => {
-      const newMap = new Map(prev);
-      newMap.set(key, { handler, description });
-      return newMap;
+  const showInfo = useCallback((message, options = {}) => {
+    return showNotification({
+      type: 'info',
+      message,
+      ...options,
     });
-  }, []);
+  }, [showNotification]);
 
-  // Unregister keyboard shortcut
-  const unregisterShortcut = useCallback((key) => {
-    setKeyboardShortcuts(prev => {
-      const newMap = new Map(prev);
-      newMap.delete(key);
-      return newMap;
-    });
-  }, []);
+  // Modal helpers
+  const isModalOpen = useCallback((modalId) => {
+    return modals[modalId]?.isOpen || false;
+  }, [modals]);
 
-  // Handle keyboard shortcuts
-  const handleKeyDown = useCallback((e) => {
-    const key = [
-      e.ctrlKey && 'ctrl',
-      e.shiftKey && 'shift',
-      e.altKey && 'alt',
-      e.metaKey && 'meta',
-      e.key.toLowerCase()
-    ].filter(Boolean).join('+');
-    
-    const shortcut = keyboardShortcuts.get(key);
-    if (shortcut) {
-      e.preventDefault();
-      shortcut.handler(e);
+  const getModalProps = useCallback((modalId) => {
+    return modals[modalId]?.props || {};
+  }, [modals]);
+
+  // Responsive helpers
+  const isMobile = useMemo(() => windowSize.width < 768, [windowSize.width]);
+  const isTablet = useMemo(() => windowSize.width >= 768 && windowSize.width < 1024, [windowSize.width]);
+  const isDesktop = useMemo(() => windowSize.width >= 1024, [windowSize.width]);
+  const isLargeScreen = useMemo(() => windowSize.width >= 1440, [windowSize.width]);
+
+  // Keyboard shortcut handler
+  useEffect(() => {
+    if (!keyboardShortcuts || typeof window === 'undefined') return;
+
+    const handleKeyDown = (event) => {
+      // Ctrl/Cmd + K for command palette
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        openModal('commandPalette');
+      }
       
-      // Track shortcut usage
-      updatePerformance({
-        shortcutsUsed: performanceSettings.shortcutsUsed + 1,
-      });
-    }
-  }, [keyboardShortcuts, performanceSettings.shortcutsUsed, updatePerformance]);
-
-  // Update workspace layout
-  const updateWorkspaceLayout = useCallback((updates) => {
-    const newWorkspace = { ...workspace, ...updates };
-    setWorkspace(newWorkspace);
-    storage.set(STORAGE_KEYS.WORKSPACE_LAYOUT, newWorkspace);
-  }, [workspace, setWorkspace]);
-
-  // Get responsive breakpoint
-  const getBreakpoint = useCallback(() => {
-    const width = windowSize.width;
-    if (width < UI_CONFIG.BREAKPOINTS.SM) return 'xs';
-    if (width < UI_CONFIG.BREAKPOINTS.MD) return 'sm';
-    if (width < UI_CONFIG.BREAKPOINTS.LG) return 'md';
-    if (width < UI_CONFIG.BREAKPOINTS.XL) return 'lg';
-    if (width < UI_CONFIG.BREAKPOINTS['2XL']) return 'xl';
-    return '2xl';
-  }, [windowSize.width]);
-
-  // Check if screen size matches breakpoint
-  const matchesBreakpoint = useCallback((breakpoint) => {
-    const width = windowSize.width;
-    const breakpoints = UI_CONFIG.BREAKPOINTS;
-    
-    switch (breakpoint) {
-      case 'sm': return width >= breakpoints.SM;
-      case 'md': return width >= breakpoints.MD;
-      case 'lg': return width >= breakpoints.LG;
-      case 'xl': return width >= breakpoints.XL;
-      case '2xl': return width >= breakpoints['2XL'];
-      default: return false;
-    }
-  }, [windowSize.width]);
-
-  // Initialize UI state from storage
-  useEffect(() => {
-    // Load theme
-    const savedTheme = storage.get(STORAGE_KEYS.THEME, 'light');
-    setTheme(savedTheme);
-    
-    // Apply theme to document using classList (matches UI store)
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Force apply CSS variables to body as well
-    const root = document.documentElement;
-    const body = document.body;
-    
-    // Get the computed styles from root to apply to body
-    const computedStyle = getComputedStyle(root);
-    const background = computedStyle.getPropertyValue('--background');
-    const foreground = computedStyle.getPropertyValue('--foreground');
-    const card = computedStyle.getPropertyValue('--card');
-    const cardForeground = computedStyle.getPropertyValue('--card-foreground');
-    
-    // Apply CSS variables directly to body
-    body.style.setProperty('--background', background);
-    body.style.setProperty('--foreground', foreground);
-    body.style.setProperty('--card', card);
-    body.style.setProperty('--card-foreground', cardForeground);
-    
-    // Load sidebar state
-    const savedSidebarState = storage.get(STORAGE_KEYS.SIDEBAR_STATE, {
-      open: true,
-      collapsed: false,
-    });
-    setSidebarOpen(savedSidebarState.open);
-    setSidebarCollapsed(savedSidebarState.collapsed);
-    
-    // Load workspace layout
-    const savedWorkspace = storage.get(STORAGE_KEYS.WORKSPACE_LAYOUT, workspace);
-    setWorkspace(savedWorkspace);
-  }, [setTheme, setSidebarOpen, setSidebarCollapsed, setWorkspace]);
-
-  // Register default keyboard shortcuts
-  useEffect(() => {
-    registerShortcut(KEYBOARD_SHORTCUTS.TOGGLE_SIDEBAR, toggleSidebar, 'Toggle sidebar');
-    registerShortcut(KEYBOARD_SHORTCUTS.TOGGLE_THEME, toggleTheme, 'Toggle theme');
-  }, [registerShortcut, toggleSidebar, toggleTheme]);
-
-  // Set up event listeners
-  useEffect(() => {
-    window.addEventListener('resize', debouncedResize);
-    window.addEventListener('keydown', handleKeyDown);
-    
-    // Initial resize call
-    handleResize();
-    
-    return () => {
-      window.removeEventListener('resize', debouncedResize);
-      window.removeEventListener('keydown', handleKeyDown);
+      // Escape to close modals
+      if (event.key === 'Escape') {
+        closeAllModals();
+      }
       
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
+      // Ctrl/Cmd + \ to toggle sidebar
+      if ((event.ctrlKey || event.metaKey) && event.key === '\\') {
+        event.preventDefault();
+        toggleSidebar();
       }
     };
-  }, [debouncedResize, handleKeyDown, handleResize]);
 
-  // Performance monitoring
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [keyboardShortcuts, openModal, closeAllModals, toggleSidebar]);
+
+  // Initialize theme on mount
   useEffect(() => {
-    const startTime = performance.now();
-    
-    return () => {
-      const endTime = performance.now();
-      updatePerformance({
-        renderTime: endTime - startTime,
-        lastRender: new Date(),
-      });
-    };
-  }, [updatePerformance]);
+    const storedTheme = getStoredTheme();
+    if (storedTheme && storedTheme !== theme) {
+      setTheme(storedTheme);
+    }
+  }, [theme, setTheme]);
 
   return {
-    // State
+    // Theme
     theme,
-    sidebarOpen,
-    sidebarCollapsed,
-    activeTab,
-    modalOpen,
-    modalProps,
-    loading,
-    loadingMessage,
-    notifications,
-    layout,
-    workspace,
-    windowSize,
-    isMobile,
-    isTablet,
-    
-    // Actions
+    setTheme,
     toggleTheme,
+    
+    // Sidebar
+    sidebarOpen,
+    setSidebarOpen,
     toggleSidebar,
-    setActiveTab,
+    
+    // Modals
+    modals,
     openModal,
     closeModal,
-    showLoading,
-    hideLoading,
+    closeAllModals,
+    isModalOpen,
+    getModalProps,
+    
+    // Loading
+    loading,
+    loadingMessage,
+    setLoading,
+    
+    // Notifications
+    notifications,
     showNotification,
     showSuccess,
     showError,
     showWarning,
+    showInfo,
     removeNotification,
     clearNotifications,
-    updateWorkspaceLayout,
     
-    // Keyboard shortcuts
-    registerShortcut,
-    unregisterShortcut,
+    // Window dimensions
+    windowSize,
+    isMobile,
+    isTablet,
+    isDesktop,
+    isLargeScreen,
+    
+    // Settings
     keyboardShortcuts,
-    
-    // Responsive utilities
-    getBreakpoint,
-    matchesBreakpoint,
-    
-    // Utilities
-    isDesktop: !isMobile && !isTablet,
-    currentBreakpoint: getBreakpoint(),
+    setKeyboardShortcuts,
   };
 };
 

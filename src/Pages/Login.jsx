@@ -1,26 +1,93 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../useAuth";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUI } from "../hooks/useUI";
+import { errorService } from "../services/errorService";
+import { csrfService } from "../services/csrfService";
+import { useErrorHandler } from "../components/ErrorBoundary";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loading, error: authError, isAuthenticated } = useAuth();
   const { theme } = useUI();
   const navigate = useNavigate();
+  const handleError = useErrorHandler();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email) {
-      setError("Email is required");
-      return;
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
     }
-    login(email, password);
-    navigate("/");
+  }, [isAuthenticated, navigate]);
+
+  // Initialize CSRF protection
+  useEffect(() => {
+    csrfService.initializeCSRF().catch(err => {
+      console.warn('CSRF initialization failed:', err);
+    });
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLocalError("");
+    setIsSubmitting(true);
+
+    try {
+      // Input validation
+      const sanitizedEmail = errorService.sanitizeInput(email);
+      const sanitizedPassword = errorService.sanitizeInput(password);
+
+      if (!errorService.validateEmail(sanitizedEmail)) {
+        setLocalError("Please enter a valid email address");
+        return;
+      }
+
+      if (!errorService.validatePassword(sanitizedPassword)) {
+        setLocalError("Password must be at least 8 characters long");
+        return;
+      }
+
+      // Attempt login
+      const result = await login(sanitizedEmail, sanitizedPassword);
+      
+      if (result.success) {
+        navigate("/", { replace: true });
+      } else {
+        setLocalError(result.error || "Login failed. Please try again.");
+      }
+    } catch (error) {
+      const userFriendlyError = errorService.getErrorMessage(error);
+      setLocalError(userFriendlyError);
+      errorService.logError(error, 'Login form submission');
+      handleError(error, {
+        context: 'login_form_submission',
+        operation: 'login',
+        email: sanitizedEmail
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleEmailChange = (e) => {
+    const sanitizedValue = errorService.sanitizeInput(e.target.value);
+    setEmail(sanitizedValue);
+    if (localError) setLocalError("");
+  };
+
+  const handlePasswordChange = (e) => {
+    const sanitizedValue = errorService.sanitizeInput(e.target.value);
+    setPassword(sanitizedValue);
+    if (localError) setLocalError("");
+  };
+
+  // Display error from auth context or local error
+  const displayError = authError || localError;
+  const isLoading = loading || isSubmitting;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-background">
@@ -54,10 +121,14 @@ export default function Login() {
             <motion.input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-base outline-none transition-all duration-300 focus:border-primary focus:shadow-lg focus:shadow-primary/25"
               whileFocus={{ scale: 1.02 }}
               autoFocus
+              required
+              disabled={isLoading}
+              autoComplete="email"
+              aria-describedby={displayError ? "login-error" : undefined}
             />
           </motion.div>
           <motion.div
@@ -69,28 +140,47 @@ export default function Login() {
             <motion.input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-base outline-none transition-all duration-300 focus:border-primary focus:shadow-lg focus:shadow-primary/25"
               whileFocus={{ scale: 1.02 }}
+              required
+              disabled={isLoading}
+              autoComplete="current-password"
+              aria-describedby={displayError ? "login-error" : undefined}
             />
           </motion.div>
-          {error && (
+          {displayError && (
             <motion.div 
+              id="login-error"
               initial={{ opacity: 0, scale: 0.9, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               className="text-destructive mb-4 text-center font-medium"
+              role="alert"
+              aria-live="polite"
             >
-              {error}
+              {displayError}
             </motion.div>
           )}
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none rounded-lg font-bold text-base mt-2 shadow-elevation-2 cursor-pointer tracking-wide transition-all duration-300 hover:shadow-elevation-3 hover:shadow-purple-500/25"
+            whileHover={!isLoading ? { scale: 1.02, y: -2 } : {}}
+            whileTap={!isLoading ? { scale: 0.98 } : {}}
+            disabled={isLoading || !email || !password}
+            className={`w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none rounded-lg font-bold text-base mt-2 shadow-elevation-2 cursor-pointer tracking-wide transition-all duration-300 hover:shadow-elevation-3 hover:shadow-purple-500/25 ${
+              isLoading || !email || !password
+                ? 'opacity-50 cursor-not-allowed'
+                : ''
+            }`}
           >
-            Login
+            {isLoading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              'Login'
+            )}
           </motion.button>
         </motion.form>
         <motion.div 
@@ -104,4 +194,4 @@ export default function Login() {
       </motion.div>
     </div>
   );
-} 
+}

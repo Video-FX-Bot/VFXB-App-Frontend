@@ -62,7 +62,8 @@ const EnhancedTimeline = ({
         }
       });
     });
-    return Math.max(maxDuration, 30); // Minimum 30 seconds
+    // Use actual content duration, no minimum limit
+    return maxDuration > 0 ? maxDuration : 30; // Only fallback to 30 if no content
   }, [tracks, duration]);
   
   const timelineDuration = useMemo(() => calculateTimelineDuration(), [calculateTimelineDuration]);
@@ -105,7 +106,7 @@ const EnhancedTimeline = ({
       hover: 'hover:bg-gray-700/80 transition-all duration-200',
       track: 'bg-gray-800/60',
       trackAlt: 'bg-gray-750/60',
-      ruler: 'bg-gradient-to-b from-background-900 to-gray-800',
+      ruler: 'bg-gradient-to-b from-gray-900 to-gray-800',
       playhead: 'bg-gradient-to-b from-red-400 to-red-600',
       waveform: 'fill-blue-400',
       surface: 'bg-gray-850/80',
@@ -123,7 +124,7 @@ const EnhancedTimeline = ({
       hover: 'hover:bg-gray-100/80 transition-all duration-200',
       track: 'bg-white/60',
       trackAlt: 'bg-gray-50/60',
-      ruler: 'bg-gradient-to-b from-gray-900 to-gray-800',
+      ruler: 'bg-gradient-to-b from-gray-100 to-gray-50',
       playhead: 'bg-gradient-to-b from-red-500 to-red-700',
       waveform: 'fill-blue-500',
       surface: 'bg-gray-100/80',
@@ -273,7 +274,7 @@ const EnhancedTimeline = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showAddTrackDropdown && !event.target.closest('.add-track-dropdown')) {
+      if (showAddTrackDropdown && !event.target.closest('.add-track-container')) {
         setShowAddTrackDropdown(false);
       }
     };
@@ -388,6 +389,366 @@ const EnhancedTimeline = ({
     setSelectedClips(prev => prev.filter(id => id !== clipId));
   }, [tracks, onTracksChange]);
 
+  // Split clip function
+  const splitClip = useCallback(async (clipId, trackId, splitTime) => {
+    try {
+      const track = tracks.find(t => t.id === trackId);
+      const clip = track?.clips.find(c => c.id === clipId);
+      
+      if (!clip || splitTime <= clip.startTime || splitTime >= clip.startTime + clip.duration) {
+        console.error('Invalid split time or clip not found');
+        return;
+      }
+
+      // Calculate split position relative to clip start
+      const relativeTime = splitTime - clip.startTime;
+      
+      // Call backend API for video processing
+      if (clip.type === 'video' && clip.videoId) {
+        const response = await fetch('/api/video-edit/split', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            videoId: clip.videoId,
+            splitTime: relativeTime
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to split video on server');
+        }
+        
+        const result = await response.json();
+        
+        // Create two new clips from the split
+        const firstClip = {
+          ...clip,
+          id: `${clip.id}_part1`,
+          duration: relativeTime,
+          url: result.data.firstPartUrl || clip.url,
+          videoId: result.data.firstPartId || clip.videoId
+        };
+        
+        const secondClip = {
+          ...clip,
+          id: `${clip.id}_part2`,
+          startTime: splitTime,
+          duration: clip.duration - relativeTime,
+          url: result.data.secondPartUrl || clip.url,
+          videoId: result.data.secondPartId || clip.videoId
+        };
+        
+        // Update tracks with split clips
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? firstClip : c
+              ).concat([secondClip])
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      } else {
+        // For non-video clips, split locally
+        const firstClip = {
+          ...clip,
+          id: `${clip.id}_part1`,
+          duration: relativeTime
+        };
+        
+        const secondClip = {
+          ...clip,
+          id: `${clip.id}_part2`,
+          startTime: splitTime,
+          duration: clip.duration - relativeTime
+        };
+        
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? firstClip : c
+              ).concat([secondClip])
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      }
+    } catch (error) {
+      console.error('Error splitting clip:', error);
+    }
+  }, [tracks, onTracksChange]);
+
+  // Trim clip function
+  const trimClip = useCallback(async (clipId, trackId, startTrim, endTrim) => {
+    try {
+      const track = tracks.find(t => t.id === trackId);
+      const clip = track?.clips.find(c => c.id === clipId);
+      
+      if (!clip) {
+        console.error('Clip not found');
+        return;
+      }
+
+      // Call backend API for video processing
+      if (clip.type === 'video' && clip.videoId) {
+        const response = await fetch('/api/video-edit/trim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            videoId: clip.videoId,
+            startTime: startTrim,
+            endTime: clip.duration - endTrim
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to trim video on server');
+        }
+        
+        const result = await response.json();
+        
+        // Update clip with trimmed version
+        const trimmedClip = {
+          ...clip,
+          duration: clip.duration - startTrim - endTrim,
+          startTime: clip.startTime + startTrim,
+          url: result.data.outputUrl || clip.url,
+          videoId: result.data.videoId || clip.videoId
+        };
+        
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? trimmedClip : c
+              )
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      } else {
+        // For non-video clips, trim locally
+        const trimmedClip = {
+          ...clip,
+          duration: clip.duration - startTrim - endTrim,
+          startTime: clip.startTime + startTrim
+        };
+        
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? trimmedClip : c
+              )
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      }
+    } catch (error) {
+      console.error('Error trimming clip:', error);
+    }
+  }, [tracks, onTracksChange]);
+
+  // Duplicate clip function
+  const duplicateClip = useCallback((clipId, trackId) => {
+    const track = tracks.find(t => t.id === trackId);
+    const clip = track?.clips.find(c => c.id === clipId);
+    
+    if (!clip) {
+      console.error('Clip not found');
+      return;
+    }
+
+    const duplicatedClip = {
+      ...clip,
+      id: `${clip.id}_copy_${Date.now()}`,
+      startTime: clip.startTime + clip.duration + 0.1 // Place after original with small gap
+    };
+    
+    const updatedTracks = tracks.map(track => {
+      if (track.id === trackId) {
+        return {
+          ...track,
+          clips: [...track.clips, duplicatedClip]
+        };
+      }
+      return track;
+    });
+    
+    onTracksChange?.(updatedTracks);
+  }, [tracks, onTracksChange]);
+
+  // Apply effect to clip function
+  const applyEffectToClip = useCallback(async (clipId, trackId, effectType, effectParams) => {
+    try {
+      const track = tracks.find(t => t.id === trackId);
+      const clip = track?.clips.find(c => c.id === clipId);
+      
+      if (!clip) {
+        console.error('Clip not found');
+        return;
+      }
+
+      // Call backend API for video effects
+      if (clip.type === 'video' && clip.videoId) {
+        const response = await fetch('/api/video-edit/apply-effect', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            videoId: clip.videoId,
+            effectType,
+            effectParams
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to apply effect on server');
+        }
+        
+        const result = await response.json();
+        
+        // Update clip with effect applied
+        const effectClip = {
+          ...clip,
+          url: result.data.outputUrl || clip.url,
+          videoId: result.data.videoId || clip.videoId,
+          effects: [...(clip.effects || []), { type: effectType, params: effectParams }]
+        };
+        
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? effectClip : c
+              )
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      } else {
+        // For non-video clips, apply effect locally
+        const effectClip = {
+          ...clip,
+          effects: [...(clip.effects || []), { type: effectType, params: effectParams }]
+        };
+        
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: track.clips.map(c => 
+                c.id === clipId ? effectClip : c
+              )
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      }
+    } catch (error) {
+      console.error('Error applying effect:', error);
+    }
+  }, [tracks, onTracksChange]);
+
+  // Merge clips function
+  const mergeClips = useCallback(async (clipIds, trackId) => {
+    try {
+      const track = tracks.find(t => t.id === trackId);
+      const clipsToMerge = track?.clips.filter(c => clipIds.includes(c.id));
+      
+      if (!clipsToMerge || clipsToMerge.length < 2) {
+        console.error('Need at least 2 clips to merge');
+        return;
+      }
+
+      // Sort clips by start time
+      clipsToMerge.sort((a, b) => a.startTime - b.startTime);
+      
+      // Check if clips are video type and have videoIds
+      const videoClips = clipsToMerge.filter(c => c.type === 'video' && c.videoId);
+      
+      if (videoClips.length > 0) {
+        const response = await fetch('/api/video-edit/merge', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            videoIds: videoClips.map(c => c.videoId),
+            title: `Merged_${Date.now()}`,
+            transitionType: 'fade',
+            transitionDuration: 0.5
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to merge videos on server');
+        }
+        
+        const result = await response.json();
+        
+        // Create merged clip
+        const mergedClip = {
+          id: `merged_${Date.now()}`,
+          name: `Merged Video`,
+          type: 'video',
+          startTime: clipsToMerge[0].startTime,
+          duration: clipsToMerge.reduce((total, clip) => total + clip.duration, 0),
+          url: result.data.outputUrl,
+          videoId: result.data.videoId,
+          thumbnail: clipsToMerge[0].thumbnail
+        };
+        
+        // Remove original clips and add merged clip
+        const updatedTracks = tracks.map(track => {
+          if (track.id === trackId) {
+            return {
+              ...track,
+              clips: [
+                ...track.clips.filter(c => !clipIds.includes(c.id)),
+                mergedClip
+              ]
+            };
+          }
+          return track;
+        });
+        
+        onTracksChange?.(updatedTracks);
+      }
+    } catch (error) {
+      console.error('Error merging clips:', error);
+    }
+  }, [tracks, onTracksChange]);
+
   // Analyze clip function
   const analyzeClip = useCallback(async (clip) => {
     try {
@@ -411,29 +772,56 @@ const EnhancedTimeline = ({
             analysis.frameRate = 30; // Default, would need more complex detection
             analysis.codec = 'Unknown'; // Would need MediaSource API or server-side analysis
             analysis.bitrate = 'Unknown';
-            analysis.keyframes = Math.floor(clip.duration / 2); // Estimated
+            analysis.duration = video.duration; // Get actual video duration
+            analysis.keyframes = Math.floor(video.duration / 2); // Estimated based on actual duration
             analysis.sceneChanges = [
-              Math.floor(clip.duration * 0.25),
-              Math.floor(clip.duration * 0.5),
-              Math.floor(clip.duration * 0.75)
-            ].filter(time => time > 0 && time < clip.duration);
+              Math.floor(video.duration * 0.25),
+              Math.floor(video.duration * 0.5),
+              Math.floor(video.duration * 0.75)
+            ].filter(time => time > 0 && time < video.duration);
             resolve();
           });
           video.load();
         });
       } else if (clip.type === 'audio') {
         // Audio analysis
-        analysis.sampleRate = 44100; // Default
-        analysis.channels = 2; // Default stereo
-        analysis.bitRate = '128 kbps'; // Default
-        analysis.peakLevel = -6; // dB
-        analysis.rmsLevel = -18; // dB
-        analysis.lufs = -23; // LUFS
-        analysis.spectralSummary = {
-          lowEnergy: 0.3,
-          midEnergy: 0.5,
-          highEnergy: 0.2
-        };
+        const audio = document.createElement('audio');
+        audio.src = clip.url;
+        
+        await new Promise((resolve) => {
+          audio.addEventListener('loadedmetadata', () => {
+            analysis.duration = audio.duration; // Get actual audio duration
+            analysis.sampleRate = 44100; // Default
+            analysis.channels = 2; // Default stereo
+            analysis.bitRate = '128 kbps'; // Default
+            analysis.peakLevel = -6; // dB
+            analysis.rmsLevel = -18; // dB
+            analysis.lufs = -23; // LUFS
+            analysis.spectralSummary = {
+              lowEnergy: 0.3,
+              midEnergy: 0.5,
+              highEnergy: 0.2
+            };
+            resolve();
+          });
+          audio.addEventListener('error', () => {
+            // Fallback values if audio loading fails
+            analysis.duration = clip.duration || 5;
+            analysis.sampleRate = 44100;
+            analysis.channels = 2;
+            analysis.bitRate = '128 kbps';
+            analysis.peakLevel = -6;
+            analysis.rmsLevel = -18;
+            analysis.lufs = -23;
+            analysis.spectralSummary = {
+              lowEnergy: 0.3,
+              midEnergy: 0.5,
+              highEnergy: 0.2
+            };
+            resolve();
+          });
+          audio.load();
+        });
       } else if (clip.type === 'image') {
         // Image analysis
         const img = new Image();
@@ -490,6 +878,156 @@ const EnhancedTimeline = ({
     URL.revokeObjectURL(url);
   }, [analysisData]);
 
+  // Enhanced video thumbnails for timeline preview with better quality
+  const generateVideoThumbnails = useCallback(async (videoUrl, duration, count = 15) => {
+    try {
+      console.log('Starting enhanced thumbnail generation for:', videoUrl, 'duration:', duration);
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.preload = 'metadata';
+      video.playsInline = true;
+      
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          console.log('Enhanced thumbnail generation timeout');
+          reject(new Error('Thumbnail generation timeout'));
+        }, 20000); // Increased timeout for better quality
+        
+        video.addEventListener('loadedmetadata', () => {
+          console.log('Video metadata loaded, actual duration:', video.duration);
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const thumbnails = [];
+          const actualDuration = Math.min(duration, video.duration);
+          const thumbnailCount = Math.min(count, Math.max(1, Math.floor(actualDuration)));
+          
+          // Higher resolution for better preview quality
+          canvas.width = 240;
+          canvas.height = 135;
+          
+          let processedCount = 0;
+          
+          const captureFrame = (index) => {
+            const time = (actualDuration / thumbnailCount) * index;
+            video.currentTime = Math.min(time, actualDuration - 0.1);
+            
+            const onSeeked = () => {
+              try {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Enhanced drawing with better quality
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Add subtle border for better visual separation
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+                
+                thumbnails.push({
+                  time,
+                  dataUrl: canvas.toDataURL('image/jpeg', 0.85), // Higher quality
+                  index,
+                  formattedTime: `${Math.floor(time / 60)}:${Math.floor(time % 60).toString().padStart(2, '0')}`
+                });
+                
+                processedCount++;
+                console.log(`Generated enhanced thumbnail ${processedCount}/${thumbnailCount}`);
+                
+                if (processedCount >= thumbnailCount) {
+                  clearTimeout(timeout);
+                  console.log('All enhanced thumbnails generated successfully');
+                  // Sort thumbnails by index to maintain order
+                  thumbnails.sort((a, b) => a.index - b.index);
+                  resolve(thumbnails);
+                }
+              } catch (err) {
+                console.error('Error capturing enhanced thumbnail:', err);
+              }
+              
+              video.removeEventListener('seeked', onSeeked);
+            };
+            
+            video.addEventListener('seeked', onSeeked);
+          };
+          
+          // Generate thumbnails with optimized timing
+          for (let i = 0; i < thumbnailCount; i++) {
+            setTimeout(() => captureFrame(i), i * 150); // Faster generation
+          }
+        });
+        
+        video.addEventListener('error', (e) => {
+          clearTimeout(timeout);
+          console.error('Video loading error:', e);
+          reject(new Error('Failed to load video: ' + (e.message || 'Unknown error')));
+        });
+        
+        video.addEventListener('abort', () => {
+          clearTimeout(timeout);
+          console.error('Video loading aborted');
+          reject(new Error('Video loading aborted'));
+        });
+        
+        console.log('Setting video source for enhanced thumbnails:', videoUrl);
+        video.src = videoUrl;
+        video.load();
+      });
+    } catch (error) {
+      console.error('Error in enhanced generateVideoThumbnails:', error);
+      return [];
+    }
+  }, []);
+  
+  // Enhanced audio waveform generation with better visual representation
+  const generateAudioWaveform = useCallback((duration) => {
+    const samples = Math.floor(duration * 20); // More samples for smoother waveform
+    const waveformData = [];
+    
+    for (let i = 0; i < samples; i++) {
+      // Generate more realistic waveform pattern
+      const time = i / samples;
+      const baseAmplitude = Math.sin(time * Math.PI * 4) * 0.3 + 0.5;
+      const noise = (Math.random() - 0.5) * 0.4;
+      const amplitude = Math.max(0.1, Math.min(1, baseAmplitude + noise));
+      waveformData.push(amplitude);
+    }
+    
+    return waveformData;
+  }, []);
+  
+  // Enhanced preview tooltip for timeline hover
+  const [previewTooltip, setPreviewTooltip] = useState({ visible: false, x: 0, time: 0, thumbnail: null });
+  
+  const handleTimelineHover = useCallback((event, clip) => {
+    if (clip.type !== 'video' || !clip.thumbnails) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const percentage = x / rect.width;
+    const hoverTime = clip.startTime + (clip.duration * percentage);
+    
+    // Find closest thumbnail
+    const closestThumbnail = clip.thumbnails.reduce((closest, thumb) => {
+      const currentDiff = Math.abs(thumb.time - (hoverTime - clip.startTime));
+      const closestDiff = Math.abs(closest.time - (hoverTime - clip.startTime));
+      return currentDiff < closestDiff ? thumb : closest;
+    });
+    
+    setPreviewTooltip({
+      visible: true,
+      x: event.clientX,
+      time: hoverTime,
+      thumbnail: closestThumbnail
+    });
+  }, []);
+  
+  const handleTimelineLeave = useCallback(() => {
+    setPreviewTooltip({ visible: false, x: 0, time: 0, thumbnail: null });
+  }, []);
+
   // Handle context-specific file upload
   const handleContextualUpload = useCallback((event) => {
     const file = event.target.files?.[0];
@@ -510,112 +1048,98 @@ const EnhancedTimeline = ({
       return;
     }
 
-    // Use existing handleVideoUpload for now (works for all media types)
-    handleVideoUpload(event);
-    setShowUploadModal(false);
-    setSelectedTrackForUpload(null);
-    setUploadTrackType(null);
-  }, [selectedTrackForUpload, uploadTrackType, handleVideoUpload]);
-
-  // Generate video thumbnails for timeline preview
-  const generateVideoThumbnails = useCallback(async (videoUrl, duration, count = 10) => {
-    try {
-      console.log('Starting thumbnail generation for:', videoUrl, 'duration:', duration);
-      const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
-      video.muted = true;
-      video.preload = 'metadata';
+    const url = URL.createObjectURL(file);
+    
+    // Handle image uploads with default duration
+    if (uploadTrackType === 'image') {
+      const defaultImageDuration = 5; // 5 seconds default for images
       
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.log('Thumbnail generation timeout');
-          reject(new Error('Thumbnail generation timeout'));
-        }, 10000); // 10 second timeout
-        
-        video.addEventListener('loadedmetadata', () => {
-          console.log('Video metadata loaded, actual duration:', video.duration);
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          const thumbnails = [];
-          const actualDuration = Math.min(duration, video.duration);
-          const thumbnailCount = Math.min(count, Math.max(1, Math.floor(actualDuration)));
-          
-          canvas.width = 160;
-          canvas.height = 90;
-          
-          let processedCount = 0;
-          
-          const captureFrame = (index) => {
-            const time = (actualDuration / thumbnailCount) * index;
-            video.currentTime = Math.min(time, actualDuration - 0.1);
-            
-            const onSeeked = () => {
-              try {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                thumbnails.push({
-                  time,
-                  dataUrl: canvas.toDataURL('image/jpeg', 0.7)
-                });
-                
-                processedCount++;
-                console.log(`Generated thumbnail ${processedCount}/${thumbnailCount}`);
-                
-                if (processedCount >= thumbnailCount) {
-                  clearTimeout(timeout);
-                  console.log('All thumbnails generated successfully');
-                  resolve(thumbnails);
-                }
-              } catch (err) {
-                console.error('Error capturing thumbnail:', err);
-              }
-              
-              video.removeEventListener('seeked', onSeeked);
-            };
-            
-            video.addEventListener('seeked', onSeeked);
+      const newClip = {
+        id: `clip-${Date.now()}`,
+        name: file.name,
+        startTime: 0,
+        duration: defaultImageDuration,
+        file: file,
+        url: url,
+        type: uploadTrackType
+      };
+
+      // Find and update the selected track
+      const updatedTracks = tracks.map(track => {
+        if (track.id === selectedTrackForUpload) {
+          return {
+            ...track,
+            clips: [...track.clips, newClip]
           };
-          
-          // Generate thumbnails with staggered timing
-          for (let i = 0; i < thumbnailCount; i++) {
-            setTimeout(() => captureFrame(i), i * 200);
-          }
-        });
-        
-        video.addEventListener('error', (e) => {
-          clearTimeout(timeout);
-          console.error('Video loading error:', e);
-          reject(new Error('Failed to load video: ' + (e.message || 'Unknown error')));
-        });
-        
-        video.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          console.error('Video loading aborted');
-          reject(new Error('Video loading aborted'));
-        });
-        
-        console.log('Setting video source:', videoUrl);
-        video.src = videoUrl;
-        video.load();
+        }
+        return track;
       });
-    } catch (error) {
-      console.error('Error in generateVideoThumbnails:', error);
-      return [];
+
+      onTracksChange?.(updatedTracks);
+      
+      // Reset modal and input
+      setShowUploadModal(false);
+      setSelectedTrackForUpload(null);
+      setUploadTrackType(null);
+      event.target.value = ''; // Reset file input
+      return;
     }
-  }, []);
-  
-  // Generate simple placeholder waveform for audio clips
-  const generateAudioWaveform = useCallback((duration) => {
-    const samples = Math.floor(duration * 10); // 10 samples per second
-    const waveformData = [];
+
+    // Handle video/audio uploads with duration detection
+    const mediaElement = document.createElement(uploadTrackType === 'video' ? 'video' : 'audio');
     
-    for (let i = 0; i < samples; i++) {
-      // Generate random waveform data for visual placeholder
-      waveformData.push(Math.random() * 0.8 + 0.2);
-    }
+    mediaElement.onloadedmetadata = () => {
+      const actualDuration = mediaElement.duration;
+      
+      // Create new clip for the selected track
+      const newClip = {
+        id: `clip-${Date.now()}`,
+        name: file.name,
+        startTime: 0,
+        duration: actualDuration,
+        file: file,
+        url: url,
+        type: uploadTrackType
+      };
+
+      // Find and update the selected track
+      const updatedTracks = tracks.map(track => {
+        if (track.id === selectedTrackForUpload) {
+          return {
+            ...track,
+            clips: [...track.clips, newClip]
+          };
+        }
+        return track;
+      });
+
+      onTracksChange?.(updatedTracks);
+      
+      // Generate thumbnails/waveforms for the new clip
+      if (uploadTrackType === 'video') {
+        generateVideoThumbnails(url, actualDuration).then(thumbnails => {
+          setWaveformData(prev => ({
+            ...prev,
+            [newClip.id]: { thumbnails }
+          }));
+        });
+      } else if (uploadTrackType === 'audio') {
+        const waveform = generateAudioWaveform(actualDuration);
+        setWaveformData(prev => ({
+          ...prev,
+          [`${newClip.id}_waveform`]: waveform
+        }));
+      }
+      
+      // Reset modal and input
+      setShowUploadModal(false);
+      setSelectedTrackForUpload(null);
+      setUploadTrackType(null);
+      event.target.value = ''; // Reset file input
+    };
     
-    return waveformData;
-  }, []);
+    mediaElement.src = url;
+  }, [selectedTrackForUpload, uploadTrackType, tracks, onTracksChange, generateVideoThumbnails, generateAudioWaveform]);
   
   // Load media data when clips are added
   useEffect(() => {
@@ -680,6 +1204,8 @@ const EnhancedTimeline = ({
               : [...prev, clip.id]
           );
         }}
+        onMouseMove={(e) => handleTimelineHover(e, clip)}
+        onMouseLeave={handleTimelineLeave}
         whileHover={{ scale: 1.02, y: -1 }}
         whileTap={{ scale: 0.98 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -766,8 +1292,8 @@ const EnhancedTimeline = ({
               <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                 <Button
                   size="sm"
-                  variant="clear"
-                  className="h-6 w-6 p-0 text-white bg-transparent hover:bg-white/20 rounded-md transition-all duration-200"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-white hover:bg-white/25 rounded-md transition-all duration-200 backdrop-blur-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     // Handle clip split
@@ -777,14 +1303,14 @@ const EnhancedTimeline = ({
                 </Button>
                 <Button
                   size="sm"
-                  variant="clear"
-                  className="h-6 w-6 p-0 bg-transparent hover:bg-red-500/20 rounded-md transition-all duration-200"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-white hover:bg-red-500/30 rounded-md transition-all duration-200 backdrop-blur-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteClip(clip.id, trackId);
                   }}
                 >
-                  <Trash2 className="w-3 h-3 text-red-500 drop-shadow-sm" />
+                  <Trash2 className="w-3 h-3 drop-shadow-sm" />
                 </Button>
               </div>
             )}
@@ -858,10 +1384,10 @@ const EnhancedTimeline = ({
               setSelectedClipForAnalysis(clip);
               analyzeClip(clip);
             }}
-            className="w-5 h-5 bg-transparent hover:bg-foreground/10 rounded-md flex items-center justify-center transition-colors"
+            className="w-5 h-5 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center"
             title="Analyze clip"
           >
-            <Settings className="w-3 h-3 text-blue-500" />
+            <Settings className="w-3 h-3 text-white" />
           </button>
           <button
             onClick={(e) => {
@@ -871,14 +1397,14 @@ const EnhancedTimeline = ({
               }
             }}
             disabled={isTrackLocked}
-            className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
+            className={`w-5 h-5 rounded-full flex items-center justify-center ${
               isTrackLocked 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'bg-transparent hover:bg-foreground/10'
+                ? 'bg-gray-500 cursor-not-allowed' 
+                : 'bg-red-500 hover:bg-red-600'
             }`}
             title={isTrackLocked ? "Track is locked" : "Delete clip"}
           >
-            <Trash2 className="w-3 h-3 text-red-500" />
+            <Trash2 className="w-3 h-3 text-white" />
           </button>
         </div>
         
@@ -928,37 +1454,37 @@ const EnhancedTimeline = ({
       style={{ height: timelineHeight }}
     >
      {/* Timeline Header */}
-      <div
-        className={`bg-card ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 relative z-10`}
-        style={{ minHeight: HEADER_HEIGHT }}
-      >
+<div
+  className={`${currentTheme.cardBg} ${currentTheme.border} border-b px-2 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 relative z-10`}
+  style={{ minHeight: HEADER_HEIGHT }}
+>
 
         {/* Left Section - Zoom Controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Enhanced Zoom Controls */}
-          <div className="flex items-center space-x-2 bg-card border border-border backdrop-blur-md rounded-lg px-3 py-2 shadow-lg">
+          <div className="flex items-center space-x-2 bg-gray-800/95 backdrop-blur-md rounded-lg px-3 py-2 border border-gray-600/50 shadow-lg">
             {/* Zoom Out */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => onZoomChange?.(Math.max(0.1, zoom - 0.1))}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Zoom Out (Ctrl + -)"
             >
               <ZoomOut className="w-4 h-4" />
             </Button>
             
             {/* Zoom Level Display */}
-            <span className="text-sm text-foreground font-mono min-w-[3rem] text-center bg-muted px-2 py-1 rounded border border-border">
+            <span className="text-sm text-white font-mono min-w-[3rem] text-center bg-gray-700/50 px-2 py-1 rounded border border-gray-600/30">
               {Math.round(zoom * 100)}%
             </span>
             
             {/* Zoom In */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => onZoomChange?.(Math.min(5, zoom + 0.1))}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-foreground/5  rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Zoom In (Ctrl + +)"
             >
               <ZoomIn className="w-4 h-4" />
@@ -969,13 +1495,13 @@ const EnhancedTimeline = ({
         {/* Right Section - Playback Controls and Add Track */}
         <div className="flex items-center space-x-2 flex-nowrap">
           {/* Enhanced Playback Controls */}
-          <div className="flex items-center space-x-2 bg-card text-foreground border border-border backdrop-blur-md rounded-lg px-3 py-2 shadow-lg">
+          <div className="flex items-center space-x-2 bg-gray-800/95 backdrop-blur-md rounded-lg px-3 py-2 border border-gray-600/50 shadow-lg">
             {/* Skip to Start */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => onTimeChange?.(0)}
-              className="h-8 w-8 p-0 text-gray-300 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Skip to Start (Home)"
             >
               <SkipBack className="w-4 h-4" />
@@ -983,13 +1509,13 @@ const EnhancedTimeline = ({
             
             {/* Frame Backward */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => {
                 const newTime = Math.max(0, currentTime - 1/30); // 1 frame at 30fps
                 onTimeChange?.(newTime);
               }}
-              className="h-8 w-8 p-0 text-gray-300 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Previous Frame (Left Arrow)"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1018,13 +1544,13 @@ const EnhancedTimeline = ({
             
             {/* Frame Forward */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => {
-                const newTime = Math.min(timelineDuration, currentTime + 1/30);
-                onTimeChange?.(timelineDuration)
+                const newTime = Math.min(duration, currentTime + 1/30); // 1 frame at 30fps
+                onTimeChange?.(newTime);
               }}
-              className="h-8 w-8 p-0 text-gray-300 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Next Frame (Right Arrow)"
             >
               <ChevronRight className="w-4 h-4" />
@@ -1032,37 +1558,37 @@ const EnhancedTimeline = ({
             
             {/* Skip to End */}
             <Button
-              variant="clear"
+              variant="ghost"
               size="sm"
               onClick={() => onTimeChange?.(duration)}
-              className="h-8 w-8 p-0 text-gray-300 text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded transition-all duration-200"
+              className="h-8 w-8 p-0 text-gray-300 hover:text-white hover:bg-gray-700/60 rounded transition-all duration-200"
               title="Skip to End (End)"
             >
               <SkipForward className="w-4 h-4" />
             </Button>
             
             {/* Separator */}
-            <div className="h-8 w-px bg-border" />
+            <div className="h-8 w-px bg-gray-600/50" />
             
             {/* Time Display */}
-            <div className="flex items-center space-x-1 bg-muted px-2 py-1 rounded border border-border">
-              <div className="text-sm font-mono text-foreground font-semibold">
+            <div className="flex items-center space-x-1 bg-gray-700/50 px-2 py-1 rounded border border-gray-600/30">
+              <div className="text-sm font-mono text-white font-semibold">
                 {formatTime(currentTime)}
               </div>
-              <div className="text-muted-foreground font-mono text-sm">/</div>
-              <div className="text-sm font-mono text-muted-foreground">
-                {formatTime(timelineDuration)}
+              <div className="text-gray-500 font-mono text-sm">/</div>
+              <div className="text-sm font-mono text-gray-300">
+                {formatTime(duration)}
               </div>
             </div>
           </div>
           
           {/* Add Track Dropdown */}
-          <div className="relative z-[9999]">
+          <div className="relative z-[9999] add-track-container">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowAddTrackDropdown(!showAddTrackDropdown)}
-              className={`${currentTheme.hover} flex items-center space-x-2 px-3 py-2 bg-card text-foreground border border-border backdrop-blur-md rounded-lg shadow-lg h-10`}
+              className={`${currentTheme.hover} flex items-center space-x-2 px-3 py-2 bg-gray-800/95 backdrop-blur-md rounded-lg border border-gray-600/50 shadow-lg h-10`}
             >
               <Plus className="w-4 h-4" />
               <span className="text-sm font-medium">Add Track</span>
@@ -1070,23 +1596,59 @@ const EnhancedTimeline = ({
             </Button>
             
             {showAddTrackDropdown && (
-              <div className={`absolute right-0 top-full mt-2 bg-card border rounded-lg shadow-xl z-[10000] min-w-[140px]`}>
+              <div className={`absolute right-0 top-full mt-2 ${currentTheme.cardBg} ${currentTheme.border} border rounded-lg shadow-xl z-[10000] min-w-[140px]`}>
                 <button
                   onClick={() => {
-                    addTrack('video');
+                    const newTrack = {
+                      id: `track-${Date.now()}`,
+                      type: 'video',
+                      name: 'Video Track',
+                      clips: [],
+                      volume: 1,
+                      muted: false,
+                      locked: false,
+                      visible: true,
+                      color: getTrackColor('video')
+                    };
+                    const updatedTracks = [...tracks, newTrack];
+                    onTracksChange?.(updatedTracks);
+                    setTimelineHeight(Math.max(300, updatedTracks.length * TRACK_HEIGHT + HEADER_HEIGHT + RULER_HEIGHT + 100));
+                    
+                    // Trigger upload modal for the new track
+                    setSelectedTrackForUpload(newTrack.id);
+                    setUploadTrackType('video');
+                    setShowUploadModal(true);
                     setShowAddTrackDropdown(false);
                   }}
-                  className={`w-full px-3 py-2.5 text-left text-sm bg-transparent hover:bg-foreground/5 text-foreground flex items-center space-x-2 rounded-t-lg transition-colors`}
+                  className={`w-full px-3 py-2.5 text-left text-sm ${currentTheme.hover} flex items-center space-x-2 rounded-t-lg transition-colors`}
                 >
                   <Video className="w-4 h-4" />
                   <span>Add Video</span>
                 </button>
                 <button
                   onClick={() => {
-                    addTrack('audio');
+                    const newTrack = {
+                      id: `track-${Date.now()}`,
+                      type: 'audio',
+                      name: 'Audio Track',
+                      clips: [],
+                      volume: 1,
+                      muted: false,
+                      locked: false,
+                      visible: true,
+                      color: getTrackColor('audio')
+                    };
+                    const updatedTracks = [...tracks, newTrack];
+                    onTracksChange?.(updatedTracks);
+                    setTimelineHeight(Math.max(300, updatedTracks.length * TRACK_HEIGHT + HEADER_HEIGHT + RULER_HEIGHT + 100));
+                    
+                    // Trigger upload modal for the new track
+                    setSelectedTrackForUpload(newTrack.id);
+                    setUploadTrackType('audio');
+                    setShowUploadModal(true);
                     setShowAddTrackDropdown(false);
                   }}
-                  className={`w-full px-3 py-2.5 text-left text-sm bg-transparent hover:bg-foreground/5 text-foreground flex items-center space-x-2 transition-colors`}
+                  className={`w-full px-3 py-2.5 text-left text-sm ${currentTheme.hover} flex items-center space-x-2 transition-colors`}
                 >
                   <Volume2 className="w-4 h-4" />
                   <span>Add Audio</span>
@@ -1096,7 +1658,7 @@ const EnhancedTimeline = ({
                     addTrack('text');
                     setShowAddTrackDropdown(false);
                   }}
-                  className={`w-full px-3 py-2.5 text-left text-sm bg-transparent hover:bg-foreground/5 text-foreground flex items-center space-x-2 rounded-b-lg transition-colors`}
+                  className={`w-full px-3 py-2.5 text-left text-sm ${currentTheme.hover} flex items-center space-x-2 rounded-b-lg transition-colors`}
                 >
                   <Type className="w-4 h-4" />
                   <span>Add Text</span>
@@ -1113,11 +1675,11 @@ const EnhancedTimeline = ({
         <div className={`${currentTheme.trackHeader} flex flex-col shadow-lg`} style={{ width: TRACK_HEADER_WIDTH }}>
           
           {/* Track Headers */}
-          <div className="flex-1 overflow-y-auto bg-card">
+          <div className="flex-1 overflow-y-auto">
             {tracks.map((track, index) => (
               <div
                 key={track.id}
-                className={`${currentTheme.border} border-b relative group hover:bg-foreground/5 transition-all duration-200 backdrop-blur-sm`}
+                className={`${currentTheme.border} border-b relative group hover:bg-gray-700/30 transition-all duration-200 backdrop-blur-sm`}
                 style={{ height: TRACK_HEIGHT, backgroundColor: index % 2 === 0 ? currentTheme.track : currentTheme.trackAlt }}
               >
                 {/* Track Color Strip */}
@@ -1148,7 +1710,7 @@ const EnhancedTimeline = ({
                         {track.type === 'effects' && <Filter className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-foreground truncate">
+                        <div className="font-medium text-sm text-gray-200 truncate">
                           {track.name || `${track.type.charAt(0).toUpperCase() + track.type.slice(1)} Track ${index + 1}`}
                         </div>
                         <div className="text-xs text-gray-400">
@@ -1160,19 +1722,23 @@ const EnhancedTimeline = ({
                     {/* Track Actions */}
                     <div className="flex items-center space-x-1">
                       <Button
-                        variant="clear"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => onVideoUpload?.(track.id)}
-                        className="h-8 w-8 p-0 hover:bg-foreground/5 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setSelectedTrackForUpload(track.id);
+                          setUploadTrackType(track.type);
+                          setShowUploadModal(true);
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-gray-600/50"
                         title="Upload Media"
                       >
                         <Upload className="w-4 h-4" />
                       </Button>
                       <Button
-                        variant="clear"
+                        variant="ghost"
                         size="sm"
                         onClick={() => deleteTrack(track.id)}
-                        className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400"
                         title="Delete Track"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1185,13 +1751,13 @@ const EnhancedTimeline = ({
                     {/* Track Control Buttons */}
                     <div className="flex items-center space-x-1">
                       <Button
-                        variant="clear"
+                        variant="ghost"
                         size="sm"
                         onClick={() => toggleTrackVisibility(track.id)}
                         className={`h-8 w-8 p-0 transition-all ${
                           track.visible !== false 
-                            ? 'text-blue-400 hover:bg-blue-500/20 text-muted-foreground hover:text-foreground' 
-                            : 'text-gray-500 hover:bg-gray-600/50 text-muted-foreground hover:text-foreground'
+                            ? 'text-blue-400 hover:bg-blue-500/20' 
+                            : 'text-gray-500 hover:bg-gray-600/50'
                         }`}
                         title={track.visible !== false ? 'Hide Track' : 'Show Track'}
                       >
@@ -1199,13 +1765,13 @@ const EnhancedTimeline = ({
                       </Button>
                       
                       <Button
-                        variant="clear"
+                        variant="ghost"
                         size="sm"
                         onClick={() => toggleTrackMute(track.id)}
                         className={`h-8 w-8 p-0 transition-all ${
                           !track.muted 
-                            ? 'text-green-400 hover:bg-green-500/20 text-muted-foreground hover:text-foreground' 
-                            : 'text-gray-500 hover:bg-gray-600/50 text-muted-foreground hover:text-foreground'
+                            ? 'text-green-400 hover:bg-green-500/20' 
+                            : 'text-gray-500 hover:bg-gray-600/50'
                         }`}
                         title={track.muted ? 'Unmute Track' : 'Mute Track'}
                       >
@@ -1213,13 +1779,13 @@ const EnhancedTimeline = ({
                       </Button>
                       
                       <Button
-                        variant="clear"
+                        variant="ghost"
                         size="sm"
                         onClick={() => toggleTrackLock(track.id)}
                         className={`h-8 w-8 p-0 transition-all ${
                           track.locked 
-                            ? 'text-yellow-400 hover:bg-yellow-500/20 text-muted-foreground hover:text-foreground' 
-                            : 'text-gray-400 hover:bg-gray-600/50 text-muted-foreground hover:text-foreground'
+                            ? 'text-yellow-400 hover:bg-yellow-500/20' 
+                            : 'text-gray-400 hover:bg-gray-600/50'
                         }`}
                         title={track.locked ? 'Unlock Track' : 'Lock Track'}
                       >
@@ -1265,10 +1831,10 @@ const EnhancedTimeline = ({
         </div>
         
         {/* Timeline Tracks */}
-        <div className="flex-1 overflow-x-auto overflow-y-visible relative z-0 bg-card" ref={timelineRef} style={{ scrollBehavior: 'smooth' }}>
+        <div className="flex-1 overflow-x-auto overflow-y-visible relative z-0" ref={timelineRef} style={{ scrollBehavior: 'smooth' }}>
           {/* Time Ruler */}
           <div 
-            className={`${currentTheme.ruler} ${currentTheme.border} border-b relative shadow-inner bg-gradient-to-b from-background to-muted`} 
+            className={`${currentTheme.ruler} ${currentTheme.border} border-b relative shadow-inner bg-gradient-to-b from-gray-800 to-gray-900`} 
             style={{ height: RULER_HEIGHT, minWidth: Math.max(800, timelineDuration * PIXELS_PER_SECOND * zoom) }}
             onClick={handleTimelineClick}
           >
@@ -1278,9 +1844,9 @@ const EnhancedTimeline = ({
                 <div
                   key={`grid-${index}`}
                   className={`absolute top-0 bottom-0 ${
-                    mark.time % 10 === 0 ? 'border-l-2 border-border/60' : 
-                    mark.time % 5 === 0 ? 'border-l border-border/50' :
-                    'border-l border-border/30'
+                    mark.time % 10 === 0 ? 'border-l-2 border-gray-500/40' : 
+                    mark.time % 5 === 0 ? 'border-l border-gray-500/30' :
+                    'border-l border-gray-600/20'
                   }`}
                   style={{ left: mark.x }}
                 />
@@ -1319,10 +1885,10 @@ const EnhancedTimeline = ({
                 {/* Time labels with enhanced styling */}
                 {mark.showLabel && (
                   <div
-                    className="absolute text-xs text-foreground pointer-events-none select-none font-mono font-medium"
+                    className="absolute text-xs text-gray-200 pointer-events-none select-none font-mono font-medium"
                     style={{ left: mark.x - 25, top: 4 }}
                   >
-                    <div className="bg-card backdrop-blur-sm px-2 py-1 rounded-md text-center min-w-[50px] border border-border shadow-lg">
+                    <div className="bg-gray-800/90 backdrop-blur-sm px-2 py-1 rounded-md text-center min-w-[50px] border border-gray-600/30 shadow-lg">
                       {formatTime(mark.time)}
                     </div>
                   </div>
@@ -1345,7 +1911,7 @@ const EnhancedTimeline = ({
               
               {/* Time display bubble */}
               <div
-                className="absolute top-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-mono font-bold px-2 py-1 rounded-md shadow-xl border border-blue-400/50 backdrop-blur-sm transform -translate-x-1/2"
+                className="absolute top-8 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-mono font-bold px-2 py-1 rounded-md shadow-xl border border-blue-400/50 backdrop-blur-sm transform -translate-x-1/2"
                 style={{ left: '50%' }}
               >
                 <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-blue-500 rotate-45" />
@@ -1371,7 +1937,7 @@ const EnhancedTimeline = ({
             {tracks.map((track, index) => (
               <div
                 key={track.id}
-                className={`relative bg-card ${currentTheme.border} border-b group backdrop-blur-sm transition-all duration-200 hover:bg-gray-700/20`}
+                className={`relative ${currentTheme.border} border-b group backdrop-blur-sm transition-all duration-200 hover:bg-gray-700/20`}
                 style={{ 
                   height: TRACK_HEIGHT,
                   backgroundColor: index % 2 === 0 ? currentTheme.track : currentTheme.trackAlt
@@ -1445,10 +2011,10 @@ const EnhancedTimeline = ({
                 {/* Track statistics */}
                 {track.clips && track.clips.length > 0 && (
                   <div className="absolute bottom-1 right-2 flex items-center space-x-2">
-                    <div className="text-xs text-gray-400 bg-card backdrop-blur-sm px-2 py-1 rounded-md border border-gray-600/30">
+                    <div className="text-xs text-gray-400 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-gray-600/30">
                       {track.clips.length} clip{track.clips.length !== 1 ? 's' : ''}
                     </div>
-                    <div className="text-xs text-gray-400 bg-card backdrop-blur-sm px-2 py-1 rounded-md border border-gray-600/30">
+                    <div className="text-xs text-gray-400 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-gray-600/30">
                       {formatTime(track.clips.reduce((total, clip) => total + clip.duration, 0))}
                     </div>
                   </div>
@@ -1509,7 +2075,7 @@ const EnhancedTimeline = ({
       </div>
       
       {/* Timeline Footer - Enhanced */}
-      <div className={`bg-card text-muted-foreground border-t border-border p-3 flex items-center justify-between text-sm`}>
+      <div className={`${currentTheme.cardBg} ${currentTheme.border} border-t p-3 flex items-center justify-between text-sm ${currentTheme.textMuted} bg-gradient-to-r from-gray-800 to-gray-900`}>
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1526,7 +2092,7 @@ const EnhancedTimeline = ({
         </div>
         
         <div className="flex items-center space-x-4">
-          <span className="px-2 py-1 bg-card rounded text-xs font-medium">Professional Mode</span>
+          <span className="px-2 py-1 bg-gray-700 rounded text-xs font-medium">Professional Mode</span>
           <span className="px-2 py-1 bg-blue-600 rounded text-xs font-medium text-white">Zoom: {Math.round(zoom * 100)}%</span>
         </div>
       </div>
@@ -1650,7 +2216,7 @@ const EnhancedTimeline = ({
           }}
           tabIndex={-1}
         >
-          <div className={`bg-card border border-border text-foreground rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto shadow-2xl`}>
+          <div className={`${currentTheme.cardBg} ${currentTheme.border} border rounded-lg p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto shadow-2xl`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold flex items-center space-x-2">
                 <Settings className="w-5 h-5" />
@@ -1659,7 +2225,7 @@ const EnhancedTimeline = ({
               <div className="flex items-center space-x-2">
                 <Button
                   onClick={exportAnalysisJSON}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
                 >
                   Export JSON
                 </Button>
@@ -1681,32 +2247,32 @@ const EnhancedTimeline = ({
             <div className="space-y-4">
               {/* Basic Info */}
               <div className={`${currentTheme.surface} rounded-lg p-4`}>
-                <h4 className="font-semibold mb-3 text-blue-700 dark:text-blue-300">Basic Information</h4>
+                <h4 className="font-semibold mb-3 text-blue-400">Basic Information</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{analysisData.name}</span></div>
-                  <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{analysisData.type}</span></div>
-                  <div><span className="text-muted-foreground">Duration:</span> <span className="font-medium">{analysisData.duration?.toFixed(2)}s</span></div>
-                  <div><span className="text-muted-foreground">Analyzed:</span> <span className="font-medium">{new Date(analysisData.timestamp).toLocaleString()}</span></div>
+                  <div><span className="text-gray-400">Name:</span> <span className="font-medium">{analysisData.name}</span></div>
+                  <div><span className="text-gray-400">Type:</span> <span className="font-medium capitalize">{analysisData.type}</span></div>
+                  <div><span className="text-gray-400">Duration:</span> <span className="font-medium">{analysisData.duration?.toFixed(2)}s</span></div>
+                  <div><span className="text-gray-400">Analyzed:</span> <span className="font-medium">{new Date(analysisData.timestamp).toLocaleString()}</span></div>
                 </div>
               </div>
 
               {/* Video Analysis */}
               {analysisData.type === 'video' && (
                 <div className={`${currentTheme.surface} rounded-lg p-4`}>
-                  <h4 className="font-semibold mb-3 text-red-700 dark:text-red-300">Video Properties</h4>
+                  <h4 className="font-semibold mb-3 text-red-400">Video Properties</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-muted-foreground">Resolution:</span> <span className="font-medium">{analysisData.resolution}</span></div>
-                    <div><span className="text-muted-foreground">Frame Rate:</span> <span className="font-medium">{analysisData.frameRate} fps</span></div>
-                    <div><span className="text-muted-foreground">Codec:</span> <span className="font-medium">{analysisData.codec}</span></div>
-                    <div><span className="text-muted-foreground">Bitrate:</span> <span className="font-medium">{analysisData.bitrate}</span></div>
-                    <div><span className="text-muted-foreground">Keyframes:</span> <span className="font-medium">{analysisData.keyframes}</span></div>
+                    <div><span className="text-gray-400">Resolution:</span> <span className="font-medium">{analysisData.resolution}</span></div>
+                    <div><span className="text-gray-400">Frame Rate:</span> <span className="font-medium">{analysisData.frameRate} fps</span></div>
+                    <div><span className="text-gray-400">Codec:</span> <span className="font-medium">{analysisData.codec}</span></div>
+                    <div><span className="text-gray-400">Bitrate:</span> <span className="font-medium">{analysisData.bitrate}</span></div>
+                    <div><span className="text-gray-400">Keyframes:</span> <span className="font-medium">{analysisData.keyframes}</span></div>
                   </div>
                   {analysisData.sceneChanges && analysisData.sceneChanges.length > 0 && (
                     <div className="mt-3">
-                      <span className="text-muted-foreground">Scene Changes:</span>
+                      <span className="text-gray-400">Scene Changes:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {analysisData.sceneChanges.map((time, index) => (
-                          <span key={index} className="bg-primary/20 text-primary-700 dark:text-primary-300 px-2 py-1 rounded text-xs">
+                          <span key={index} className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs">
                             {time}s
                           </span>
                         ))}
@@ -1719,28 +2285,28 @@ const EnhancedTimeline = ({
               {/* Audio Analysis */}
               {analysisData.type === 'audio' && (
                 <div className={`${currentTheme.surface} rounded-lg p-4`}>
-                  <h4 className="font-semibold mb-3 text-blue-700 dark:text-blue-300">Audio Properties</h4>
+                  <h4 className="font-semibold mb-3 text-blue-400">Audio Properties</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-muted-foreground">Sample Rate:</span> <span className="font-medium">{analysisData.sampleRate} Hz</span></div>
-                    <div><span className="text-muted-foreground">Channels:</span> <span className="font-medium">{analysisData.channels}</span></div>
-                    <div><span className="text-muted-foreground">Bit Rate:</span> <span className="font-medium">{analysisData.bitRate}</span></div>
-                    <div><span className="text-muted-foreground">Peak Level:</span> <span className="font-medium">{analysisData.peakLevel} dB</span></div>
-                    <div><span className="text-muted-foreground">RMS Level:</span> <span className="font-medium">{analysisData.rmsLevel} dB</span></div>
-                    <div><span className="text-muted-foreground">LUFS:</span> <span className="font-medium">{analysisData.lufs}</span></div>
+                    <div><span className="text-gray-400">Sample Rate:</span> <span className="font-medium">{analysisData.sampleRate} Hz</span></div>
+                    <div><span className="text-gray-400">Channels:</span> <span className="font-medium">{analysisData.channels}</span></div>
+                    <div><span className="text-gray-400">Bit Rate:</span> <span className="font-medium">{analysisData.bitRate}</span></div>
+                    <div><span className="text-gray-400">Peak Level:</span> <span className="font-medium">{analysisData.peakLevel} dB</span></div>
+                    <div><span className="text-gray-400">RMS Level:</span> <span className="font-medium">{analysisData.rmsLevel} dB</span></div>
+                    <div><span className="text-gray-400">LUFS:</span> <span className="font-medium">{analysisData.lufs}</span></div>
                   </div>
                   {analysisData.spectralSummary && (
                     <div className="mt-3">
-                      <span className="text-muted-foreground">Spectral Summary:</span>
+                      <span className="text-gray-400">Spectral Summary:</span>
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div className="bg-red-500/15 dark:bg-red-600/20 text-red-700 dark:text-red-300 p-2 rounded text-center text-xs">
+                        <div className="bg-red-600/20 text-red-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">Low</div>
                           <div>{(analysisData.spectralSummary.lowEnergy * 100).toFixed(1)}%</div>
                         </div>
-                        <div className="bg-yellow-500/15 dark:bg-yellow-600/20 text-yellow-700 dark:text-yellow-300 p-2 rounded text-center text-xs">
+                        <div className="bg-yellow-600/20 text-yellow-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">Mid</div>
                           <div>{(analysisData.spectralSummary.midEnergy * 100).toFixed(1)}%</div>
                         </div>
-                        <div className="bg-green-500/15 dark:bg-green-600/20 text-green-700 dark:text-green-300 p-2 rounded text-center text-xs">
+                        <div className="bg-green-600/20 text-green-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">High</div>
                           <div>{(analysisData.spectralSummary.highEnergy * 100).toFixed(1)}%</div>
                         </div>
@@ -1753,26 +2319,26 @@ const EnhancedTimeline = ({
               {/* Image Analysis */}
               {analysisData.type === 'image' && (
                 <div className={`${currentTheme.surface} rounded-lg p-4`}>
-                  <h4 className="font-semibold mb-3 text-green-700 dark:text-green-300">Image Properties</h4>
+                  <h4 className="font-semibold mb-3 text-green-400">Image Properties</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-muted-foreground">Dimensions:</span> <span className="font-medium">{analysisData.dimensions}</span></div>
-                    <div><span className="text-muted-foreground">Format:</span> <span className="font-medium">{analysisData.format}</span></div>
-                    <div><span className="text-muted-foreground">Color Depth:</span> <span className="font-medium">{analysisData.colorDepth}</span></div>
-                    <div><span className="text-muted-foreground">Color Profile:</span> <span className="font-medium">{analysisData.colorProfile}</span></div>
+                    <div><span className="text-gray-400">Dimensions:</span> <span className="font-medium">{analysisData.dimensions}</span></div>
+                    <div><span className="text-gray-400">Format:</span> <span className="font-medium">{analysisData.format}</span></div>
+                    <div><span className="text-gray-400">Color Depth:</span> <span className="font-medium">{analysisData.colorDepth}</span></div>
+                    <div><span className="text-gray-400">Color Profile:</span> <span className="font-medium">{analysisData.colorProfile}</span></div>
                   </div>
                   {analysisData.histogram && (
                     <div className="mt-3">
-                      <span className="text-muted-foreground">Color Histogram:</span>
+                      <span className="text-gray-400">Color Histogram:</span>
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div className="bg-red-500/15 dark:bg-red-600/20 text-red-700 dark:text-red-300 p-2 rounded text-center text-xs">
+                        <div className="bg-red-600/20 text-red-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">Red Channel</div>
                           <div className="text-xs opacity-75">Distribution data available</div>
                         </div>
-                        <div className="bg-green-500/15 dark:bg-green-600/20 text-green-700 dark:text-green-300 p-2 rounded text-center text-xs">
+                        <div className="bg-green-600/20 text-green-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">Green Channel</div>
                           <div className="text-xs opacity-75">Distribution data available</div>
                         </div>
-                        <div className="bg-blue-500/15 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 p-2 rounded text-center text-xs">
+                        <div className="bg-blue-600/20 text-blue-300 p-2 rounded text-center text-xs">
                           <div className="font-medium">Blue Channel</div>
                           <div className="text-xs opacity-75">Distribution data available</div>
                         </div>
@@ -1784,13 +2350,37 @@ const EnhancedTimeline = ({
 
               {/* Error Display */}
               {analysisData.error && (
-                <div className="bg-red-500/15 dark:bg-red-600/20 border border-red-500/30 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 text-red-700 dark:text-red-300">Analysis Error</h4>
-                  <p className="text-sm text-red-700 dark:text-red-300">{analysisData.error}</p>
+                <div className="bg-red-600/20 border border-red-600/30 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-red-400">Analysis Error</h4>
+                  <p className="text-sm text-red-300">{analysisData.error}</p>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Enhanced Video Preview Tooltip */}
+      {previewTooltip.visible && previewTooltip.thumbnail && (
+        <div 
+          className="fixed z-[10000] pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          style={{
+            left: previewTooltip.x,
+            top: window.scrollY + 100
+          }}
+        >
+          <div className="bg-gray-900/95 backdrop-blur-md border border-gray-600/50 rounded-lg p-2 shadow-2xl">
+            <img 
+              src={previewTooltip.thumbnail.dataUrl}
+              alt="Video preview"
+              className="w-32 h-18 object-cover rounded border border-gray-600/30"
+            />
+            <div className="text-xs text-gray-300 text-center mt-1 font-mono">
+              {previewTooltip.thumbnail.formattedTime}
+            </div>
+          </div>
+          {/* Tooltip arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900/95"></div>
         </div>
       )}
     </div>

@@ -1,20 +1,50 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./Pages/Layout";
-import Home from "./Pages/Home";
-import Editor from "./Pages/Editor";
-import Login from "./Pages/Login";
-import Signup from "./Pages/Signup";
-import Profile from "./Pages/Profile";
-import Dashboard from "./Pages/Dashboard";
-import Projects from "./Pages/Projects";
-import Templates from "./Pages/Templates";
-import Settings from "./Pages/Settings";
-import AIEditor from "./Pages/AIEditor";
+
+// Enhanced lazy loading with performance optimizations
+import { createLazyRoute } from "./utils/performanceOptimizer.jsx";
+import { ProjectCardSkeleton } from "./components/ui/Skeleton";
+
+// Create optimized lazy components with proper loading states
+const Home = createLazyRoute(() => import("./Pages/Home"));
+const Editor = createLazyRoute(() => import("./Pages/Editor"));
+const Login = createLazyRoute(() => import("./Pages/Login"));
+const Signup = createLazyRoute(() => import("./Pages/Signup"));
+const Profile = createLazyRoute(() => import("./Pages/Profile"));
+const Dashboard = createLazyRoute(() => import("./Pages/Dashboard"), 
+  <div className="p-6 space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(6)].map((_, i) => <ProjectCardSkeleton key={i} />)}
+    </div>
+  </div>
+);
+const Projects = createLazyRoute(() => import("./Pages/Projects"),
+  <div className="p-6 space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(6)].map((_, i) => <ProjectCardSkeleton key={i} />)}
+    </div>
+  </div>
+);
+const Templates = createLazyRoute(() => import("./Pages/Templates"));
+const Settings = createLazyRoute(() => import("./Pages/Settings"));
+const AIEditor = createLazyRoute(() => import("./Pages/AIEditor"),
+  <div className="flex items-center justify-center min-h-screen bg-gray-900">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p className="text-white text-lg">Loading AI Editor...</p>
+    </div>
+  </div>
+);
 import { AuthProvider } from "./AuthContext";
 import { useUI } from "./hooks";
 import { Modal, Loading } from "./components/ui";
 import { motion, AnimatePresence } from "framer-motion";
+// Authentication routes are now public - auth will be implemented later
+import EnhancedErrorBoundary from "./components/EnhancedErrorBoundary";
+import { AsyncErrorBoundary, FeatureErrorBoundary, NetworkErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/ui/Toast";
+import { globalErrorHandler } from "./utils/errorHandler";
 
 function AppContent() {
   const {
@@ -34,20 +64,133 @@ function AppContent() {
 
   return (
     <div className="app min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/ai-editor" element={<AIEditor />} />
-          <Route path="/Editor" element={<Editor />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </Layout>
+      <EnhancedErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
+        <Layout>
+            <Routes>
+            {/* Dashboard Routes */}
+            <Route 
+              path="/" 
+              element={
+                <AsyncErrorBoundary>
+                  <FeatureErrorBoundary feature="Dashboard">
+                    <Dashboard />
+                  </FeatureErrorBoundary>
+                </AsyncErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <AsyncErrorBoundary>
+                  <FeatureErrorBoundary feature="Dashboard">
+                    <Dashboard />
+                  </FeatureErrorBoundary>
+                </AsyncErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/projects" 
+              element={
+                <NetworkErrorBoundary>
+                  <AsyncErrorBoundary>
+                    <FeatureErrorBoundary feature="Projects">
+                      <Projects />
+                    </FeatureErrorBoundary>
+                  </AsyncErrorBoundary>
+                </NetworkErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/templates" 
+              element={
+                <AsyncErrorBoundary>
+                  <FeatureErrorBoundary feature="Templates">
+                    <Templates />
+                  </FeatureErrorBoundary>
+                </AsyncErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <FeatureErrorBoundary feature="Settings">
+                  <Settings />
+                </FeatureErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/ai-editor" 
+              element={
+                <NetworkErrorBoundary>
+                  <AsyncErrorBoundary>
+                    <FeatureErrorBoundary feature="AI Editor">
+                      <AIEditor />
+                    </FeatureErrorBoundary>
+                  </AsyncErrorBoundary>
+                </NetworkErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/ai-editor/:projectId" 
+              element={
+                <NetworkErrorBoundary>
+                  <AsyncErrorBoundary>
+                    <FeatureErrorBoundary feature="AI Editor">
+                      <AIEditor />
+                    </FeatureErrorBoundary>
+                  </AsyncErrorBoundary>
+                </NetworkErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <FeatureErrorBoundary feature="Profile">
+                  <Profile />
+                </FeatureErrorBoundary>
+              } 
+            />
+            
+            {/* Authentication Routes */}
+            <Route 
+              path="/login" 
+              element={
+                <NetworkErrorBoundary>
+                  <FeatureErrorBoundary feature="Login">
+                    <Login />
+                  </FeatureErrorBoundary>
+                </NetworkErrorBoundary>
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <NetworkErrorBoundary>
+                  <FeatureErrorBoundary feature="Signup">
+                    <Signup />
+                  </FeatureErrorBoundary>
+                </NetworkErrorBoundary>
+              } 
+            />
+            
+            {/* 404 Route */}
+            <Route 
+              path="*" 
+              element={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="text-center">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mb-8">Page not found</p>
+                    <a href="/" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                      Go Home
+                    </a>
+                  </div>
+                </div>
+              } 
+            />
+          </Routes>
+        </Layout>
+      </EnhancedErrorBoundary>
 
       {/* Global Modal */}
       <AnimatePresence>
@@ -130,10 +273,19 @@ function AppContent() {
 }
 
 export default function App() {
+  // Set up global toast provider reference
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.toastProvider = null; // Will be set by ToastProvider
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        <ToastProvider position="top-right" maxToasts={5}>
+          <AppContent />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

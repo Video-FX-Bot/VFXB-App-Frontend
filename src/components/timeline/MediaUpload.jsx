@@ -13,6 +13,7 @@ import {
   Loader
 } from 'lucide-react';
 import { Button, Card } from '../ui';
+import OptimizedImage from '../ui/OptimizedImage';
 
 const MEDIA_TYPES = {
   VIDEO: {
@@ -68,7 +69,37 @@ const MediaUpload = ({
   const mediaConfig = MEDIA_TYPES[mediaType] || MEDIA_TYPES.VIDEO;
   const Icon = mediaConfig.icon;
 
-  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+  // Function to get actual media duration
+  const getMediaDuration = (file, url) => {
+    return new Promise((resolve) => {
+      if (mediaType === 'VIDEO') {
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.addEventListener('loadedmetadata', () => {
+          resolve(video.duration || 5);
+        });
+        video.addEventListener('error', () => {
+          resolve(5); // Fallback duration
+        });
+        video.load();
+      } else if (mediaType === 'AUDIO') {
+        const audio = document.createElement('audio');
+        audio.src = url;
+        audio.addEventListener('loadedmetadata', () => {
+          resolve(audio.duration || 5);
+        });
+        audio.addEventListener('error', () => {
+          resolve(5); // Fallback duration
+        });
+        audio.load();
+      } else {
+        resolve(5); // Default for images
+      }
+    });
+  };
+
+  const onDrop = useCallback(async (acceptedFiles, rejectedFiles) => {
     setError(null);
     
     if (rejectedFiles.length > 0) {
@@ -85,37 +116,66 @@ const MediaUpload = ({
     
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
+      const url = URL.createObjectURL(file);
       setIsUploading(true);
       setSelectedMedia({
         file,
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file),
+        url,
         mediaType
       });
       
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 20;
-        if (progress > 100) progress = 100;
-        setUploadProgress(progress);
+      try {
+        // Get actual media duration
+        const actualDuration = await getMediaDuration(file, url);
         
-        if (progress >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          onMediaSelect?.({
-            file,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url: URL.createObjectURL(file),
-            mediaType,
-            duration: mediaType === 'VIDEO' || mediaType === 'AUDIO' ? Math.random() * 30 + 10 : 5 // Random duration for demo
-          });
-        }
-      }, 200);
+        // Simulate upload progress
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += Math.random() * 20;
+          if (progress > 100) progress = 100;
+          setUploadProgress(progress);
+          
+          if (progress >= 100) {
+            clearInterval(interval);
+            setIsUploading(false);
+            onMediaSelect?.({
+              file,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url,
+              mediaType,
+              duration: actualDuration
+            });
+          }
+        }, 200);
+      } catch (error) {
+        console.error('Error getting media duration:', error);
+        // Fallback to simulated upload with default duration
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += Math.random() * 20;
+          if (progress > 100) progress = 100;
+          setUploadProgress(progress);
+          
+          if (progress >= 100) {
+            clearInterval(interval);
+            setIsUploading(false);
+            onMediaSelect?.({
+              file,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url,
+              mediaType,
+              duration: 5 // Fallback duration
+            });
+          }
+        }, 200);
+      }
     }
   }, [maxSize, onMediaSelect, mediaType]);
 
@@ -165,10 +225,12 @@ const MediaUpload = ({
         );
       case 'IMAGE':
         return (
-          <img
+          <OptimizedImage
             src={selectedMedia.url}
             alt={selectedMedia.name}
             className="w-full h-32 object-cover rounded-lg"
+            lazy
+            quality={85}
           />
         );
       case 'TEXT':

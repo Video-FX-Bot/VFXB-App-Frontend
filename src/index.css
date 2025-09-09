@@ -4,7 +4,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility Utilities */
+@layer utilities {
+  /* Screen reader only - visually hidden but accessible to screen readers */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Show screen reader only content when focused */
+  .sr-only:focus,
+  .sr-only:active {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Focus visible styles for better keyboard navigation */
+  .focus-visible {
+    outline: 2px solid theme('colors.blue.500');
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .high-contrast-border {
+      border: 2px solid;
+    }
+    
+    .high-contrast-text {
+      font-weight: 600;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .motion-safe {
+      animation: none !important;
+      transition: none !important;
+    }
+    
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus ring utilities */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+
+  .focus-ring-inset {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset;
+  }
+
+  /* Skip link styles */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50;
+    @apply bg-blue-600 text-white px-4 py-2 rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+}
+
 @layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  body {
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   :root {
     /* Enhanced Light Theme - Professional and Modern */
     --background: 0 0% 100%;
@@ -51,13 +145,6 @@
     --info-light: 221 83% 53%;
     --info-bg: 221 83% 96%;
   }
-
-  /* iOS safe-area helpers */
-@supports (padding: max(0px)) {
-  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 16px); }
-  .mb-safe { margin-bottom: max(env(safe-area-inset-bottom), 16px); }
-  .sticky-safe-bottom { position: sticky; bottom: env(safe-area-inset-bottom); }
-}
 
   .dark {
     /* Enhanced Dark Theme - Professional and Modern */
@@ -147,7 +234,7 @@
     color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
     margin: 0;
-    min-height: 100dvh;
+    min-height: 100vh;
     background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 50%, hsl(0 0% 100%) 100%);
   }
   
@@ -605,25 +692,3 @@
   background: hsl(var(--primary) / 0.8);
   transform: scale(1.1);
 }
-
-/* Theme-aware select control and options */
-.themed-select {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-}
-
-.themed-select option {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-.dark .themed-select {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-}
-
-.dark .themed-select option {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-

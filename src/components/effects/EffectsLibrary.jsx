@@ -332,10 +332,57 @@ const EffectsLibrary = ({
   }, [params, realTimePreview, previewOn, selectedEffect, selectedClip, onPreview]);
 
   const handleParamChange = (name, value) => setParams((prev) => ({ ...prev, [name]: value }));
-  const applyEffect = async () => {
+  const applyEffect = useCallback(async () => {
     if (!selectedEffect || !selectedClip) return;
-    await onEffectApply?.({ effect: selectedEffect, parameters: params, clipId: selectedClip.id });
-  };
+
+    const effectData = {
+      id: selectedEffect.id,
+      name: selectedEffect.name,
+      parameters: { ...params },
+    };
+
+    // For video clips, use backend API
+    if (selectedClip.type === 'video') {
+      try {
+        const response = await fetch('/api/video-edit/apply-effect', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            videoPath: selectedClip.src,
+            effect: effectData,
+            outputPath: `processed_${Date.now()}_${selectedClip.name}`,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to apply effect');
+        }
+
+        const result = await response.json();
+        
+        // Update clip with processed video
+        const updatedClip = {
+          ...selectedClip,
+          src: result.outputPath,
+          effects: [...(selectedClip.effects || []), effectData],
+        };
+        
+        onEffectApply?.(updatedClip, effectData);
+      } catch (error) {
+        console.error('Error applying effect:', error);
+        // Fallback to local application
+        onEffectApply?.(selectedClip, effectData);
+      }
+    } else {
+      // For non-video clips, apply locally
+      onEffectApply?.(selectedClip, effectData);
+    }
+
+    setRecent((r) => [selectedEffect.id, ...r.filter((id) => id !== selectedEffect.id)].slice(0, 6));
+    setSelectedEffect(null);
+  }, [selectedEffect, selectedClip, params, onEffectApply]);
   const resetParams = () => {
     if (!selectedEffect) return;
     const p = {};

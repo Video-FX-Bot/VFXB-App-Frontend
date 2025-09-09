@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   User,
@@ -68,17 +68,6 @@ const Settings = () => {
       timezone: 'UTC-5'
     }
   });
-
-  // Keep the Dark Mode toggle in sync with the global theme
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      preferences: {
-        ...prev.preferences,
-        darkMode: theme === 'dark'
-      }
-    }));
-  }, [theme]);
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: User },
@@ -445,7 +434,7 @@ const Settings = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2 pb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
             Settings
           </h1>
           <p className="text-muted-foreground text-lg">

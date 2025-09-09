@@ -1,300 +1,330 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import useVideoStore from '../context/videoStore';
-import apiService from '../services/apiService';
-import { validateVideoFile, formatTime } from '../utils';
-import { UPLOAD_CONFIG, VIDEO_PROCESSING } from '../constants';
+/**
+ * Video Management Hook with Zustand Integration
+ * Optimized for video player, timeline, and effects management
+ */
+import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { useVideoStore, useCacheStore, videoSelectors } from '../store';
+import { videoService } from '../services/videoService';
 
-// Custom hook for video management
 export const useVideo = () => {
+  // Selective subscriptions for optimal performance
+  const currentVideo = useVideoStore(videoSelectors.currentVideo);
+  const isPlaying = useVideoStore(videoSelectors.isPlaying);
+  const currentTime = useVideoStore(videoSelectors.currentTime);
+  const selectedClips = useVideoStore(videoSelectors.selectedClips);
+  const appliedEffects = useVideoStore(videoSelectors.appliedEffects);
+  
+  // Get actions and other state
   const {
-    videos,
-    currentVideo,
-    isPlaying,
-    currentTime,
-    volume,
-    muted,
-    fullscreen,
-    playbackRate,
-    processingJobs,
-    editHistory,
-    setVideos,
     setCurrentVideo,
-    setPlaybackState,
+    setPlaying,
     setCurrentTime,
+    setDuration,
+    duration,
+    volume,
     setVolume,
+    muted,
     setMuted,
-    setFullscreen,
+    playbackRate,
     setPlaybackRate,
-    addProcessingJob,
-    updateProcessingJob,
-    addToEditHistory,
+    timelineZoom,
+    setTimelineZoom,
+    timelinePosition,
+    setTimelinePosition,
+    setSelectedClips,
+    addSelectedClip,
+    removeSelectedClip,
+    clearSelectedClips,
+    availableEffects,
+    setAvailableEffects,
+    addEffect,
+    updateEffect,
+    removeEffect,
+    clearEffects,
   } = useVideoStore();
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  
+  // Cache store for video metadata and thumbnails
+  const { getCache, setCache, invalidateCache } = useCacheStore();
+  
+  // Refs for video element and animation frames
   const videoRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
-  // Load user videos
-  const loadVideos = useCallback(async () => {
+  // Load video with caching
+  const loadVideo = useCallback(async (videoId) => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await apiService.getVideos();
-      if (response.success) {
-        setVideos(response.data);
-      } else {
-        setError(response.error);
+      // Check cache first
+      const cacheKey = `video_${videoId}`;
+      const cachedVideo = getCache(cacheKey);
+      
+      if (cachedVideo) {
+        setCurrentVideo(cachedVideo);
+        return cachedVideo;
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [setVideos]);
-
-  // Upload video file
-  const uploadVideo = useCallback(async (file, onProgress) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Validate file
-      const validation = validateVideoFile(file);
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
-      }
-
-      // Upload file
-      const response = await apiService.uploadVideo(file, onProgress);
-      if (response.success) {
-        // Add to videos list
-        setVideos(prev => [response.data, ...prev]);
-        return response.data;
-      } else {
-        throw new Error(response.error);
-      }
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [setVideos]);
-
-  // Select video for editing
-  const selectVideo = useCallback(async (videoId) => {
-    try {
-      setLoading(true);
-      setError(null);
       
-      const response = await apiService.getVideo(videoId);
-      if (response.success) {
-        setCurrentVideo(response.data);
-        // Reset playback state
-        setPlaybackState(false);
-        setCurrentTime(0);
-      } else {
-        setError(response.error);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      // Load from API
+      const video = await videoService.getVideo(videoId);
+      
+      // Cache the result
+      setCache(cacheKey, video, 300000); // 5 minutes
+      setCurrentVideo(video);
+      
+      return video;
+    } catch (error) {
+      console.error('Error loading video:', error);
+      throw error;
     }
-  }, [setCurrentVideo, setPlaybackState, setCurrentTime]);
-
-  // Delete video
-  const deleteVideo = useCallback(async (videoId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiService.deleteVideo(videoId);
-      if (response.success) {
-        setVideos(prev => prev.filter(v => v.id !== videoId));
-        if (currentVideo?.id === videoId) {
-          setCurrentVideo(null);
-        }
-      } else {
-        setError(response.error);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [setVideos, currentVideo, setCurrentVideo]);
-
-  // Process video with AI operation
-  const processVideo = useCallback(async (operation, parameters = {}) => {
-    if (!currentVideo) {
-      setError('No video selected');
-      return;
-    }
-
-    try {
-      setError(null);
-      
-      // Create processing job
-      const jobId = `job_${Date.now()}`;
-      const job = {
-        id: jobId,
-        videoId: currentVideo.id,
-        operation,
-        parameters,
-        status: 'pending',
-        progress: 0,
-        startTime: new Date(),
-      };
-      
-      addProcessingJob(job);
-      
-      // Start processing
-      const response = await apiService.processVideo(currentVideo.id, {
-        operation,
-        parameters,
-        jobId,
-      });
-      
-      if (response.success) {
-        // Add to edit history
-        addToEditHistory({
-          id: `edit_${Date.now()}`,
-          operation,
-          parameters,
-          timestamp: new Date(),
-          description: `Applied ${operation} operation`,
-        });
-        
-        return response.data;
-      } else {
-        updateProcessingJob(jobId, {
-          status: 'failed',
-          error: response.error,
-          endTime: new Date(),
-        });
-        setError(response.error);
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  }, [currentVideo, addProcessingJob, updateProcessingJob, addToEditHistory]);
-
-  // Export video
-  const exportVideo = useCallback(async (format = 'mp4', quality = 'high') => {
-    if (!currentVideo) {
-      setError('No video selected');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiService.exportVideo(
-        currentVideo.id,
-        format,
-        quality
-      );
-      
-      if (response.success) {
-        // Trigger download
-        const link = document.createElement('a');
-        link.href = response.data.downloadUrl;
-        link.download = response.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        return response.data;
-      } else {
-        setError(response.error);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentVideo]);
-
-  // Video player controls
-  const play = useCallback(() => {
+  }, [getCache, setCache, setCurrentVideo]);
+  
+  // Play/pause video
+  const togglePlayback = useCallback(() => {
     if (videoRef.current) {
-      videoRef.current.play();
-      setPlaybackState(true);
+      if (isPlaying) {
+        videoRef.current.pause();
+        setPlaying(false);
+      } else {
+        videoRef.current.play();
+        setPlaying(true);
+      }
     }
-  }, [setPlaybackState]);
-
-  const pause = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      setPlaybackState(false);
-    }
-  }, [setPlaybackState]);
-
-  const togglePlay = useCallback(() => {
-    if (isPlaying) {
-      pause();
-    } else {
-      play();
-    }
-  }, [isPlaying, play, pause]);
-
-  const seek = useCallback((time) => {
+  }, [isPlaying, setPlaying]);
+  
+  // Seek to specific time
+  const seekTo = useCallback((time) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
       setCurrentTime(time);
     }
   }, [setCurrentTime]);
+  
+  // Update volume
+  const updateVolume = useCallback((newVolume) => {
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+      setVolume(newVolume);
+    }
+  }, [setVolume]);
+  
+  // Toggle mute
+  const toggleMute = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = !muted;
+      setMuted(!muted);
+    }
+  }, [muted, setMuted]);
+  
+  // Update playback rate
+  const updatePlaybackRate = useCallback((rate) => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+    }
+  }, [setPlaybackRate]);
+
+  // Timeline management
+  const updateTimelineZoom = useCallback((zoom) => {
+    setTimelineZoom(Math.max(0.1, Math.min(10, zoom)));
+  }, [setTimelineZoom]);
+  
+  const updateTimelinePosition = useCallback((position) => {
+    setTimelinePosition(Math.max(0, Math.min(duration || 0, position)));
+  }, [setTimelinePosition, duration]);
+  
+  // Clip selection management
+  const selectClip = useCallback((clipId) => {
+    addSelectedClip(clipId);
+  }, [addSelectedClip]);
+  
+  const deselectClip = useCallback((clipId) => {
+    removeSelectedClip(clipId);
+  }, [removeSelectedClip]);
+  
+  const selectMultipleClips = useCallback((clipIds) => {
+    clearSelectedClips();
+    clipIds.forEach(id => addSelectedClip(id));
+  }, [clearSelectedClips, addSelectedClip]);
+  
+  // Effects management
+  const applyEffect = useCallback((effectType, settings = {}) => {
+    const effectId = `effect_${Date.now()}`;
+    const effect = {
+      id: effectId,
+      type: effectType,
+      settings,
+      enabled: true,
+      timestamp: Date.now()
+    };
+    
+    addEffect(effect);
+    return effectId;
+  }, [addEffect]);
+  
+  const modifyEffect = useCallback((effectId, updates) => {
+    updateEffect(effectId, updates);
+  }, [updateEffect]);
+  
+  const removeVideoEffect = useCallback((effectId) => {
+    removeEffect(effectId);
+  }, [removeEffect]);
+  
+  const toggleEffect = useCallback((effectId) => {
+    const effect = appliedEffects.find(e => e.id === effectId);
+    if (effect) {
+      updateEffect(effectId, { enabled: !effect.enabled });
+    }
+  }, [appliedEffects, updateEffect]);
+  
+  // Select video for editing
+  const selectVideo = useCallback(async (videoId) => {
+    try {
+      const video = await loadVideo(videoId);
+      return video;
+    } catch (error) {
+      console.error('Error selecting video:', error);
+      throw error;
+    }
+  }, [loadVideo]);
+
+  // Delete video
+  const deleteVideo = useCallback(async (videoId) => {
+    try {
+      await videoService.deleteVideo(videoId);
+      
+      // Clear current video if it was deleted
+      if (currentVideo?.id === videoId) {
+        setCurrentVideo(null);
+      }
+      
+      // Invalidate cache
+      invalidateCache(`video_${videoId}`);
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      throw error;
+    }
+  }, [currentVideo, setCurrentVideo, invalidateCache]);
+  
+  // Generate thumbnails for timeline
+  const generateThumbnails = useCallback(async (videoId, count = 10) => {
+    try {
+      const cacheKey = `thumbnails_${videoId}_${count}`;
+      const cached = getCache(cacheKey);
+      
+      if (cached) {
+        return cached;
+      }
+      
+      const thumbnails = await videoService.generateThumbnails(videoId, count);
+      setCache(cacheKey, thumbnails, 600000); // 10 minutes
+      
+      return thumbnails;
+    } catch (error) {
+      console.error('Error generating thumbnails:', error);
+      return [];
+    }
+  }, [getCache, setCache]);
+
+  // Process video with effects and clips
+  const processVideo = useCallback(async (operation, parameters = {}) => {
+    if (!currentVideo) {
+      throw new Error('No video selected');
+    }
+
+    try {
+      const processData = {
+        videoId: currentVideo.id,
+        operation,
+        parameters,
+        effects: activeEffects,
+        clips: selectedClips
+      };
+      
+      const result = await videoService.processVideo(processData);
+      return result;
+    } catch (error) {
+      console.error('Error processing video:', error);
+      throw error;
+    }
+  }, [currentVideo, activeEffects, selectedClips]);
+
+  // Export video with current settings
+  const exportVideo = useCallback(async (settings = {}) => {
+    if (!currentVideo) {
+      throw new Error('No video selected for export');
+    }
+    
+    try {
+      const exportData = {
+        videoId: currentVideo.id,
+        effects: activeEffects,
+        clips: selectedClips,
+        settings
+      };
+      
+      const result = await videoService.exportVideo(exportData);
+      
+      // Trigger download if URL is provided
+      if (result.downloadUrl) {
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.download = result.filename || 'exported_video.mp4';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error exporting video:', error);
+      throw error;
+    }
+  }, [currentVideo, activeEffects, selectedClips]);
+
+  // Additional video player controls
+  const play = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.play();
+      setPlaying(true);
+    }
+  }, [setPlaying]);
+
+  const pause = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      setPlaying(false);
+    }
+  }, [setPlaying]);
 
   const seekBy = useCallback((seconds) => {
     if (videoRef.current) {
       const newTime = Math.max(0, Math.min(
-        videoRef.current.duration,
+        videoRef.current.duration || 0,
         videoRef.current.currentTime + seconds
       ));
-      seek(newTime);
+      seekTo(newTime);
     }
-  }, [seek]);
+  }, [seekTo]);
 
-  const changeVolume = useCallback((newVolume) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    if (videoRef.current) {
-      videoRef.current.volume = clampedVolume;
-    }
-    setVolume(clampedVolume);
-    if (clampedVolume > 0 && muted) {
-      setMuted(false);
-    }
-  }, [setVolume, muted, setMuted]);
+  const skipForward = useCallback(() => {
+    seekBy(10);
+  }, [seekBy]);
 
-  const toggleMute = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = !muted;
-    }
-    setMuted(!muted);
-  }, [muted, setMuted]);
-
-  const changePlaybackRate = useCallback((rate) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-    }
-    setPlaybackRate(rate);
-  }, [setPlaybackRate]);
+  const skipBackward = useCallback(() => {
+    seekBy(-10);
+  }, [seekBy]);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
       if (videoRef.current?.requestFullscreen) {
         videoRef.current.requestFullscreen();
-        setFullscreen(true);
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-        setFullscreen(false);
       }
     }
-  }, [setFullscreen]);
+  }, []);
 
   // Video event handlers
   const handleTimeUpdate = useCallback(() => {
@@ -324,8 +354,8 @@ export const useVideo = () => {
   }, [currentVideo, setCurrentVideo]);
 
   const handleEnded = useCallback(() => {
-    setPlaybackState(false);
-  }, [setPlaybackState]);
+    setPlaying(false);
+  }, [setPlaying]);
 
   // Initialize video element
   useEffect(() => {
@@ -348,6 +378,13 @@ export const useVideo = () => {
       };
     }
   }, [volume, muted, playbackRate, handleTimeUpdate, handleLoadedMetadata, handleEnded]);
+  
+  // Update video duration when current video changes
+  useEffect(() => {
+    if (currentVideo?.metadata?.duration) {
+      setDuration(currentVideo.metadata.duration);
+    }
+  }, [currentVideo, setDuration]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -362,37 +399,36 @@ export const useVideo = () => {
                       e.target.closest('input') ||
                       e.target.closest('textarea');
       
+      if (isTyping) return;
+      
       switch (e.code) {
         case 'Space':
-          // Don't prevent default if user is typing
-          if (!isTyping) {
-            e.preventDefault();
-            togglePlay();
-          }
+          e.preventDefault();
+          togglePlayback();
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          seekBy(-5);
+          seekTo(Math.max(0, currentTime - 5));
           break;
         case 'ArrowRight':
           e.preventDefault();
-          seekBy(5);
+          seekTo(Math.min(duration || 0, currentTime + 5));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          changeVolume(volume + 0.1);
+          updateVolume(Math.min(1, volume + 0.1));
           break;
         case 'ArrowDown':
           e.preventDefault();
-          changeVolume(volume - 0.1);
+          updateVolume(Math.max(0, volume - 0.1));
           break;
         case 'KeyM':
           e.preventDefault();
           toggleMute();
           break;
-        case 'KeyF':
+        case 'Escape':
           e.preventDefault();
-          toggleFullscreen();
+          clearSelectedClips();
           break;
         default:
           break;
@@ -401,56 +437,109 @@ export const useVideo = () => {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentVideo, togglePlay, seekBy, changeVolume, volume, toggleMute, toggleFullscreen]);
+  }, [currentVideo, togglePlayback, seekTo, currentTime, duration, updateVolume, volume, toggleMute, clearSelectedClips]);
 
-  // Format current time and duration
-  const formattedCurrentTime = formatTime(currentTime);
-  const formattedDuration = formatTime(currentVideo?.metadata?.duration || 0);
+  // Memoized computed values
+  const progress = useMemo(() => {
+    if (!duration || duration === 0) return 0;
+    return (currentTime / duration) * 100;
+  }, [currentTime, duration]);
+  
+  const hasSelectedClips = useMemo(() => {
+    return selectedClips.length > 0;
+  }, [selectedClips]);
+  
+  const activeEffects = useMemo(() => {
+    return appliedEffects.filter(effect => effect.enabled);
+  }, [appliedEffects]);
+  
+  // Utility function to format time
+  const formatTime = useCallback((seconds) => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }, []);
+  
+  const formattedCurrentTime = useMemo(() => formatTime(currentTime), [currentTime, formatTime]);
+  const formattedDuration = useMemo(() => formatTime(duration), [duration, formatTime]);
 
   return {
     // State
-    videos,
     currentVideo,
     isPlaying,
     currentTime,
+    duration,
     volume,
     muted,
-    fullscreen,
     playbackRate,
-    processingJobs,
-    editHistory,
-    loading,
-    error,
+    timelineZoom,
+    timelinePosition,
+    selectedClips,
+    appliedEffects,
+    availableEffects,
     
-    // Formatted values
+    // Computed values
+    progress,
+    hasSelectedClips,
+    activeEffects,
     formattedCurrentTime,
     formattedDuration,
     
     // Video management
-    loadVideos,
-    uploadVideo,
-    selectVideo,
-    deleteVideo,
-    processVideo,
-    exportVideo,
+     loadVideo,
+     selectVideo,
+     deleteVideo,
+     processVideo,
+     exportVideo,
+     generateThumbnails,
     
     // Playback controls
+    togglePlayback,
     play,
     pause,
-    togglePlay,
-    seek,
+    seekTo,
     seekBy,
-    changeVolume,
+    skipForward,
+    skipBackward,
+    updateVolume,
     toggleMute,
-    changePlaybackRate,
+    updatePlaybackRate,
     toggleFullscreen,
+    
+    // Timeline controls
+    updateTimelineZoom,
+    updateTimelinePosition,
+    
+    // Clip management
+    selectClip,
+    deselectClip,
+    selectMultipleClips,
+    clearSelectedClips,
+    
+    // Effects management
+    applyEffect,
+    modifyEffect,
+    removeVideoEffect,
+    toggleEffect,
+    clearEffects,
+    setAvailableEffects,
     
     // Refs
     videoRef,
     
-    // Utilities
-    clearError: () => setError(null),
+    // Cache utilities
+    invalidateCache,
   };
 };
 
+// Helper function to format time (moved outside component for reusability)
+const formatTime = (seconds) => {
+  if (!seconds || isNaN(seconds)) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+export { formatTime };
 export default useVideo;

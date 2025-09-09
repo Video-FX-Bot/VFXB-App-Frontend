@@ -19,9 +19,7 @@ import {
   Grid3X3,
   List,
   Folder,
-  UserPlus,
-  MessageCircle,
-  Link2,
+
   ChevronDown,
   ChevronUp,
   Video,
@@ -30,12 +28,21 @@ import {
   Star,
   BarChart3,
   Clock,
-  Zap
+  Zap,
+  Edit3,
+  Share2,
+  Copy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import OptimizedImage from '../components/ui/OptimizedImage';
+import { ProjectCardSkeleton, DashboardStatsSkeleton } from '../components/ui/Skeleton';
+import { ProgressiveLoader } from '../components/ui/ProgressiveLoader';
+import { useErrorHandler } from '../components/ErrorBoundary';
+import ShareModal from '../components/ui/ShareModal';
 
 const NewDashboard = () => {
   const navigate = useNavigate();
+  const handleError = useErrorHandler();
   const [dragActive, setDragActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [uploadedVideo, setUploadedVideo] = useState(null);
@@ -49,6 +56,50 @@ const NewDashboard = () => {
   const [sortBy, setSortBy] = useState('recent'); // 'recent', 'name', 'duration'
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [isProjectsCollapsed, setIsProjectsCollapsed] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [projects, setProjects] = useState([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+
+  // Simulate loading data
+  useEffect(() => {
+    // Simulate loading projects
+    const loadProjects = async () => {
+      try {
+        setIsLoadingProjects(true);
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setProjects(enhancedProjects);
+      } catch (error) {
+        handleError(error, {
+          context: 'dashboard_projects_load',
+          operation: 'loadProjects'
+        });
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+
+    // Simulate loading stats
+    const loadStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        handleError(error, {
+          context: 'dashboard_stats_load',
+          operation: 'loadStats'
+        });
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadProjects();
+    loadStats();
+  }, []);
 
   // Handle video deletion
   const handleDeleteVideo = () => {
@@ -294,6 +345,34 @@ const NewDashboard = () => {
     }
   };
 
+  // Share functionality handlers
+  const handleShareProject = (project) => {
+    setSelectedProject(project);
+    setShareModalOpen(true);
+  };
+
+  const handleShare = async (shareData) => {
+    try {
+      // TODO: Implement actual API call to backend
+      console.log('Sharing project:', selectedProject.id, 'with data:', shareData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Close modal on success
+      setShareModalOpen(false);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Failed to share project:', error);
+      throw error; // Let ShareModal handle the error display
+    }
+  };
+
+  const handleCloseShareModal = () => {
+    setShareModalOpen(false);
+    setSelectedProject(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-[1920px] mx-auto">
@@ -305,7 +384,7 @@ const NewDashboard = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 pb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                 VFXB Studio Dashboard
               </h1>
               <p className="text-muted-foreground text-lg flex items-center space-x-2">
@@ -339,12 +418,18 @@ const NewDashboard = () => {
             transition={{ delay: 0.1 }}
             className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
           >
-            {[
-              { label: 'Total Projects', value: '24', icon: Video, color: 'blue', trend: '+12%' },
-              { label: 'Hours Saved', value: '156', icon: Clock, color: 'green', trend: '+8%' },
-              { label: 'AI Enhancements', value: '89', icon: Zap, color: 'purple', trend: '+23%' },
-              { label: 'Export Quality', value: '4K', icon: Star, color: 'orange', trend: '100%' }
-            ].map((stat, index) => {
+            {isLoadingStats ? (
+              // Show skeleton stats while loading
+              Array.from({ length: 4 }).map((_, index) => (
+                <DashboardStatsSkeleton key={`stats-skeleton-${index}`} />
+              ))
+            ) : (
+              [
+                { label: 'Total Projects', value: '24', icon: Video, color: 'blue', trend: '+12%' },
+                { label: 'Hours Saved', value: '156', icon: Clock, color: 'green', trend: '+8%' },
+                { label: 'AI Enhancements', value: '89', icon: Zap, color: 'purple', trend: '+23%' },
+                { label: 'Export Quality', value: '4K', icon: Star, color: 'orange', trend: '100%' }
+              ].map((stat, index) => {
               const IconComponent = stat.icon;
               return (
                 <motion.div
@@ -370,7 +455,8 @@ const NewDashboard = () => {
                   </div>
                 </motion.div>
               );
-            })}
+            })
+            )}
           </motion.div>
 
           {/* Main Content Grid */}
@@ -532,13 +618,59 @@ const NewDashboard = () => {
                    )}
                  </div>
 
+                 {/* Video Categories */}
                  <motion.div 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
                    transition={{ delay: 0.3 }}
                    className="space-y-6"
                  >
-                  
+                   <h3 className="text-xl font-semibold text-foreground flex items-center space-x-2">
+                     <Folder className="w-5 h-5 text-purple-600" />
+                     <span>Choose Video Category</span>
+                   </h3>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {videoCategories.map((category, index) => {
+                       const IconComponent = category.icon;
+                       return (
+                         <motion.button
+                           key={category.id}
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ delay: 0.3 + index * 0.1 }}
+                           onClick={() => setSelectedCategory(category.id)}
+                           className={`group p-4 rounded-xl border-2 transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 hover:scale-[1.02] hover:-translate-y-1 ${
+                             selectedCategory === category.id
+                               ? 'border-purple-500 bg-purple-500/10 shadow-elevation-2'
+                               : 'border-gray-300 dark:border-gray-600 bg-card/50 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-card/70'
+                           }`}
+                         >
+                           <div className="text-center space-y-3">
+                             <div className={`${category.color} p-3 rounded-lg mx-auto w-fit shadow-elevation-1 group-hover:scale-110 transition-transform`}>
+                               <IconComponent className="w-6 h-6 text-white" />
+                             </div>
+                             <div>
+                               <h4 className="font-semibold text-foreground group-hover:text-purple-600 transition-colors">
+                                 {category.name}
+                               </h4>
+                               <p className="text-xs text-muted-foreground mt-1">
+                                 {category.description}
+                               </p>
+                             </div>
+                             {selectedCategory === category.id && (
+                               <motion.div
+                                 initial={{ scale: 0 }}
+                                 animate={{ scale: 1 }}
+                                 className="flex justify-center"
+                               >
+                                 <CheckCircle className="w-5 h-5 text-purple-600" />
+                               </motion.div>
+                             )}
+                           </div>
+                         </motion.button>
+                       );
+                     })}
+                   </div>
                    
                    <motion.button
                      initial={{ opacity: 0, y: 20 }}
@@ -692,9 +824,7 @@ const NewDashboard = () => {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm transition-all ${
-                    viewMode === 'grid' 
-                      ? 'bg-primary/10 text-primary-700 border border-primary/30 shadow-sm dark:bg-background dark:text-foreground dark:border-border' 
-                      : 'text-muted-foreground hover:text-foreground'
+                    viewMode === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <Grid3X3 className="w-4 h-4" />
@@ -703,9 +833,7 @@ const NewDashboard = () => {
                 <button
                   onClick={() => setViewMode('list')}
                   className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm transition-all ${
-                    viewMode === 'list' 
-                      ? 'bg-primary/10 text-primary-700 border border-primary/30 shadow-sm dark:bg-background dark:text-foreground dark:border-border' 
-                      : 'text-muted-foreground hover:text-foreground'
+                    viewMode === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <List className="w-4 h-4" />
@@ -717,7 +845,7 @@ const NewDashboard = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-2 py-2 bg-muted themed-select border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&>option]:bg-background [&>option]:text-foreground"
               >
                 <option value="recent" className="bg-background text-foreground">Last Edited</option>
                 <option value="name" className="bg-background text-foreground">Title</option>
@@ -745,26 +873,98 @@ const NewDashboard = () => {
                 exit={{ opacity: 0 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
               >
-                {filteredProjects.map((project, index) => (
+                {isLoadingProjects ? (
+                  // Show skeleton cards while loading
+                  Array.from({ length: 8 }).map((_, index) => (
+                    <ProjectCardSkeleton key={`skeleton-${index}`} />
+                  ))
+                ) : (
+                  filteredProjects.map((project, index) => (
                   <motion.div
                     key={project.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:shadow-elevation-2 transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1 group flex flex-col"
+                    className="bg-card/50 border border-border/30 rounded-xl overflow-hidden hover:shadow-elevation-3 transition-all duration-300 hover:scale-[1.03] hover:-translate-y-2 group cursor-pointer"
+                    whileHover={{ 
+                      boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+                      y: -8
+                    }}
                   >
-                    <div className="relative">
-                      <img
+                    <div className="relative overflow-hidden">
+                      <OptimizedImage
                         src={project.thumbnail}
                         alt={project.title}
-                        className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-500"
+                        lazy={true}
+                        quality={85}
                       />
+                      
+                      {/* Quick Action Buttons Overlay */}
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        whileHover={{ opacity: 1 }}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
+                            title="Edit Project"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/ai-editor', { state: { project } });
+                            }}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-3 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
+                            title="Share Project"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareProject(project);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
+                            title="Duplicate Project"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('Duplicate project:', project.id);
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
+                            title="Delete Project"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Are you sure you want to delete this project?')) {
+                                console.log('Delete project:', project.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                      
                       <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                          project.status === 'Completed' ? 'bg-green-500/70 text-green-200 border-2 border-green-500/50 shadow-sm' :
-                          project.status === 'In Progress' ? 'bg-blue-500/70 text-blue-200 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm' :
-                          'bg-yellow-500/70 text-yellow-200 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm'
-                          
+                          project.status === 'Completed' ? 'bg-green-500/20 text-green-600 border border-green-500/30' :
+                          project.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30' :
+                          'bg-blue-500/20 text-blue-600 border border-blue-500/30'
                         }`}>
                           {project.status}
                         </span>
@@ -783,7 +983,7 @@ const NewDashboard = () => {
                       </div>
                     </div>
                     
-                    <div className="p-4 flex-1 flex flex-col">
+                    <div className="p-4">
                       <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
                         {project.title}
                       </h3>
@@ -802,58 +1002,29 @@ const NewDashboard = () => {
                         </div>
                       </div>
                       
-                      {/* Collaboration Section */}
-                      <div className="mb-4 space-y-2 min-h-[32px]">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            {project.collaborators.length > 0 ? (
-                              <div className="flex items-center space-x-2">
-                                <div className="flex -space-x-1">
-                                  {project.collaborators.slice(0, 3).map((collaborator, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-background"
-                                      title={`${collaborator.name} (${collaborator.role})`}
-                                    >
-                                      {collaborator.avatar}
-                                    </div>
-                                  ))}
-                                  {project.collaborators.length > 3 && (
-                                    <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium border-2 border-background">
-                                      +{project.collaborators.length - 3}
-                                    </div>
-                                  )}
-                                </div>
-                                <span className="text-xs text-muted-foreground">
-                                  {project.collaborators.length} collaborator{project.collaborators.length !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">0 collaborators</span>
-                            )}
-                          </div>
-                          {project.isShared && (
-                            <div className="flex items-center space-x-1 text-green-600">
-                              <Link2 className="w-3 h-3" />
-                              <span className="text-xs">Shared</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center space-x-1 text-muted-foreground">
-                          <MessageCircle className="w-3 h-3" />
-                          <span className="text-xs">{project.comments} comment{project.comments !== 1 ? 's' : ''}</span>
+                      {/* Owner Information */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Owner</span>
+                          <span className="font-medium">{project.owner || 'You'}</span>
                         </div>
                       </div>
                       
-                      <div className="mt-auto flex items-center justify-between">
+                      <div className="flex items-center justify-between">
                         <button className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all text-sm shadow-elevation-1 hover:shadow-elevation-2">
                           <Play className="w-4 h-4" />
                           <span>Continue</span>
                         </button>
                         <div className="flex items-center space-x-1">
-                          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted" title="Invite Collaborators">
-                            <UserPlus className="w-4 h-4" />
+                          <button 
+                            className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted" 
+                            title="Share Project"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareProject(project);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" />
                           </button>
                           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
                             <Download className="w-4 h-4" />
@@ -865,7 +1036,8 @@ const NewDashboard = () => {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -875,7 +1047,13 @@ const NewDashboard = () => {
                 exit={{ opacity: 0 }}
                 className="space-y-3"
               >
-                {filteredProjects.map((project, index) => (
+                {isLoadingProjects ? (
+                  // Show skeleton cards while loading
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <ProjectCardSkeleton key={`list-skeleton-${index}`} variant="list" />
+                  ))
+                ) : (
+                  filteredProjects.map((project, index) => (
                   <motion.div
                     key={project.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -890,11 +1068,11 @@ const NewDashboard = () => {
                           alt={project.title}
                           className="w-16 h-16 object-cover rounded-lg group-hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="absolute -top-3 -right-1">
-                          <span className={`inline-block w-3 h-3 rounded-full ${
+                        <div className="absolute -top-1 -right-1">
+                          <span className={`w-3 h-3 rounded-full ${
                             project.status === 'Completed' ? 'bg-green-500' :
-                            project.status === 'In Progress' ? 'bg-blue-500' :
-                            'bg-yellow-500'
+                            project.status === 'In Progress' ? 'bg-yellow-500' :
+                            'bg-blue-500'
                           }`} />
                         </div>
                       </div>
@@ -933,7 +1111,8 @@ const NewDashboard = () => {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+                )}
               </motion.div>
             )}
                 </AnimatePresence>
@@ -956,6 +1135,14 @@ const NewDashboard = () => {
           )}
         </motion.div>
       </div>
+      
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={handleCloseShareModal}
+        project={selectedProject}
+        onShare={handleShare}
+      />
     </div>
   );
 };

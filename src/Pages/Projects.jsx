@@ -26,14 +26,25 @@ import {
   Archive,
   Eye,
   MoreHorizontal,
-  HardDrive
+  HardDrive,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { Button, Card } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
 import projectService from '../services/projectService';
+import thumbnailService from '../services/thumbnailService';
+import ThumbnailSelector from '../components/ThumbnailSelector';
+import templateService from '../services/templateService';
+import TemplateSelector from '../components/TemplateSelector';
+import OptimizedImage from '../components/ui/OptimizedImage';
+import { ProjectCardSkeleton } from '../components/ui/Skeleton';
+import { useErrorHandler } from '../components/ErrorBoundary';
+import ShareModal from '../components/ui/ShareModal';
 
 const Projects = () => {
   const navigate = useNavigate();
+  const handleError = useErrorHandler();
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
@@ -41,12 +52,27 @@ const Projects = () => {
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [projectMenuOpen, setProjectMenuOpen] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [thumbnailSelectorOpen, setThumbnailSelectorOpen] = useState(false);
+  const [selectedProjectForThumbnail, setSelectedProjectForThumbnail] = useState(null);
+  const [projectThumbnails, setProjectThumbnails] = useState({});
+  const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
 
-  // Load projects from backend API with localStorage fallback
+  // Load thumbnails from storage
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const savedProjects = await projectService.loadProjects();
+    const loadedThumbnails = thumbnailService.getAllThumbnails();
+    setProjectThumbnails(loadedThumbnails);
+  }, []);
+
+  // Function to load projects
+  const loadProjects = async () => {
+    setIsLoadingProjects(true);
+    try {
+      // Simulate API call delay (reduced for better performance)
+       await new Promise(resolve => setTimeout(resolve, 300));
+      const savedProjects = await projectService.loadProjects();
         
         // Add some mock projects if no saved projects exist
         if (savedProjects.length === 0) {
@@ -55,7 +81,7 @@ const Projects = () => {
                id: 1,
                name: 'Summer Vacation Highlights',
                title: 'Summer Vacation Highlights',
-               thumbnail: null,
+               thumbnail: 'https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=400',
                duration: '2:45',
                createdAt: '2024-01-15',
                lastEdited: '2 hours ago',
@@ -72,7 +98,7 @@ const Projects = () => {
                id: 2,
                name: 'Product Demo Video',
                title: 'Product Demo Video',
-               thumbnail: null,
+               thumbnail: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400',
                duration: '1:30',
                createdAt: '2024-01-14',
                lastEdited: '1 day ago',
@@ -89,7 +115,7 @@ const Projects = () => {
                 id: 3,
                 name: 'Wedding Ceremony',
                 title: 'Wedding Ceremony',
-                thumbnail: null,
+                thumbnail: 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=400',
                 duration: '5:20',
                 createdAt: '2024-01-12',
                 lastEdited: '3 days ago',
@@ -106,7 +132,7 @@ const Projects = () => {
                 id: 4,
                 name: 'Travel Adventure Vlog',
                 title: 'Travel Adventure Vlog',
-                thumbnail: null,
+                thumbnail: 'https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=400',
                 duration: '4:15',
                 createdAt: '2024-01-10',
                 lastEdited: '5 days ago',
@@ -123,7 +149,7 @@ const Projects = () => {
                 id: 5,
                 name: 'Corporate Training Module',
                 title: 'Corporate Training Module',
-                thumbnail: null,
+                thumbnail: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=400',
                 duration: '6:30',
                 createdAt: '2024-01-08',
                 lastEdited: '1 week ago',
@@ -143,21 +169,51 @@ const Projects = () => {
         }
       } catch (error) {
         console.error('Error loading projects:', error);
+        handleError(error, 'Failed to load projects');
         setProjects([]);
+      } finally {
+        setIsLoadingProjects(false);
       }
     };
-    
+
+  // Load projects from backend API with localStorage fallback
+  useEffect(() => {
     loadProjects();
+  }, []);
+
+  // Refresh projects when page becomes visible (e.g., returning from AI Editor)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadProjects();
+      }
+    };
+
+    const handleFocus = () => {
+      loadProjects();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-500/70 text-green-200 dark:text-green-300 border-2 border-green-500/50 shadow-sm';
+      case 'Completed':
+        return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'editing':
-        return 'bg-blue-500/70 text-blue-200 dark:text-blue-300 border-2 border-blue-500/50 shadow-sm';
+      case 'processing':
+      case 'In Progress':
+        return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
       case 'draft':
-        return 'bg-yellow-500/70 text-yellow-200 dark:text-yellow-300 border-2 border-yellow-500/50 shadow-sm';
+      case 'Draft':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
       default:
         return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
@@ -176,6 +232,55 @@ const Projects = () => {
       default:
         return status;
     }
+  };
+
+  const handleThumbnailSelect = (thumbnail) => {
+    if (selectedProjectForThumbnail) {
+      const projectId = selectedProjectForThumbnail.id || selectedProjectForThumbnail._id;
+      thumbnailService.saveThumbnail(projectId, thumbnail);
+      setProjectThumbnails(prev => ({
+        ...prev,
+        [projectId]: thumbnail
+      }));
+    }
+    setThumbnailSelectorOpen(false);
+    setSelectedProjectForThumbnail(null);
+  };
+
+  const openThumbnailSelector = (project) => {
+    setSelectedProjectForThumbnail(project);
+    setThumbnailSelectorOpen(true);
+    setProjectMenuOpen(null);
+  };
+
+  const getProjectThumbnail = (project) => {
+    const projectId = project.id || project._id;
+    return projectThumbnails[projectId] || project.thumbnail || null;
+  };
+
+  const handleTemplateSelect = async (projectData) => {
+    try {
+      // Save the new project
+      const savedProject = await projectService.saveProject(projectData);
+      
+      // Update local state
+      setProjects(prev => [savedProject, ...prev]);
+      
+      // Navigate to AI editor with the new project
+      navigate('/ai-editor', { 
+        state: { 
+          projectData: savedProject,
+          isNewProject: true
+        } 
+      });
+    } catch (error) {
+      console.error('Error creating project from template:', error);
+      handleError(error, 'Failed to create project from template');
+    }
+  };
+
+  const openTemplateSelector = () => {
+    setTemplateSelectorOpen(true);
   };
 
   const handleProjectAction = async (action, projectId) => {
@@ -223,6 +328,7 @@ const Projects = () => {
             setProjects(updatedProjects);
           } catch (error) {
             console.error('Error duplicating project:', error);
+            handleError(error, 'Failed to duplicate project');
           }
         }
         break;
@@ -243,6 +349,7 @@ const Projects = () => {
             setProjects(updatedProjects);
           } catch (error) {
             console.error('Error updating project favorite status:', error);
+            handleError(error, 'Failed to update project favorite status');
           }
         }
         break;
@@ -252,6 +359,13 @@ const Projects = () => {
             const projectIdToDelete = project._id || project.id;
             if (projectIdToDelete) {
               await projectService.deleteProject(projectIdToDelete);
+              // Also delete associated thumbnail
+              thumbnailService.deleteThumbnail(projectIdToDelete);
+              setProjectThumbnails(prev => {
+                const updated = { ...prev };
+                delete updated[projectIdToDelete];
+                return updated;
+              });
             }
             // Update local state
             const updatedProjects = projects.filter(p => 
@@ -260,7 +374,13 @@ const Projects = () => {
             setProjects(updatedProjects);
           } catch (error) {
             console.error('Error deleting project:', error);
+            handleError(error, 'Failed to delete project');
           }
+        }
+        break;
+      case 'thumbnail':
+        if (project) {
+          openThumbnailSelector(project);
         }
         break;
       default:
@@ -269,7 +389,32 @@ const Projects = () => {
   };
 
   const handleCreateProject = () => {
-    navigate('/');
+    navigate('/ai-editor');
+  };
+
+  // Share functionality handlers
+  const handleShareProject = (project) => {
+    setSelectedProject(project);
+    setShareModalOpen(true);
+  };
+
+  const handleShare = async (shareData) => {
+    try {
+      // TODO: Implement actual API call for sharing
+      console.log('Sharing project:', selectedProject, 'with data:', shareData);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setShareModalOpen(false);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Error sharing project:', error);
+      handleError(error, 'Failed to share project');
+    }
+  };
+
+  const handleCloseShareModal = () => {
+    setShareModalOpen(false);
+    setSelectedProject(null);
   };
 
   const filteredProjects = projects.filter(project => {
@@ -316,20 +461,29 @@ const Projects = () => {
         <div className="px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2 pb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
                 My Projects
               </h1>
               <p className="text-muted-foreground mt-1">
                 Manage and organize your video projects
               </p>
             </div>
-            <Button 
-              onClick={handleCreateProject} 
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
-            >
-              <Plus className="w-4 h-4" />
-              New Project
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={openTemplateSelector}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-purple-600"
+              >
+                <Sparkles className="w-4 h-4" />
+                From Template
+              </Button>
+              <Button 
+                onClick={handleCreateProject} 
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+              >
+                <Plus className="w-4 h-4" />
+                New Project
+              </Button>
+            </div>
           </div>
 
           {/* Search and Filters */}
@@ -348,12 +502,12 @@ const Projects = () => {
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value)}
-              className="px-4 py-2 bg-muted themed-select border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="px-4 py-2 border border-border rounded-lg bg-card text-muted-foreground focus:outline-none"
             >
-              <option value="all" className="bg-background text-foreground">All Projects</option>
-              <option value="recent" className="bg-background text-foreground">Recent</option>
-              <option value="favorites" className="bg-background text-foreground">Favorites</option>
-              <option value="completed" className="bg-background text-foreground">Completed</option>
+              <option value="all" className="text-black">All Projects</option>
+              <option value="recent" className="text-black">Recent</option>
+              <option value="favorites" className="text-black">Favorites</option>
+              <option value="completed" className="text-black">Completed</option>
             </select>
 
             <div className="flex items-center gap-2 border border-border rounded-lg p-1">
@@ -400,13 +554,22 @@ const Projects = () => {
               }
             </p>
             {(!searchTerm && filterBy === 'all') && (
-              <Button 
-                onClick={handleCreateProject}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Project
-              </Button>
+              <div className="flex items-center gap-3 justify-center">
+                <Button 
+                  onClick={openTemplateSelector}
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-purple-600"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  From Template
+                </Button>
+                <Button 
+                  onClick={handleCreateProject}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-elevation-2 hover:shadow-elevation-3 hover:scale-105 transition-all duration-200 border border-blue-500"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Project
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -414,7 +577,13 @@ const Projects = () => {
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
             : 'space-y-4'
           }>
-            {sortedProjects.map((project, index) => (
+            {isLoadingProjects ? (
+              // Show skeleton cards while loading
+              Array.from({ length: 8 }).map((_, index) => (
+                <ProjectCardSkeleton key={`project-skeleton-${index}`} viewMode={viewMode} />
+              ))
+            ) : (
+              sortedProjects.map((project, index) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -428,7 +597,17 @@ const Projects = () => {
                     {/* Thumbnail */}
                     <div className="relative overflow-hidden">
                       <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                        <Video className="w-12 h-12 text-muted-foreground" />
+                        {getProjectThumbnail(project) ? (
+                          <OptimizedImage
+                            src={getProjectThumbnail(project)}
+                            alt={project.title}
+                            className="w-full h-full object-cover"
+                            lazy={true}
+                            quality={85}
+                          />
+                        ) : (
+                          <Video className="w-12 h-12 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       
@@ -443,7 +622,7 @@ const Projects = () => {
                       <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                         <div className="flex items-center space-x-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(project.status)}`}>
-                            {getStatusText(project.status)}
+                            {project.status}
                           </span>
                         </div>
                         <span className="bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-medium">
@@ -565,6 +744,16 @@ const Projects = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleProjectAction('thumbnail', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4" />
+                          Change Thumbnail
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleProjectAction('favorite', project.id);
                           }}
                           className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
@@ -604,7 +793,17 @@ const Projects = () => {
                       {/* Compact Thumbnail */}
                       <div className="relative w-20 h-14 bg-gradient-to-br from-primary/20 to-primary/20 rounded-md overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
                         <div className="w-full h-full flex items-center justify-center">
-                          <Video className="w-6 h-6 text-muted-foreground" />
+                          {getProjectThumbnail(project) ? (
+                            <OptimizedImage
+                              src={getProjectThumbnail(project)}
+                              alt={project.title}
+                              className="w-full h-full object-cover"
+                              lazy={true}
+                              quality={85}
+                            />
+                          ) : (
+                            <Video className="w-6 h-6 text-muted-foreground" />
+                          )}
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         
@@ -707,7 +906,7 @@ const Projects = () => {
                         <motion.button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Handle share
+                            handleShareProject(project);
                           }}
                           className="bg-muted/80 hover:bg-muted text-foreground p-1.5 rounded-md transition-all duration-200"
                           whileHover={{ scale: 1.05 }}
@@ -772,6 +971,16 @@ const Projects = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleProjectAction('thumbnail', project.id);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4" />
+                          Change Thumbnail
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleProjectAction('favorite', project.id);
                           }}
                           className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
@@ -795,10 +1004,41 @@ const Projects = () => {
                   </Card>
                 )}
               </motion.div>
-            ))}
+            ))
+          )}
           </div>
         )}
       </div>
+      
+      {/* Thumbnail Selector Modal */}
+      {thumbnailSelectorOpen && (
+        <ThumbnailSelector
+          isOpen={thumbnailSelectorOpen}
+          onClose={() => {
+            setThumbnailSelectorOpen(false);
+            setSelectedProjectForThumbnail(null);
+          }}
+          onSelect={handleThumbnailSelect}
+          currentThumbnail={selectedProjectForThumbnail ? getProjectThumbnail(selectedProjectForThumbnail) : null}
+        />
+      )}
+      
+      {/* Template Selector Modal */}
+      {templateSelectorOpen && (
+        <TemplateSelector
+          isOpen={templateSelectorOpen}
+          onClose={() => setTemplateSelectorOpen(false)}
+          onSelect={handleTemplateSelect}
+        />
+      )}
+      
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={handleCloseShareModal}
+        project={selectedProject}
+        onShare={handleShare}
+      />
     </div>
   );
 };
