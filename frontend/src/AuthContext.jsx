@@ -1,49 +1,68 @@
-import React, { useState, useEffect } from "react";
+// src/AuthProvider.jsx  (or wherever this file lives)
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { AuthContext } from "./AuthContextInstance";
+import authService from "./services/authService";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(authService.getCurrentUser());
+  const [isLoggedIn, setIsLoggedIn] = useState(!!authService.getCurrentUser());
+  const [loading, setLoading] = useState(false);
 
-  // Load from localStorage on mount
+  // Optional: hydrate on mount from authService (already done via getCurrentUser)
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const u = authService.getCurrentUser();
+    setUser(u);
+    setIsLoggedIn(!!u);
+  }, []);
+
+  const login = useCallback(async ({ email, password }) => {
+    setLoading(true);
+    try {
+      const { user } = await authService.login({ email, password }); // throws on 401
+      setUser(user);
       setIsLoggedIn(true);
+      return { success: true, user };
+    } catch (err) {
+      // ensure UI shows backend errors like "Invalid email or password"
+      setUser(null);
+      setIsLoggedIn(false);
+      throw err; // let Login.jsx catch and display
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Save to localStorage when user changes
-  useEffect(() => {
-    if (isLoggedIn && user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
+  const signup = useCallback(async ({ username, email, password, name }) => {
+    setLoading(true);
+    try {
+      const { user } = await authService.signup({
+        username,
+        email,
+        password,
+        name,
+      });
+      setUser(user);
+      setIsLoggedIn(true);
+      return { success: true, user };
+    } catch (err) {
+      setUser(null);
+      setIsLoggedIn(false);
+      throw err;
+    } finally {
+      setLoading(false);
     }
-  }, [isLoggedIn, user]);
+  }, []);
 
-  // Mock login
-  const login = (email, password) => {
-    setUser({ email });
-    setIsLoggedIn(true);
-  };
-
-  // Mock signup
-  const signup = (email, password) => {
-    setUser({ email });
-    setIsLoggedIn(true);
-  };
-
-  // Logout
-  const logout = () => {
+  const logout = useCallback(async () => {
+    await authService.logout();
     setUser(null);
     setIsLoggedIn(false);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, isLoggedIn, login, signup, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, isLoggedIn, loading, login, signup, logout }),
+    [user, isLoggedIn, loading, login, signup, logout]
   );
-} 
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

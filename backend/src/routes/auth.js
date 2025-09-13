@@ -1,13 +1,16 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import rateLimit from "express-rate-limit";
+import { readUsers, writeUsers } from "../services/fileStore.js";
 import { User } from "../models/User.js";
 import { authenticateToken, optionalAuth } from "../middleware/auth.js";
 import { logger } from "../utils/logger.js";
 import { sendEmail } from "../utils/email.js";
 import { localStorageService } from "../services/localStorageService.js";
 
+const useLocal = process.env.USE_LOCAL_STORAGE === "true";
 const router = express.Router();
 const USE_LS = process.env.USE_LOCAL_STORAGE === "true";
 
@@ -106,11 +109,10 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
 
 // ---------- Local Storage helpers (DEV) ----------
 async function lsGetUsers() {
-  const users = (await localStorageService.get?.("users")) || [];
-  return Array.isArray(users) ? users : [];
+  return await readUsers();
 }
-async function lsSaveUsers(users) {
-  return localStorageService.set?.("users", users);
+async function lsSetUsers(users) {
+  await writeUsers(users);
 }
 const safeId = (u) =>
   u?._id || u?.id || String(u?.email || u?.username || Date.now());
@@ -141,162 +143,51 @@ async function dbFindByEmailOrUsername(identifier) {
  * @desc    Register a new user
  * @access  Public
  */
-router.post("/register", authLimiter, async (req, res) => {
+// REGISTER
+router.post("/register", async (req, res) => {
   try {
-    const { username, email, password, firstName, lastName } = req.body;
-    const validation = validateRegisterPayload({
-      username,
-      email,
-      password,
-      firstName,
-      lastName,
-    });
-    if (!validation.isValid) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Validation failed",
-          errors: validation.errors,
-        });
-    }
-
-    const lowerEmail = String(email).toLowerCase();
-    const lowerUsername = String(username).toLowerCase();
-
-    if (USE_LS) {
-      const users = await lsGetUsers();
-      const clash = users.find(
-        (u) =>
-          String(u.email || "").toLowerCase() === lowerEmail ||
-          String(u.username || "").toLowerCase() === lowerUsername
-      );
-      if (clash)
-        return res
-          .status(409)
-          .json({
-            success: false,
-            message: "User with this email or username already exists",
-          });
-
-      const user = {
-        _id: `user_${Date.now()}`,
-        username: lowerUsername,
-        email: lowerEmail,
-        password, // DEV ONLY (plain). Do not use in production.
-        firstName,
-        lastName,
-        role: "user",
-        isEmailVerified: false,
-        analytics: { loginCount: 0, lastLogin: null },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      users.push(user);
-      await lsSaveUsers(users);
-
-      const { accessToken, refreshToken } = generateTokens(user._id);
-      setTokenCookies(res, accessToken, refreshToken);
-
-      user.analytics.loginCount += 1;
-      user.analytics.lastLogin = new Date();
-      await lsSaveUsers(users);
-
-      logger.info(`New user registered (LS): ${user.email}`);
-
-      return res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        data: {
-          user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-            isEmailVerified: user.isEmailVerified,
-          },
-          tokens: { accessToken, refreshToken },
+    const { username, name, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: {
+          ...(username ? {} : { username: "Username is required" }),
+          ...(email ? {} : { email: "Email is required" }),
+          ...(password ? {} : { password: "Password is required" }),
         },
       });
     }
 
-    // DB mode
-    let existing = await dbFindByEmailOrUsername(lowerEmail);
-    if (!existing) existing = await User.findOne({ username: lowerUsername });
-    if (existing) {
+    const users = await lsGetUsers();
+    const exists = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase()
+    );
+    if (exists) {
       return res
         .status(409)
-        .json({
-          success: false,
-          message: "User with this email or username already exists",
-        });
+        .json({ success: false, message: "Email already registered" });
     }
 
-    const user = await User.create({
-      username: lowerUsername,
-      email: lowerEmail,
-      password,
-      firstName,
-      lastName,
-    });
+    const hash = await bcrypt.hash(password, 10);
+    const newUser = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      username,
+      name: name || username,
+      email,
+      passwordHash: hash,
+      createdAt: new Date().toISOString(),
+    };
 
-    // optionally send verification
-    if (typeof user.createEmailVerificationToken === "function") {
-      const token = user.createEmailVerificationToken();
-      await user.save();
-      if (process.env.EMAIL_ENABLED === "true") {
-        try {
-          await sendEmail({
-            to: user.email,
-            subject: "Verify Your VFXB Account",
-            template: "email-verification",
-            data: {
-              username: user.username,
-              verificationUrl: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
-            },
-          });
-        } catch (e) {
-          logger.error("Verification email failed:", e);
-        }
-      }
-    }
-
-    const { accessToken, refreshToken } = generateTokens(user._id);
-    setTokenCookies(res, accessToken, refreshToken);
-
-    user.analytics = user.analytics || {};
-    user.analytics.loginCount = (user.analytics.loginCount || 0) + 1;
-    user.analytics.lastLogin = new Date();
-    await user.save();
-
-    logger.info(`New user registered: ${user.email}`);
+    users.push(newUser);
+    await lsSetUsers(users);
 
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
-      data: {
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified,
-        },
-        tokens: { accessToken, refreshToken },
-      },
+      data: { user: { id: newUser.id, username, name: newUser.name, email } },
     });
-  } catch (error) {
-    logger.error("Registration error:", error);
-    if (error?.code === 11000 && error?.keyPattern) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res
-        .status(409)
-        .json({ success: false, message: `${field} already exists` });
-    }
+  } catch (err) {
+    console.error("Registration error:", err);
     return res
       .status(500)
       .json({ success: false, message: "Registration failed" });
@@ -308,143 +199,51 @@ router.post("/register", authLimiter, async (req, res) => {
  * @desc    Login user
  * @access  Public
  */
-router.post("/login", authLimiter, async (req, res) => {
+// LOGIN
+router.post("/login", async (req, res) => {
   try {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
+    const { email, password } = req.body;
+    if (!email || !password) {
       return res
         .status(400)
-        .json({
-          success: false,
-          message: "Email/username and password are required",
-        });
+        .json({ success: false, message: "Email and password required" });
     }
 
-    if (USE_LS) {
-      const user = await lsFindByEmailOrUsername(identifier);
-      if (!user)
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid credentials" });
-
-      // DEV ONLY plain compare
-      if (String(user.password) !== String(password)) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid credentials" });
-      }
-
-      const { accessToken, refreshToken } = generateTokens(user._id);
-      setTokenCookies(res, accessToken, refreshToken);
-
-      user.analytics = user.analytics || {};
-      user.analytics.loginCount = (user.analytics.loginCount || 0) + 1;
-      user.analytics.lastLogin = new Date();
-
-      const users = await lsGetUsers();
-      const idx = users.findIndex((u) => u._id === user._id);
-      if (idx >= 0) {
-        users[idx] = {
-          ...users[idx],
-          analytics: user.analytics,
-          updatedAt: new Date(),
-        };
-        await lsSaveUsers(users);
-      }
-
-      logger.info(`User logged in (LS): ${user.email}`);
-
-      return res.json({
-        success: true,
-        message: "Login successful",
-        data: {
-          user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-            isEmailVerified: user.isEmailVerified,
-          },
-          tokens: { accessToken, refreshToken },
-        },
-      });
-    }
-
-    // DB mode
-    let user =
-      (await dbFindByEmailOrUsername(identifier))?.select?.(
-        "+password +loginAttempts +lockUntil"
-      ) || (await dbFindByEmailOrUsername(identifier));
+    const users = await lsGetUsers();
+    const user = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase()
+    );
     if (!user)
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
 
-    if (user.isLocked) {
-      return res
-        .status(423)
-        .json({ success: false, message: "Account is temporarily locked" });
-    }
-    if (user.isActive === false) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Account is deactivated" });
-    }
-
-    if (typeof user.comparePassword !== "function") {
-      logger.error("comparePassword not implemented on User model");
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "Auth not fully configured on server",
-        });
-    }
-    const ok = await user.comparePassword(password);
-    if (!ok) {
-      if (typeof user.incLoginAttempts === "function")
-        await user.incLoginAttempts();
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok)
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
-    }
-    if (
-      user.loginAttempts > 0 &&
-      typeof user.resetLoginAttempts === "function"
-    ) {
-      await user.resetLoginAttempts();
-    }
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
-    setTokenCookies(res, accessToken, refreshToken);
-
-    user.analytics = user.analytics || {};
-    user.analytics.loginCount = (user.analytics.loginCount || 0) + 1;
-    user.analytics.lastLogin = new Date();
-    await user.save();
-
-    logger.info(`User logged in: ${user.email}`);
+    const token = jwt.sign(
+      { sub: user.id, email: user.email },
+      process.env.JWT_SECRET || "dev-secret",
+      { expiresIn: "7d" }
+    );
 
     return res.json({
       success: true,
-      message: "Login successful",
+      token,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           username: user.username,
+          name: user.name,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified,
         },
-        tokens: { accessToken, refreshToken },
       },
     });
-  } catch (error) {
-    logger.error("Login error:", error);
+  } catch (err) {
+    console.error("Login error:", err);
     return res.status(500).json({ success: false, message: "Login failed" });
   }
 });

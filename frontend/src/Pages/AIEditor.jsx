@@ -32,7 +32,6 @@ import {
   Settings,
 } from "lucide-react";
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
-// import EnhancedTimeline from "../components/EnhancedTimeline"; // ⛔️ removed
 import EffectsLibrary from "../components/effects/EffectsLibrary";
 import {
   videoWorker,
@@ -42,10 +41,14 @@ import {
 } from "../utils/performanceOptimizer";
 import socketService from "../services/socketService";
 import projectService from "../services/projectService";
+import aiService from "../services/aiService";
 
+/* ===========================================================
+   FrameStrip (unchanged except for formatting)
+=========================================================== */
 function FrameStrip({
   videoUrl,
-  duration, // may be wrong/short; we won't trust it
+  duration,
   currentTime,
   height = 72,
   frames = 30,
@@ -53,9 +56,8 @@ function FrameStrip({
   isGenerating = false,
 }) {
   const [thumbs, setThumbs] = React.useState([]);
-  const [mediaDuration, setMediaDuration] = React.useState(null); // real video duration
+  const [mediaDuration, setMediaDuration] = React.useState(null);
   const containerRef = React.useRef(null);
-
 
   const [isIOS, setIsIOS] = React.useState(false);
   React.useEffect(() => {
@@ -64,7 +66,7 @@ function FrameStrip({
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     setIsIOS(ios);
   }, []);
-  // helper: mm:ss
+
   const pad2 = (n) => String(n).padStart(2, "0");
   const formatTime = (s) => {
     const mm = Math.floor(s / 60);
@@ -72,7 +74,6 @@ function FrameStrip({
     return `${pad2(mm)}:${pad2(ss)}`;
   };
 
-  // Generate thumbnails across the FULL media duration (not clamped to prop)
   React.useEffect(() => {
     if (!videoUrl) return;
 
@@ -84,7 +85,6 @@ function FrameStrip({
     video.src = videoUrl;
 
     const generate = async () => {
-      // wait for metadata to get actual duration
       await new Promise((res, rej) => {
         const to = setTimeout(() => rej(new Error("metadata timeout")), 15000);
         video.onloadedmetadata = () => {
@@ -106,7 +106,6 @@ function FrameStrip({
       canvas.width = 160;
       canvas.height = 90;
 
-      // how many thumbs? cap to frames, but spread across FULL duration
       const count = Math.max(1, Math.min(frames, Math.floor(actual)));
       const out = [];
 
@@ -143,11 +142,9 @@ function FrameStrip({
     };
   }, [videoUrl, duration, frames]);
 
-  // Fixed tile width so content is scrollable; hide scrollbar in CSS
   const tileW = 96;
   const contentWidth = thumbs.length * tileW;
 
-  // Auto-center the playhead using the REAL mediaDuration
   React.useEffect(() => {
     if (!containerRef.current || !thumbs.length || !mediaDuration) return;
 
@@ -169,29 +166,42 @@ function FrameStrip({
                  [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       style={{ height }}
     >
-      <div className="relative z-0 flex" style={{ height, width: contentWidth || "100%" }}>
-        {/* ✅ Disable shimmer on iOS and small screens */}
+      <div
+        className="relative z-0 flex"
+        style={{ height, width: contentWidth || "100%" }}
+      >
         {isGenerating && !isIOS && (
           <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
             <div className="shimmer-bar h-full w-[22%]" />
           </div>
         )}
 
-        {/* Thumbnails */}
         {thumbs.map((t, i) => (
-          <div key={i} className="relative shrink-0 select-none" style={{ width: tileW, height }} title={formatTime(t.time)}>
-            <img src={t.dataUrl} alt={`frame ${i}`} className="h-full w-full object-cover pointer-events-none" draggable={false} />
-            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">{formatTime(t.time)}</span>
+          <div
+            key={i}
+            className="relative shrink-0 select-none"
+            style={{ width: tileW, height }}
+            title={formatTime(t.time)}
+          >
+            <img
+              src={t.dataUrl}
+              alt={`frame ${i}`}
+              className="h-full w-full object-cover pointer-events-none"
+              draggable={false}
+            />
+            <span className="absolute bottom-1 right-1 text-[10px] px-1 py-[2px] rounded bg-black/70 text-white">
+              {formatTime(t.time)}
+            </span>
           </div>
         ))}
 
-        {/* Playhead */}
         {Number.isFinite(mediaDuration) && mediaDuration > 0 && (
           <div
             className="absolute inset-y-0 pointer-events-none"
             style={{
               left: `${
-                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) * contentWidth
+                (Math.min(currentTime ?? 0, mediaDuration) / mediaDuration) *
+                contentWidth
               }px`,
             }}
           >
@@ -203,7 +213,6 @@ function FrameStrip({
         )}
       </div>
 
-      {/* CSS: remove blur, kill shimmer on iOS/small screens/reduced motion */}
       <style>{`
         .shimmer-bar {
           background: linear-gradient(
@@ -212,7 +221,6 @@ function FrameStrip({
             rgba(255,255,255,0.35) 50%,
             rgba(255,255,255,0) 100%
           );
-          /* 🔧 removed filter: blur(...) which triggers the iOS bug */
           will-change: transform;
           animation: shimmerLTR 3.6s linear infinite;
           transform: translate3d(-50%, 0, 0);
@@ -224,26 +232,17 @@ function FrameStrip({
           92%  { opacity: 1; }
           100% { transform: translate3d(150%, 0, 0); opacity: 0; }
         }
-
-        /* iOS-only: completely disable shimmer to avoid painting bug */
-        @supports (-webkit-touch-callout: none) {
-          .shimmer-bar { display: none !important; }
-        }
-
-        /* Small screens: disable shimmer (optional) */
-        @media (max-width: 640px) {
-          .shimmer-bar { display: none !important; }
-        }
-
-        /* Accessibility: honor reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-          .shimmer-bar { animation: none !important; display: none !important; }
-        }
+        @supports (-webkit-touch-callout: none) { .shimmer-bar { display: none !important; } }
+        @media (max-width: 640px) { .shimmer-bar { display: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .shimmer-bar { animation: none !important; display: none !important; } }
       `}</style>
     </div>
   );
 }
 
+/* ===========================================================
+   AIEditor
+=========================================================== */
 const AIEditor = () => {
   const [activeTab, setActiveTab] = useState("assistant");
   const chatScrollRef = useRef(null);
@@ -342,7 +341,232 @@ const AIEditor = () => {
   const [projectName, setProjectName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Extract video metadata
+  /* -------------------------------
+     Helpers to adapt AI actions
+  --------------------------------*/
+  const labelize = (op) =>
+    (op || "").replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+
+  const toActionDescriptors = (intent, params) => {
+    switch (intent) {
+      case "audio_enhance":
+        return [
+          {
+            label: "Apply Audio Enhancement",
+            kind: "exec",
+            operation: "audio_enhance",
+            params,
+          },
+          {
+            label: "Preview Changes",
+            kind: "preview",
+            operation: "audio_enhance",
+            params,
+          },
+        ];
+      case "audio_remove_noise":
+        return [
+          {
+            label: "Remove Background Noise",
+            kind: "exec",
+            operation: "noise_reduction",
+            params,
+          },
+          { label: "Noise Settings", kind: "tool", name: "noise-settings" },
+        ];
+      case "video_trim":
+        return [
+          { label: "Select Trim Points", kind: "tool", name: "trim-tool" },
+          {
+            label: "Auto-detect Silent Parts",
+            kind: "tool",
+            name: "auto-trim",
+          },
+        ];
+      case "add_subtitles":
+        return [
+          {
+            label: "Auto-generate Subtitles",
+            kind: "exec",
+            operation: "auto_subtitles",
+            params,
+          },
+          {
+            label: "Upload Subtitle File",
+            kind: "tool",
+            name: "subtitle-upload",
+          },
+        ];
+      case "color_correction":
+        return [
+          {
+            label: "Auto Color Correction",
+            kind: "exec",
+            operation: "auto_color_correct",
+            params,
+          },
+          { label: "Manual Adjustments", kind: "tool", name: "color-tool" },
+        ];
+      case "export_video":
+        return [
+          {
+            label: "Export MP4 (High)",
+            kind: "export",
+            format: "mp4",
+            quality: "high",
+          },
+          {
+            label: "Export WebM (Medium)",
+            kind: "export",
+            format: "webm",
+            quality: "medium",
+          },
+          {
+            label: "Custom Export Settings",
+            kind: "tool",
+            name: "export-settings",
+          },
+        ];
+      default:
+        return [
+          {
+            label: "Enhance Audio",
+            kind: "exec",
+            operation: "audio_enhance",
+            params,
+          },
+          {
+            label: "Add Subtitles",
+            kind: "exec",
+            operation: "auto_subtitles",
+            params,
+          },
+          { label: "Trim Video", kind: "tool", name: "trim-tool" },
+          { label: "Color Correction", kind: "tool", name: "color-tool" },
+        ];
+    }
+  };
+
+  const handleAIAction = async (action) => {
+    try {
+      setIsProcessing(true);
+      setProcessingProgress(0);
+
+      if (!uploadedVideo) {
+        setChatMessages((p) => [
+          ...p,
+          {
+            type: "ai",
+            content: "Please upload a video first.",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+
+      switch (action.kind) {
+        case "exec": {
+          const res = await aiService.executeVideoOperation(
+            action.operation,
+            action.params || {}
+          );
+          setBackgroundTasks((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: action.operation,
+              status: "completed",
+              result: res,
+            },
+          ]);
+          setChatMessages((p) => [
+            ...p,
+            {
+              type: "ai",
+              content: `✅ ${labelize(action.operation)} applied.`,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+          break;
+        }
+        case "preview": {
+          await aiService.previewOperation(
+            action.operation,
+            action.params || {}
+          );
+          setChatMessages((p) => [
+            ...p,
+            {
+              type: "ai",
+              content: `🔍 Preview ready for ${labelize(action.operation)}.`,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+          break;
+        }
+        case "export": {
+          const res = await aiService.exportVideo(
+            action.format,
+            action.quality
+          );
+          setChatMessages((p) => [
+            ...p,
+            {
+              type: "ai",
+              content: `📦 Export started (${action.format.toUpperCase()}, ${
+                action.quality
+              }).`,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+          // Optionally handle res.downloadUrl when your backend returns it
+          break;
+        }
+        case "tool": {
+          if (action.name === "trim-tool") {
+            setShowTimeline(true);
+            setSelectedTool({ id: "trim", name: "Trim" });
+            aiService.openTrimTool?.();
+          } else if (action.name === "auto-trim") {
+            aiService.autoDetectTrimPoints?.();
+          } else if (action.name === "color-tool") {
+            setShowTimeline(true);
+            setSelectedTool({
+              id: "color-correction",
+              name: "Color Correction",
+            });
+            aiService.openColorTool?.();
+          } else if (action.name === "export-settings") {
+            aiService.openExportSettings?.();
+          } else if (action.name === "noise-settings") {
+            aiService.showNoiseSettings?.();
+          } else if (action.name === "subtitle-upload") {
+            aiService.openSubtitleUpload?.();
+          }
+          break;
+        }
+        default:
+          console.warn("Unknown action:", action);
+      }
+    } catch (e) {
+      console.error(e);
+      setChatMessages((p) => [
+        ...p,
+        {
+          type: "ai",
+          content: "⚠️ That action failed. Please try again.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  /* -------------------------------
+     Metadata extraction
+  --------------------------------*/
   const extractVideoMetadata = (videoFile) => {
     return new Promise((resolve) => {
       if (
@@ -420,23 +644,27 @@ const AIEditor = () => {
           resolution: "1920x1080",
           fps: 30,
           fileSize: videoFile.size || 0,
-          format: videoFile.type || "video/mp4",
+          format: "video/mp4",
         });
       }
     });
   };
 
+  /* -------------------------------
+     Scroll chat to bottom
+  --------------------------------*/
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [chatMessages, isChatLoading]);
 
-  // Load video from navigation state
+  /* -------------------------------
+     Load from navigation + set AI context
+  --------------------------------*/
   useEffect(() => {
     if (location.state?.video) {
       const video = location.state.video;
-      const autoAnalyze = location.state?.autoAnalyze;
 
       setUploadedVideo(video);
 
@@ -555,8 +783,23 @@ const AIEditor = () => {
               "Project automatically created and saved:",
               savedProject
             );
+
+            // ✅ Tell AIService what video/project it's operating on
+            aiService.setContext({
+              videoId: (savedProject && savedProject.id) || "local-video",
+              videoLoaded: true,
+              hasAudio: true,
+              videoDuration: videoMetadata.duration,
+            });
           } catch (error) {
             console.error("Failed to auto-save project:", error);
+            // Fallback context if save failed (still lets AI run locally)
+            aiService.setContext({
+              videoId: "local-video",
+              videoLoaded: true,
+              hasAudio: true,
+              videoDuration: videoMetadata.duration,
+            });
           }
 
           setChatMessages((prev) => [
@@ -584,13 +827,16 @@ const AIEditor = () => {
           console.error("Error extracting video metadata:", error);
           setDuration(30);
           setProjectName(
-            video.name?.replace(/\.[^/.]+$/, "") || "Untitled Project"
+            location.state.video.name?.replace(/\.[^/.]+$/, "") ||
+              "Untitled Project"
           );
         });
     }
   }, [location.state]);
 
-  // Socket setup
+  /* -------------------------------
+     Socket setup (unchanged)
+  --------------------------------*/
   useEffect(() => {
     socketService.connect();
 
@@ -609,7 +855,8 @@ const AIEditor = () => {
       setIsChatLoading(false);
       setIsGeneratingVideo(false);
     });
-    socketService.onVideoAnalysisComplete((data) => {
+
+    socketService.onVideoAnalysisComplete(() => {
       setIsGeneratingVideo(false);
     });
 
@@ -661,6 +908,9 @@ const AIEditor = () => {
     };
   }, []);
 
+  /* -------------------------------
+     Player controls
+  --------------------------------*/
   const togglePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -726,6 +976,10 @@ const AIEditor = () => {
     setTracks((prev) => [...prev, newTrack]);
   };
 
+  /* -------------------------------
+     SEND MESSAGE: now uses aiService locally,
+     then optionally notifies your socket backend
+  --------------------------------*/
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -742,38 +996,63 @@ const AIEditor = () => {
     setIsTyping(true);
     setIsGeneratingVideo(true);
 
-    // Pause the video if it's playing
     if (videoRef.current && !videoRef.current.paused) {
       videoRef.current.pause();
       setIsPlaying(false);
     }
+
     try {
-      await socketService.sendChatMessage({
-        message: newMessage,
-        videoMetadata: uploadedVideo
-          ? {
-              name: uploadedVideo.name,
-              duration: duration,
-              size: uploadedVideo.size,
-              type: uploadedVideo.type,
-            }
-          : null,
-        chatHistory: chatHistory,
-        projectContext: {
-          tracks: tracks,
-          currentTime: currentTime,
-          projectName: projectName,
-        },
+      // 1) Local AI intent + actions
+      const aiResult = await aiService.processMessage(newMessage, {
+        videoId: projectName || uploadedVideo?.name || "local-video",
+        videoLoaded: !!uploadedVideo,
+        hasAudio: true,
+        videoDuration: duration || 0,
       });
 
-      if (uploadedVideo && chatHistory.length === 0) {
-        await socketService.notifyVideoUpload({
-          videoName: uploadedVideo.name,
-          videoSize: uploadedVideo.size,
-          videoType: uploadedVideo.type,
-          duration: duration,
+      const actions = toActionDescriptors(aiResult.intent, aiResult.parameters);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: aiResult.response?.content || "OK, I can do that.",
+          actions,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // 2) Optional: still notify backend/socket
+      try {
+        await socketService.sendChatMessage({
+          message: newMessage,
+          videoMetadata: uploadedVideo
+            ? {
+                name: uploadedVideo.name,
+                duration,
+                size: uploadedVideo.size,
+                type: uploadedVideo.type,
+              }
+            : null,
+          chatHistory,
+          projectContext: { tracks, currentTime, projectName },
         });
+
+        if (uploadedVideo && chatHistory.length === 0) {
+          await socketService.notifyVideoUpload({
+            videoName: uploadedVideo.name,
+            videoSize: uploadedVideo.size,
+            videoType: uploadedVideo.type,
+            duration,
+          });
+        }
+      } catch (e) {
+        console.warn("Socket notify (optional) failed:", e);
       }
+
+      setIsChatLoading(false);
+      setIsTyping(false);
+      setIsGeneratingVideo(false);
     } catch (error) {
       console.error("Error sending message:", error);
       setChatMessages((prev) => [
@@ -787,9 +1066,13 @@ const AIEditor = () => {
       ]);
       setIsChatLoading(false);
       setIsTyping(false);
+      setIsGeneratingVideo(false);
     }
   };
 
+  /* -------------------------------
+     Perf monitor
+  --------------------------------*/
   useEffect(() => {
     const monitorPerformance = () => {
       const stats = memoryManager.getMemoryStats();
@@ -890,8 +1173,8 @@ const AIEditor = () => {
       status: "editing",
       createdAt: new Date().toISOString(),
       chatHistory: chatMessages,
-      tracks: tracks,
-      currentTime: currentTime,
+      tracks,
+      currentTime,
       manualSave: true,
     };
 
@@ -907,13 +1190,12 @@ const AIEditor = () => {
     }
   };
 
-return (
-  <div
-    className="ai-editor-page bg-background text-foreground flex flex-col overflow-x-hidden"
-    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
-  >
-    <style>{`
-      /* Stop iOS input zoom on small screens by keeping fields >= 16px */
+  return (
+    <div
+      className="ai-editor-page bg-background text-foreground flex flex-col overflow-x-hidden"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
+    >
+      <style>{`
       @media (max-width: 640px) {
         .ai-editor-page input,
         .ai-editor-page textarea,
@@ -922,13 +1204,11 @@ return (
         }
       }
     `}</style>
-      {/* ======= Shared container for editor + filmstrip + toolbar ======= */}
+
       <div className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 md:px-8">
-        {/* Main Editor Layout (responsive: column on mobile, row on md+) */}
         <div className="flex flex-1 overflow-visible md:overflow-hidden py-4 md:gap-6 gap-4 items-stretch flex-col md:flex-row">
-          {/* Left: Video (full width on mobile, 2/3 on md+) */}
+          {/* Left: Video */}
           <div className="flex-1 flex flex-col w-full md:w-2/3">
-            {/* Video Player */}
             <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 aspect-video md:aspect-auto md:h-[670px]">
               {uploadedVideo ? (
                 <EnhancedVideoPlayer
@@ -973,7 +1253,6 @@ return (
 
               {isGeneratingVideo && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-                  {/* spinner */}
                   <div className="w-12 h-12 rounded-full border-4 border-white/30 border-t-transparent animate-spin mb-4" />
                   <div className="text-white text-sm font-medium tracking-wide">
                     Generating video…
@@ -983,7 +1262,7 @@ return (
             </div>
           </div>
 
-          {/* Mobile-only mini timeline (above AI chat) */}
+          {/* Mobile mini timeline */}
           {!showTimeline && uploadedVideo && (
             <div className="md:hidden -mt-2 mb-3">
               <div
@@ -1011,9 +1290,8 @@ return (
             </div>
           )}
 
-          {/* Right: Sidebar Tabs (full width on mobile, 1/3 on md+) */}
+          {/* Right: Sidebar Tabs */}
           <div className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col w-full md:w-1/3 md:h-[670px]">
-            {/* Tabs */}
             <div className="flex border-b border-border">
               <button
                 type="button"
@@ -1123,6 +1401,23 @@ return (
                           <span className="text-xs opacity-70 mt-1 block">
                             {new Date().toLocaleTimeString()}
                           </span>
+
+                          {/* Render AI action buttons */}
+                          {message.type === "ai" &&
+                            Array.isArray(message.actions) &&
+                            message.actions.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {message.actions.map((a, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => handleAIAction(a)}
+                                    className="text-xs px-3 py-1.5 rounded border border-border bg-card hover:bg-muted transition"
+                                  >
+                                    {a.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                         </div>
                       </div>
                     ))}
@@ -1218,8 +1513,8 @@ return (
           </div>
         </div>
 
-        {/* ===== Timeline area: filmstrip OR enhanced timeline ===== */}
-       <div className={`w-full mb-4 ${showTimeline ? "" : "hidden md:block"}`}>
+        {/* Timeline Area */}
+        <div className={`w-full mb-4 ${showTimeline ? "" : "hidden md:block"}`}>
           {!showTimeline ? (
             uploadedVideo ? (
               <div
@@ -1245,8 +1540,8 @@ return (
                     Math.min(80, Math.floor(duration || 60))
                   )}
                   isPlaying={isPlaying}
-                  autoScroll={false} // turn off auto horizontal scrolling
-                  stretchToFit // (if your FrameStrip component supports it)
+                  autoScroll={false}
+                  stretchToFit
                   isGenerating={isGeneratingVideo}
                 />
               </div>
@@ -1295,7 +1590,7 @@ return (
           )}
         </div>
 
-        {/* ===== Global Toolbar (Centered, Responsive) ===== */}
+        {/* Global Toolbar */}
         <div className="w-full flex justify-center mt-4 md:mb-8 mb-4">
           <div
             className="
@@ -1307,8 +1602,7 @@ return (
       overflow-hidden
     "
           >
-            
-            {/* Left side: Undo + Settings */}
+            {/* Left: Undo + Settings */}
             <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
               <button className="bg-card hover:bg-muted text-foreground px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-border w-full sm:w-auto">
                 <RotateCcw className="w-4 h-4 mr-2 inline-block" />
@@ -1320,7 +1614,7 @@ return (
               </button>
             </div>
 
-            {/* Right side: Project name + Save + Export */}
+            {/* Right: Project name + Save + Export */}
             <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 w-full md:w-auto">
               <input
                 type="text"
@@ -1358,7 +1652,7 @@ return (
             </div>
           </div>
         </div>
-        {/* ===== End Global Toolbar ===== */}
+        {/* End Global Toolbar */}
       </div>
 
       {/* Background Tasks Panel */}

@@ -4,7 +4,7 @@ class AuthService {
   constructor() {
     this.tokenKey = "authToken";
     this.userKey = "currentUser";
-    this.baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    this.baseURL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
   }
 
   // ---------- storage ----------
@@ -69,42 +69,36 @@ class AuthService {
   /**
    * credentials: { identifier | email | username, password, rememberMe? }
    */
-  async login(credentials) {
-    const identifier =
-      credentials.identifier || credentials.email || credentials.username;
 
-    const body = {
-      identifier,
-      password: credentials.password,
-      rememberMe: !!credentials.rememberMe,
-    };
-
+  async login({ email, password }) {
     const res = await fetch(`${this.baseURL}/auth/login`, {
       method: "POST",
-      headers: this._headers(),
-      credentials: "include", // for httpOnly cookies
-      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: (email || "").trim(), // <- send email, not "identifier"
+        password,
+      }),
     });
 
     const json = await this._json(res);
+
     if (!res.ok || json.success === false) {
-      throw new Error(json.message || "Login failed");
+      const msg =
+        json.message ||
+        (res.status === 401 ? "Invalid email or password" : "Login failed");
+      throw new Error(msg);
     }
 
-    // Support both:
-    // A) { token, user }
-    // B) { data: { user, tokens: { accessToken, refreshToken } } }
     const user = json.user ?? json.data?.user ?? null;
     const token = json.token ?? json.data?.tokens?.accessToken ?? null;
-
     if (!user) throw new Error("No user in response");
 
-    // If you rely solely on httpOnly cookies, token may be null — that's OK.
     if (token) this.setToken(token);
     else this.removeToken();
-
     this.setCurrentUser(user);
 
+    // IMPORTANT: don't call /auth/me here since you don't have it
     return { success: true, user, token };
   }
 
@@ -208,9 +202,6 @@ class AuthService {
 }
 
 const authService = new AuthService();
-
-// Only enable demo auth when explicitly set
-authService.initializeDemoUser();
 
 export { authService };
 export default authService;

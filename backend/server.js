@@ -1,6 +1,8 @@
 // Load environment variables first
 import dotenv from "dotenv";
+import "dotenv/config";
 dotenv.config();
+console.log("[BOOT] USE_LOCAL_STORAGE =", process.env.USE_LOCAL_STORAGE);
 
 import express from "express";
 import cors from "cors";

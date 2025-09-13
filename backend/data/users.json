@@ -8,5 +8,29 @@
     "lastName": "Wahba",
     "createdAt": "2025-09-09T19:25:39.404Z",
     "updatedAt": "2025-09-09T19:25:39.404Z"
+  },
+  {
+    "id": "c8228122-359a-474b-89d4-c7e4b6540bb2",
+    "username": "TestUser125",
+    "name": "Test User",
+    "email": "test419385792@example.com",
+    "passwordHash": "$2a$10$nUgHFWi/6PNKtVh1L5fN/.qwXV4zkFnxUHNRXFAUApthdnjlLfFZy",
+    "createdAt": "2025-09-12T18:25:19.607Z"
+  },
+  {
+    "id": "a529289f-8c89-4063-b68c-8fe085405dad",
+    "username": "test",
+    "name": "test",
+    "email": "test@gmail.com",
+    "passwordHash": "$2a$10$NZL9pvaM3.Ou.s7ejUN03Or8.8Ssn9HO4O05SQGc7BLwQvMt/lN0y",
+    "createdAt": "2025-09-12T19:01:26.774Z"
+  },
+  {
+    "id": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "username": "1",
+    "name": "1",
+    "email": "1@gmail.com",
+    "passwordHash": "$2a$10$jxnsLJbhixmYjb0ByvLwKeq/6jm3rHTtvp4IkOC.lg0NAprWcKSUC",
+    "createdAt": "2025-09-12T22:33:05.583Z"
   }
 ]
