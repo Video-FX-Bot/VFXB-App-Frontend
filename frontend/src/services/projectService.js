@@ -4,27 +4,59 @@ import {
   isVideoThumbnailSupported,
 } from "../utils/videoThumbnailGenerator";
 
+/* ---------------- URL helpers ---------------- */
+let AUTH_INVALIDATED = false;
+const emitUnauthorized = () => {
+  try {
+    window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+  } catch {}
+};
+
 function normalizeBase(url) {
-  // default to Vite proxy path if no env provided
+  // prefer explicit envs; default to Vite proxy (/api)
   const raw = url || "/api";
-  // remove trailing slash
   const trimmed = raw.replace(/\/+$/, "");
-  // if a full URL without /api, append it; if it already ends with /api, keep it
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
   }
-  // relative ('/api' style) is fine
-  return trimmed;
+  return trimmed; // '/api' style
 }
 
 function joinURL(base, path) {
-  return `${base}/${path.replace(/^\/+/, "")}`;
+  return `${base}/${String(path || "").replace(/^\/+/, "")}`;
 }
+
+/* ---------------- Small utils ---------------- */
+
+class AuthError extends Error {
+  constructor(message = "Unauthorized", status = 401) {
+    super(message);
+    this.name = "AuthError";
+    this.status = status;
+  }
+}
+
+const asArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+const pick = (obj, ...keys) =>
+  keys.reduce((o, k) => (obj && obj[k] != null ? ((o[k] = obj[k]), o) : o), {});
+
+// Shapes we accept: {data}, {projects}, array, or object
+function extractData(json, fallback = []) {
+  if (Array.isArray(json)) return json;
+  if (json && Array.isArray(json.data)) return json.data;
+  if (json && Array.isArray(json.projects)) return json.projects;
+  if (json && typeof json.data === "object") return json.data;
+  return fallback;
+}
+
+/* ---------------- Core service ---------------- */
 
 class ProjectService {
   constructor() {
-    // Use direct backend URL if provided; otherwise rely on Vite proxy (/api)
-    this.baseURL = normalizeBase(import.meta.env.VITE_API_URL);
+    // accept either env name
+    const envBase =
+      import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+    this.baseURL = normalizeBase(envBase);
   }
 
   getAuthHeaders() {
@@ -35,33 +67,71 @@ class ProjectService {
     };
   }
 
-  async handleResponse(response) {
-    let payload = null;
+  async parseResponse(res) {
+    let json = null;
     try {
-      payload = await response.json();
+      json = await res.json();
     } catch {
-      // ignore JSON parse error; we'll throw below if not ok
+      // allow non-JSON errors
     }
-    if (!response.ok) {
-      const msg =
-        (payload && (payload.message || payload.error)) ||
-        `HTTP ${response.status}`;
-      throw new Error(msg);
+    if (!res.ok) {
+      const message =
+        (json && (json.message || json.error || json.detail)) ||
+        `HTTP ${res.status}`;
+      if (res.status === 401) throw new AuthError(message, 401);
+      throw new Error(message);
     }
-    return payload ?? {};
+    return json ?? {};
   }
 
-  // ---------- Projects CRUD ----------
+  // Single place to make requests.
+  // - Adds auth headers
+  // - Includes credentials (for cookie auth if you use it)
+  // - Auto-refreshes once on 401 if authService.refreshToken exists
+  async request(path, options = {}, { expect = "generic" } = {}) {
+    const doFetch = async () =>
+      fetch(joinURL(this.baseURL, path), {
+        credentials: "include",
+        headers: { ...this.getAuthHeaders(), ...(options.headers || {}) },
+        ...(({ method, body, signal }) => ({ method, body, signal }))(options),
+      });
+
+    let res = await doFetch();
+    try {
+      return await this.parseResponse(res);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        // Try refresh once if available
+        if (authService?.refreshToken) {
+          try {
+            await authService.refreshToken();
+            res = await doFetch();
+            return await this.parseResponse(res);
+          } catch {}
+        }
+        // ONE-TIME local logout (no network call) + broadcast
+        if (!AUTH_INVALIDATED) {
+          AUTH_INVALIDATED = true;
+          try {
+            authService?.clear?.();
+          } catch {}
+          localStorage.removeItem("authToken");
+          emitUnauthorized();
+        }
+        throw err;
+      }
+      throw err;
+    }
+  }
+
+  /* ---------- Projects CRUD ---------- */
 
   async createProject(projectData) {
-    const res = await fetch(joinURL(this.baseURL, "projects"), {
+    const json = await this.request("projects", {
       method: "POST",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
       body: JSON.stringify(projectData),
     });
-    const result = await this.handleResponse(res);
-    return result.data;
+    return extractData(json, {});
   }
 
   async getProjects(options = {}) {
@@ -72,104 +142,80 @@ class ProjectService {
     if (options.order) qs.append("order", options.order);
     if (options.filter) qs.append("filter", JSON.stringify(options.filter));
 
-    const url = joinURL(this.baseURL, `projects?${qs.toString()}`);
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result.data;
+    try {
+      const json = await this.request(`projects?${qs.toString()}`, {
+        method: "GET",
+      });
+      return extractData(json, []);
+    } catch (e) {
+      if (e instanceof AuthError) return []; // graceful empty for UI
+      throw e;
+    }
   }
 
   async getRecentProjects(limit = 5) {
-    const url = joinURL(this.baseURL, `projects/recent?limit=${limit}`);
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result.data;
+    try {
+      const json = await this.request(`projects/recent?limit=${limit}`, {
+        method: "GET",
+      });
+      return extractData(json, []);
+    } catch (e) {
+      if (e instanceof AuthError) return []; // graceful empty for UI
+      throw e;
+    }
   }
 
   async getFavoriteProjects() {
-    const url = joinURL(this.baseURL, "projects/favorites");
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result.data;
+    try {
+      const json = await this.request("projects/favorites", { method: "GET" });
+      return extractData(json, []);
+    } catch (e) {
+      if (e instanceof AuthError) return [];
+      throw e;
+    }
   }
 
   async getProject(projectId) {
-    const url = joinURL(this.baseURL, `projects/${projectId}`);
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result.data;
+    const json = await this.request(`projects/${projectId}`, { method: "GET" });
+    // Single object expected
+    const data = extractData(json, {});
+    return Array.isArray(data) ? data[0] ?? {} : data;
   }
 
   async updateProject(projectId, updateData) {
-    const url = joinURL(this.baseURL, `projects/${projectId}`);
-    const res = await fetch(url, {
+    const json = await this.request(`projects/${projectId}`, {
       method: "PUT",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
       body: JSON.stringify(updateData),
     });
-    const result = await this.handleResponse(res);
-    return result.data;
+    return extractData(json, {});
   }
 
   async deleteProject(projectId) {
-    const url = joinURL(this.baseURL, `projects/${projectId}`);
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result;
+    // many APIs return 204; parseResponse tolerates empty bodies
+    await this.request(`projects/${projectId}`, { method: "DELETE" });
+    return true;
   }
 
   async toggleFavorite(projectId) {
-    const url = joinURL(this.baseURL, `projects/${projectId}/favorite`);
-    const res = await fetch(url, {
+    const json = await this.request(`projects/${projectId}/favorite`, {
       method: "PATCH",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
     });
-    const result = await this.handleResponse(res);
-    return result.data;
+    return extractData(json, {});
   }
 
   async updateProjectStatus(projectId, status) {
-    const url = joinURL(this.baseURL, `projects/${projectId}/status`);
-    const res = await fetch(url, {
+    const json = await this.request(`projects/${projectId}/status`, {
       method: "PATCH",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
       body: JSON.stringify({ status }),
     });
-    const result = await this.handleResponse(res);
-    return result.data;
+    return extractData(json, {});
   }
 
   async duplicateProject(projectId) {
-    const url = joinURL(this.baseURL, `projects/${projectId}/duplicate`);
-    const res = await fetch(url, {
+    const json = await this.request(`projects/${projectId}/duplicate`, {
       method: "POST",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
     });
-    const result = await this.handleResponse(res);
-    return result.data;
+    return extractData(json, {});
   }
 
   async searchProjects(searchTerm, options = {}) {
@@ -177,17 +223,18 @@ class ProjectService {
     if (options.sort) qs.append("sort", options.sort);
     if (options.order) qs.append("order", options.order);
 
-    const url = joinURL(this.baseURL, `projects/search?${qs.toString()}`);
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getAuthHeaders(),
-      credentials: "include",
-    });
-    const result = await this.handleResponse(res);
-    return result.data;
+    try {
+      const json = await this.request(`projects/search?${qs.toString()}`, {
+        method: "GET",
+      });
+      return extractData(json, []);
+    } catch (e) {
+      if (e instanceof AuthError) return [];
+      throw e;
+    }
   }
 
-  // ---------- Save/Load with localStorage fallback ----------
+  /* ---------- Save/Load with localStorage fallback ---------- */
 
   async saveProject(projectData, fallbackToLocalStorage = true) {
     try {
@@ -294,7 +341,8 @@ class ProjectService {
 
   async loadRecentProjects(fallbackToLocalStorage = true) {
     try {
-      return await this.getRecentProjects();
+      const arr = await this.getRecentProjects();
+      return Array.isArray(arr) ? arr : [];
     } catch (error) {
       console.error("Backend recent projects load failed:", error);
       if (fallbackToLocalStorage) return this.loadRecentFromLocalStorage();

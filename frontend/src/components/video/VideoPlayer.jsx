@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Play,
   Pause,
@@ -8,22 +8,37 @@ import {
   Maximize,
   SkipBack,
   SkipForward,
-  RotateCcw
-} from 'lucide-react';
-import { Button, Card } from '../ui';
+  RotateCcw,
+} from "lucide-react";
+import { useAuth } from "../../useAuth";
+import { Button, Card } from "../ui";
 
 const VideoPlayer = ({
   src,
   poster,
   autoPlay = false,
   controls = true,
-  className = '',
+  className = "",
   onTimeUpdate,
   onDurationChange,
   onPlay,
-  onPause
+  onPause,
 }) => {
   const videoRef = useRef(null);
+  const authService = useAuth();
+  // Get token directly from localStorage since useAuth doesn't expose getToken
+  const token = localStorage.getItem("authToken");
+
+  // Debug logging
+  useEffect(() => {
+    console.log("VideoPlayer - Token:", token ? "Token exists" : "No token");
+    console.log("VideoPlayer - Source:", src);
+    if (token && src) {
+      const fullUrl = `${src}${src.includes("?") ? "&" : "?"}token=${token}`;
+      console.log("VideoPlayer - Full URL:", fullUrl);
+    }
+  }, [token, src]);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -32,13 +47,20 @@ const VideoPlayer = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    
-    const handleLoadedData = () => setIsLoading(false);
+
+    const handleLoadedData = () => {
+      setIsLoading(false);
+      console.log("Video loaded successfully");
+    };
     const handleLoadStart = () => setIsLoading(true);
+    const handleError = (error) => {
+      console.error("Video loading error:", error);
+      setIsLoading(false);
+    };
     const handleTimeUpdate = () => {
       const time = video.currentTime;
       setCurrentTime(time);
@@ -57,58 +79,60 @@ const VideoPlayer = ({
       setIsPlaying(false);
       onPause?.();
     };
-    
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('loadstart', handleLoadStart);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('durationchange', handleDurationChange);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    
+
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("loadstart", handleLoadStart);
+    video.addEventListener("error", handleError);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("durationchange", handleDurationChange);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+
     return () => {
-      video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('loadstart', handleLoadStart);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('durationchange', handleDurationChange);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("error", handleError);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("durationchange", handleDurationChange);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
     };
   }, [onTimeUpdate, onDurationChange, onPlay, onPause]);
-  
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isPlaying) {
       video.pause();
     } else {
       video.play();
     }
   };
-  
+
   const handleSeek = (e) => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     const pos = (e.clientX - rect.left) / rect.width;
     video.currentTime = pos * duration;
   };
-  
+
   const handleVolumeChange = (e) => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     video.volume = newVolume;
     setIsMuted(newVolume === 0);
   };
-  
+
   const toggleMute = () => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isMuted) {
       video.volume = volume;
       setIsMuted(false);
@@ -117,11 +141,11 @@ const VideoPlayer = ({
       setIsMuted(true);
     }
   };
-  
+
   const toggleFullscreen = () => {
     const container = videoRef.current?.parentElement;
     if (!container) return;
-    
+
     if (!isFullscreen) {
       if (container.requestFullscreen) {
         container.requestFullscreen();
@@ -133,29 +157,32 @@ const VideoPlayer = ({
     }
     setIsFullscreen(!isFullscreen);
   };
-  
+
   const skip = (seconds) => {
     const video = videoRef.current;
     if (!video) return;
-    
-    video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
+
+    video.currentTime = Math.max(
+      0,
+      Math.min(duration, video.currentTime + seconds)
+    );
   };
-  
+
   const restart = () => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     video.currentTime = 0;
   };
-  
+
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
-  
+
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-  
+
   return (
     <Card className={`relative overflow-hidden ${className}`} padding="none">
       <div
@@ -165,19 +192,37 @@ const VideoPlayer = ({
       >
         <video
           ref={videoRef}
-          src={src}
+          key={src} // Force remount when src changes
+          className="w-full h-auto"
           poster={poster}
           autoPlay={autoPlay}
-          className="w-full h-auto"
           onClick={togglePlay}
-        />
-        
+          onError={(e) => {
+            console.error("Video error:", e);
+            console.error("Video error details:", {
+              error: e.target.error,
+              networkState: e.target.networkState,
+              readyState: e.target.readyState,
+              src: e.target.currentSrc,
+            });
+          }}
+        >
+          <source
+            src={
+              token
+                ? `${src}${src.includes("?") ? "&" : "?"}token=${token}`
+                : src
+            }
+            type="video/mp4"
+          />
+        </video>
+
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
           </div>
         )}
-        
+
         {controls && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -195,7 +240,7 @@ const VideoPlayer = ({
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
-            
+
             {/* Controls */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -207,7 +252,7 @@ const VideoPlayer = ({
                 >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -216,7 +261,7 @@ const VideoPlayer = ({
                 >
                   <SkipBack className="w-4 h-4" />
                 </Button>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -229,7 +274,7 @@ const VideoPlayer = ({
                     <Play className="w-5 h-5" />
                   )}
                 </Button>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -238,7 +283,7 @@ const VideoPlayer = ({
                 >
                   <SkipForward className="w-4 h-4" />
                 </Button>
-                
+
                 <div className="flex items-center space-x-2 ml-4">
                   <Button
                     variant="ghost"
@@ -252,7 +297,7 @@ const VideoPlayer = ({
                       <Volume2 className="w-4 h-4" />
                     )}
                   </Button>
-                  
+
                   <input
                     type="range"
                     min="0"
@@ -264,12 +309,12 @@ const VideoPlayer = ({
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 <span className="text-white text-sm">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"

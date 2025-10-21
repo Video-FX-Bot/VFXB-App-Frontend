@@ -8,9 +8,18 @@ const isFileMode = (process.env.AUTH_BACKEND || "").toLowerCase() === "file";
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"] || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    let token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    // Also check for token in query parameters (for video streaming)
+    if (!token && req.query.token) {
+      token = req.query.token;
+      logger.info("Token found in query parameters for:", req.path);
+    }
 
     if (!token) {
+      logger.warn("No authentication token provided for:", req.path);
+      logger.warn("Query params:", req.query);
+      logger.warn("Auth header:", authHeader);
       return res
         .status(401)
         .json({ success: false, message: "Access token required" });
@@ -42,32 +51,25 @@ export const authenticateToken = async (req, res, next) => {
 
     let user;
 
-    if (isFileMode) {
-      // File-store (demo)
-      const users = await readUsers();
-      user = users.find((u) => u.id === userId);
-      if (!user)
-        return res
-          .status(401)
-          .json({ success: false, message: "User not found" });
-      const { password, passwordHash, ...safe } = user;
-      req.user = { ...safe, id: safe.id || safe._id }; // normalize id
-    } else {
-      // Mongo/Mongoose (prod)
-      user = await User.findById(userId)
-        .select("-password -passwordHash -__v")
-        .lean();
-      if (!user)
-        return res
-          .status(401)
-          .json({ success: false, message: "User not found" });
-      if (user.isActive === false) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Account is deactivated" });
-      }
-      req.user = { ...user, id: user._id?.toString?.() || user.id };
+    // We're in local storage mode by default (USE_LOCAL_STORAGE=true in .env)
+    const users = await readUsers();
+    user = users.find((u) => u.id === userId || u._id === userId);
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
     }
+
+    if (user.isActive === false) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Account is deactivated" });
+    }
+
+    // Remove sensitive data
+    const { password, passwordHash, __v, ...safeUser } = user;
+    req.user = { ...safeUser, id: safeUser.id || safeUser._id };
 
     next();
   } catch (error) {

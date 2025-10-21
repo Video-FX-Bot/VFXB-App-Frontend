@@ -1,16 +1,19 @@
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import ApiService from "../services/apiService";
 
 const useVideoStore = create(
   devtools(
     (set, get) => ({
       // Video state
+      videos: [],
       currentVideo: null,
+      originalVideoId: null, // Track the original video ID for effects
       videoMetadata: null,
       isProcessing: false,
       processingProgress: 0,
-      processingStatus: '',
-      
+      processingStatus: "",
+
       // Playback state
       isPlaying: false,
       currentTime: 0,
@@ -18,175 +21,292 @@ const useVideoStore = create(
       volume: 1,
       isMuted: false,
       playbackRate: 1,
-      
+
       // Edit history
       editHistory: [],
       currentHistoryIndex: -1,
-      
+
       // Timeline state
       timelineZoom: 1,
       timelinePosition: 0,
       selectedClips: [],
-      
+      globalEffects: [], // Store effects that apply to entire video
+      clipEffects: {}, // Store effects for specific clips
+
+      // Video list actions
+      setVideos: (videos) =>
+        set({
+          videos: Array.isArray(videos)
+            ? videos
+            : typeof videos === "function"
+            ? videos(get().videos)
+            : [videos],
+        }),
+
       // Actions
+      applyGlobalEffect: async (effect) => {
+        try {
+          // Use the current video ID (which has accumulated effects)
+          // Not the original, because effects are stored on the processed versions
+          const videoId = get().currentVideo?.id;
+
+          console.log("=== Apply Effect Debug ===");
+          console.log("Current Video:", get().currentVideo);
+          console.log("Original Video ID:", get().originalVideoId);
+          console.log("Using Video ID:", videoId);
+          console.log("Effect:", effect);
+          console.log("========================");
+
+          if (!videoId) {
+            throw new Error("No video selected");
+          }
+
+          // Set processing state
+          set({ isProcessing: true, processingProgress: 0 });
+
+          // Call the API to apply the effect (ApiService is already a singleton instance)
+          const result = await ApiService.applyVideoEffect(
+            videoId,
+            effect.id,
+            effect.parameters || {}
+          );
+
+          if (!result.success) {
+            throw new Error(result.message || "Failed to apply effect");
+          }
+
+          // Update state with new video
+          const { data } = result;
+
+          console.log("Effect applied successfully, response:", data);
+
+          // Construct full video URL with authentication token
+          const token = localStorage.getItem("authToken");
+          let newVideoUrl = data.downloadUrl || state.currentVideo?.url;
+
+          // Add token to the URL if not already present
+          if (newVideoUrl && token && !newVideoUrl.includes("token=")) {
+            newVideoUrl = `${newVideoUrl}${
+              newVideoUrl.includes("?") ? "&" : "?"
+            }token=${token}`;
+          }
+
+          console.log("New video URL:", newVideoUrl);
+
+          // If the effect resulted in returning to the original (isOriginal flag)
+          // clear global effects for this type
+          const isReturningToOriginal = data.isOriginal === true;
+
+          set((state) => ({
+            currentVideo: {
+              ...state.currentVideo,
+              id: data.effectVideo,
+              url: newVideoUrl,
+              streamUrl: newVideoUrl,
+            },
+            // Keep originalVideoId unchanged - always reference the first uploaded video
+            globalEffects: isReturningToOriginal
+              ? [] // Clear all effects when returning to original
+              : [...state.globalEffects, { ...effect, id: data.effectVideo }],
+            editHistory: [
+              ...state.editHistory,
+              {
+                type: isReturningToOriginal
+                  ? "RESET_TO_ORIGINAL"
+                  : "APPLY_GLOBAL_EFFECT",
+                effect,
+                timestamp: Date.now(),
+                videoId: data.effectVideo,
+              },
+            ],
+            isProcessing: false,
+            processingProgress: 100,
+          }));
+
+          return result;
+        } catch (error) {
+          console.error("Failed to apply effect:", error);
+          set({ isProcessing: false, processingProgress: 0 });
+          throw error;
+        }
+      },
+
+      removeGlobalEffect: (effectId) => {
+        set((state) => ({
+          globalEffects: state.globalEffects.filter((e) => e.id !== effectId),
+        }));
+      },
+
       setCurrentVideo: (video) => {
         set((state) => ({
           currentVideo: video,
-          videoMetadata: video ? {
-            name: video.name,
-            size: video.size,
-            type: video.type,
-            duration: 0, // Will be set when video loads
-            resolution: null,
-            fps: null,
-            bitrate: null
-          } : null,
+          originalVideoId: video?.id || null, // Store original video ID when first loaded
+          videoMetadata: video
+            ? {
+                id: video.id, // Keep track of backend video ID
+                name: video.name,
+                size: video.size,
+                type: video.type,
+                duration: 0, // Will be set when video loads
+                resolution: null,
+                fps: null,
+                bitrate: null,
+              }
+            : null,
           // Reset playback state when new video is loaded
           isPlaying: false,
           currentTime: 0,
           duration: 0,
           // Clear edit history for new video
           editHistory: [],
-          currentHistoryIndex: -1
+          currentHistoryIndex: -1,
+          globalEffects: [], // Clear effects when loading new video
         }));
       },
-      
+
       updateVideoMetadata: (metadata) => {
         set((state) => ({
           videoMetadata: {
             ...state.videoMetadata,
-            ...metadata
-          }
+            ...metadata,
+          },
         }));
       },
-      
-      setProcessing: (isProcessing, progress = 0, status = '') => {
+
+      setProcessing: (isProcessing, progress = 0, status = "") => {
         set({
           isProcessing,
           processingProgress: progress,
-          processingStatus: status
+          processingStatus: status,
         });
       },
-      
-      updateProcessingProgress: (progress, status = '') => {
+
+      updateProcessingProgress: (progress, status = "") => {
         set((state) => ({
           processingProgress: progress,
-          processingStatus: status || state.processingStatus
+          processingStatus: status || state.processingStatus,
         }));
       },
-      
+
       // Playback controls
       setPlaying: (isPlaying) => set({ isPlaying }),
-      
+
       setCurrentTime: (currentTime) => set({ currentTime }),
-      
+
       setDuration: (duration) => {
         set((state) => ({
           duration,
-          videoMetadata: state.videoMetadata ? {
-            ...state.videoMetadata,
-            duration
-          } : null
+          videoMetadata: state.videoMetadata
+            ? {
+                ...state.videoMetadata,
+                duration,
+              }
+            : null,
         }));
       },
-      
+
       setVolume: (volume) => {
         set({
           volume: Math.max(0, Math.min(1, volume)),
-          isMuted: volume === 0
+          isMuted: volume === 0,
         });
       },
-      
+
       toggleMute: () => {
         set((state) => ({
-          isMuted: !state.isMuted
+          isMuted: !state.isMuted,
         }));
       },
-      
+
       setPlaybackRate: (playbackRate) => {
         set({
-          playbackRate: Math.max(0.25, Math.min(2, playbackRate))
+          playbackRate: Math.max(0.25, Math.min(2, playbackRate)),
         });
       },
-      
+
       // Edit history management
       addToHistory: (action) => {
         set((state) => {
-          const newHistory = state.editHistory.slice(0, state.currentHistoryIndex + 1);
+          const newHistory = state.editHistory.slice(
+            0,
+            state.currentHistoryIndex + 1
+          );
           newHistory.push({
             id: Date.now(),
             action,
             timestamp: new Date().toISOString(),
             videoState: {
               currentTime: state.currentTime,
-              duration: state.duration
-            }
+              duration: state.duration,
+            },
           });
-          
+
           return {
             editHistory: newHistory,
-            currentHistoryIndex: newHistory.length - 1
+            currentHistoryIndex: newHistory.length - 1,
           };
         });
       },
-      
+
       undo: () => {
         set((state) => {
           if (state.currentHistoryIndex > 0) {
             return {
-              currentHistoryIndex: state.currentHistoryIndex - 1
+              currentHistoryIndex: state.currentHistoryIndex - 1,
             };
           }
           return state;
         });
       },
-      
+
       redo: () => {
         set((state) => {
           if (state.currentHistoryIndex < state.editHistory.length - 1) {
             return {
-              currentHistoryIndex: state.currentHistoryIndex + 1
+              currentHistoryIndex: state.currentHistoryIndex + 1,
             };
           }
           return state;
         });
       },
-      
+
       canUndo: () => {
         const state = get();
         return state.currentHistoryIndex > 0;
       },
-      
+
       canRedo: () => {
         const state = get();
         return state.currentHistoryIndex < state.editHistory.length - 1;
       },
-      
+
       // Timeline controls
       setTimelineZoom: (zoom) => {
         set({
-          timelineZoom: Math.max(0.1, Math.min(10, zoom))
+          timelineZoom: Math.max(0.1, Math.min(10, zoom)),
         });
       },
-      
+
       setTimelinePosition: (position) => set({ timelinePosition: position }),
-      
+
       setSelectedClips: (clips) => set({ selectedClips: clips }),
-      
+
       addSelectedClip: (clip) => {
         set((state) => ({
-          selectedClips: [...state.selectedClips, clip]
+          selectedClips: [...state.selectedClips, clip],
         }));
       },
-      
+
       removeSelectedClip: (clipId) => {
         set((state) => ({
-          selectedClips: state.selectedClips.filter(clip => clip.id !== clipId)
+          selectedClips: state.selectedClips.filter(
+            (clip) => clip.id !== clipId
+          ),
         }));
       },
-      
+
       clearSelectedClips: () => set({ selectedClips: [] }),
-      
+
       // Utility functions
       reset: () => {
         set({
@@ -194,7 +314,7 @@ const useVideoStore = create(
           videoMetadata: null,
           isProcessing: false,
           processingProgress: 0,
-          processingStatus: '',
+          processingStatus: "",
           isPlaying: false,
           currentTime: 0,
           duration: 0,
@@ -205,12 +325,12 @@ const useVideoStore = create(
           currentHistoryIndex: -1,
           timelineZoom: 1,
           timelinePosition: 0,
-          selectedClips: []
+          selectedClips: [],
         });
-      }
+      },
     }),
     {
-      name: 'video-store'
+      name: "video-store",
     }
   )
 );

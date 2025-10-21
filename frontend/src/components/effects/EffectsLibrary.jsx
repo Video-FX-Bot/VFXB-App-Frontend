@@ -1,11 +1,67 @@
 // src/components/effects/EffectsLibrary.jsx
-import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import useVideoStore from "../../context/videoStore";
 import { AnimatePresence, motion } from "framer-motion";
+
+// Custom hook for effect application
+function useEffectApplication() {
+  const videoStore = useVideoStore();
+
+  const applyEffect = async (effect, parameters) => {
+    if (!videoStore.currentVideo?.id) {
+      throw new Error("No video selected. Please upload a video first.");
+    }
+
+    const effectConfig = {
+      id: effect.id,
+      name: effect.name,
+      type: effect.type,
+      parameters: parameters || {},
+      timestamp: Date.now(),
+    };
+
+    await videoStore.applyGlobalEffect(effectConfig);
+  };
+
+  return {
+    applyEffect,
+  };
+}
+
 import {
-  Search, Star, Clock, X, Save, RotateCcw, Eye, CheckCircle,
-  Sun, Palette, Film, Focus, Wind, Layers, Scissors, Scale,
-  Snowflake, Flame, Sparkles as SparklesIcon,
-  Volume2, Sliders, Music, Pipette, Move, Zap, Type, Wand2
+  Search,
+  Star,
+  Clock,
+  X,
+  Save,
+  RotateCcw,
+  Eye,
+  CheckCircle,
+  Sun,
+  Palette,
+  Film,
+  Focus,
+  Wind,
+  Layers,
+  Scissors,
+  Scale,
+  Snowflake,
+  Flame,
+  Sparkles,
+  Volume2,
+  Sliders,
+  Music,
+  Pipette,
+  Move,
+  Zap,
+  Type,
+  Wand2,
 } from "lucide-react";
 
 /* ========= Categories & Data ========= */
@@ -18,6 +74,9 @@ const EFFECT_CATEGORIES = {
   AUDIO: "Audio Effects",
   MOTION: "Motion Graphics",
   TECHNICAL: "Technical",
+  AI_ENHANCED: "AI Enhanced Effects",
+  STYLE_TRANSFER: "Style Transfer",
+  SMART_FILTERS: "Smart Filters",
 };
 
 const EFFECTS_DATA = [
@@ -49,6 +108,58 @@ const EFFECTS_DATA = [
     ],
   },
   {
+    id: "ai-cinematic",
+    name: "AI Cinematic Enhancement",
+    category: EFFECT_CATEGORIES.AI_ENHANCED,
+    icon: Wand2,
+    description: "AI-powered cinematic look enhancement",
+    premium: true,
+    parameters: [
+      { name: "intensity", type: "slider", min: 0, max: 100, default: 50 },
+      { name: "contrast", type: "slider", min: -100, max: 100, default: 0 },
+      { name: "film_grain", type: "slider", min: 0, max: 100, default: 20 },
+    ],
+    aiTriggers: [
+      "make it cinematic",
+      "enhance quality",
+      "make it look professional",
+    ],
+  },
+  {
+    id: "smart-color-grade",
+    name: "Smart Color Grading",
+    category: EFFECT_CATEGORIES.AI_ENHANCED,
+    icon: Sparkles,
+    description: "AI-powered intelligent color grading",
+    premium: true,
+    parameters: [
+      {
+        name: "style",
+        type: "select",
+        options: ["Movie", "Commercial", "Documentary", "Music Video"],
+      },
+      { name: "intensity", type: "slider", min: 0, max: 100, default: 50 },
+    ],
+    aiTriggers: ["enhance colors", "make colors pop", "grade like a movie"],
+  },
+  {
+    id: "style-transfer",
+    name: "AI Style Transfer",
+    category: EFFECT_CATEGORIES.STYLE_TRANSFER,
+    icon: Palette,
+    description: "Transform video style using AI",
+    premium: true,
+    parameters: [
+      {
+        name: "style",
+        type: "select",
+        options: ["Cinematic", "Vintage", "Noir", "Summer", "Winter"],
+      },
+      { name: "strength", type: "slider", min: 0, max: 100, default: 75 },
+    ],
+    aiTriggers: ["make it look like", "apply style", "transform style"],
+  },
+  {
     id: "lut-filter",
     name: "LUT Filter",
     category: EFFECT_CATEGORIES.COLOR,
@@ -56,7 +167,12 @@ const EFFECTS_DATA = [
     description: "Apply cinematic LUTs.",
     premium: true,
     parameters: [
-      { name: "lut", type: "select", options: ["Cinematic", "Warm", "Cool", "Vintage", "Dramatic"], default: "Cinematic" },
+      {
+        name: "lut",
+        type: "select",
+        options: ["Cinematic", "Warm", "Cool", "Vintage", "Dramatic"],
+        default: "Cinematic",
+      },
       { name: "intensity", type: "slider", min: 0, max: 100, default: 100 },
     ],
   },
@@ -69,7 +185,9 @@ const EFFECTS_DATA = [
     icon: Focus,
     description: "Smooth blur.",
     premium: false,
-    parameters: [{ name: "radius", type: "slider", min: 0, max: 50, default: 5 }],
+    parameters: [
+      { name: "radius", type: "slider", min: 0, max: 50, default: 5 },
+    ],
   },
   {
     id: "motion-blur",
@@ -80,7 +198,7 @@ const EFFECTS_DATA = [
     premium: false,
     parameters: [
       { name: "angle", type: "slider", min: 0, max: 360, default: 0 },
-      { name: "distance", type: "slider", min: 0, max: 100, default: 10 },
+      { name: "strength", type: "slider", min: 0, max: 100, default: 10 },
     ],
   },
 
@@ -92,18 +210,8 @@ const EFFECTS_DATA = [
     icon: Layers,
     description: "Smooth fade.",
     premium: false,
-    parameters: [{ name: "duration", type: "slider", min: 0.1, max: 5, default: 1 }],
-  },
-  {
-    id: "wipe-transition",
-    name: "Wipe Transition",
-    category: EFFECT_CATEGORIES.TRANSITION,
-    icon: Scissors,
-    description: "Directional wipe.",
-    premium: false,
     parameters: [
-      { name: "direction", type: "select", options: ["Left to Right", "Right to Left", "Top to Bottom", "Bottom to Top"], default: "Left to Right" },
-      { name: "feather", type: "slider", min: 0, max: 100, default: 10 },
+      { name: "duration", type: "slider", min: 0.1, max: 5, default: 1 },
     ],
   },
   {
@@ -114,7 +222,12 @@ const EFFECTS_DATA = [
     description: "Dynamic zoom.",
     premium: true,
     parameters: [
-      { name: "zoomType", type: "select", options: ["Zoom In", "Zoom Out", "Zoom In/Out"], default: "Zoom In" },
+      {
+        name: "zoomType",
+        type: "select",
+        options: ["Zoom In", "Zoom Out", "Zoom In/Out"],
+        default: "Zoom In",
+      },
       { name: "centerX", type: "slider", min: 0, max: 100, default: 50 },
       { name: "centerY", type: "slider", min: 0, max: 100, default: 50 },
     ],
@@ -151,7 +264,7 @@ const EFFECTS_DATA = [
     id: "sparkles",
     name: "Sparkles",
     category: EFFECT_CATEGORIES.PARTICLE,
-    icon: SparklesIcon,
+    icon: Sparkles,
     description: "Magical sparkles.",
     premium: false,
     parameters: [
@@ -175,6 +288,7 @@ const EFFECTS_DATA = [
       { name: "y", type: "slider", min: 0, max: 100, default: 50 },
       { name: "color", type: "color", default: "#ffffff" },
     ],
+    applyGlobally: true,
   },
 
   // Audio
@@ -241,7 +355,12 @@ const EFFECTS_DATA = [
     parameters: [
       { name: "startSpeed", type: "slider", min: 0.1, max: 5, default: 1 },
       { name: "endSpeed", type: "slider", min: 0.1, max: 5, default: 1 },
-      { name: "curve", type: "select", options: ["Linear", "Ease In", "Ease Out", "Ease In/Out"], default: "Ease In/Out" },
+      {
+        name: "curve",
+        type: "select",
+        options: ["Linear", "Ease In", "Ease Out", "Ease In/Out"],
+        default: "Ease In/Out",
+      },
     ],
   },
   {
@@ -252,7 +371,12 @@ const EFFECTS_DATA = [
     description: "Animated text presets.",
     premium: false,
     parameters: [
-      { name: "animation", type: "select", options: ["Fade In", "Slide In", "Typewriter", "Bounce"], default: "Fade In" },
+      {
+        name: "animation",
+        type: "select",
+        options: ["Fade In", "Slide In", "Typewriter", "Bounce"],
+        default: "Fade In",
+      },
       { name: "duration", type: "slider", min: 0.5, max: 5, default: 1 },
     ],
   },
@@ -278,20 +402,27 @@ const EFFECTS_DATA = [
     premium: true,
     parameters: [
       { name: "strength", type: "slider", min: 0, max: 100, default: 50 },
-      { name: "cropMode", type: "select", options: ["Auto", "Manual"], default: "Auto" },
+      {
+        name: "cropMode",
+        type: "select",
+        options: ["Auto", "Manual"],
+        default: "Auto",
+      },
     ],
   },
 ];
 
 /* =============== Component =============== */
 const EffectsLibrary = ({
-  onEffectSelect,
-  onEffectApply,
-  onPreview,
-  selectedClip = null,
-  realTimePreview = true,
   className = "",
+  onEffectSelect = () => {},
+  onPreview = () => {},
+  realTimePreview = false,
+  currentEffectParams = { brightness: 0, contrast: 0 },
+  onEffectParamsChange = () => {},
 }) => {
+  const { applyEffect } = useEffectApplication();
+  const currentVideo = useVideoStore((state) => state.currentVideo);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [showPremiumOnly, setShowPremiumOnly] = useState(false);
@@ -299,6 +430,8 @@ const EffectsLibrary = ({
   const [params, setParams] = useState({});
   const [previewOn, setPreviewOn] = useState(false);
   const [recent, setRecent] = useState([]);
+  // Store last applied parameters for each effect
+  const [savedParams, setSavedParams] = useState({});
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -314,32 +447,92 @@ const EffectsLibrary = ({
     });
   }, [search, category, showPremiumOnly]);
 
-  const startEffect = useCallback((effect) => {
-    setSelectedEffect(effect);
-    const p = {};
-    (effect.parameters || []).forEach((pr) => (p[pr.name] = pr.default));
-    setParams(p);
-    setRecent((r) => [effect.id, ...r.filter((id) => id !== effect.id)].slice(0, 6));
-    onEffectSelect?.(effect);
-  }, [onEffectSelect]);
+  const startEffect = useCallback(
+    (effect) => {
+      setSelectedEffect(effect);
+      // Use saved parameters if available, otherwise use defaults
+      const p = savedParams[effect.id] || {};
+      if (Object.keys(p).length === 0) {
+        (effect.parameters || []).forEach((pr) => (p[pr.name] = pr.default));
+      }
+
+      // For brightness effect, use currentEffectParams from AI chat
+      if (effect.id === "brightness") {
+        p.brightness = currentEffectParams.brightness;
+        p.contrast = currentEffectParams.contrast;
+      }
+
+      setParams(p);
+      setRecent((r) =>
+        [effect.id, ...r.filter((id) => id !== effect.id)].slice(0, 6)
+      );
+      onEffectSelect(effect);
+    },
+    [savedParams, currentEffectParams, onEffectSelect] // Add currentEffectParams as dependency
+  );
 
   useEffect(() => {
     if (!realTimePreview || !previewOn || !selectedEffect || !onPreview) return;
     const t = setTimeout(() => {
-      onPreview({ effect: selectedEffect, parameters: params, clipId: selectedClip?.id });
+      onPreview({
+        effect: selectedEffect,
+        parameters: params,
+      });
     }, 250);
     return () => clearTimeout(t);
-  }, [params, realTimePreview, previewOn, selectedEffect, selectedClip, onPreview]);
+  }, [params, realTimePreview, previewOn, selectedEffect, onPreview]);
 
-  const handleParamChange = (name, value) => setParams((prev) => ({ ...prev, [name]: value }));
-  const applyEffect = async () => {
-    if (!selectedEffect || !selectedClip) return;
-    await onEffectApply?.({ effect: selectedEffect, parameters: params, clipId: selectedClip.id });
+  const handleParamChange = (name, value) =>
+    setParams((prev) => ({ ...prev, [name]: value }));
+  const [error, setError] = useState(null);
+  const [applying, setApplying] = useState(false);
+
+  const handleApplyEffect = async () => {
+    if (!selectedEffect) {
+      setError("Please select an effect to apply.");
+      return;
+    }
+
+    setError(null);
+    setApplying(true);
+
+    try {
+      await applyEffect(selectedEffect, params);
+      // Save the current parameters for this effect
+      setSavedParams((prev) => ({
+        ...prev,
+        [selectedEffect.id]: { ...params },
+      }));
+
+      // Update parent state if this is brightness/contrast
+      if (selectedEffect.id === "brightness") {
+        onEffectParamsChange({
+          brightness: params.brightness || 0,
+          contrast: params.contrast || 0,
+        });
+      }
+
+      // Close the effect panel after successful application
+      setSelectedEffect(null);
+      // Optionally update recent effects
+      setRecent((prev) =>
+        [
+          selectedEffect,
+          ...prev.filter((e) => e.id !== selectedEffect.id),
+        ].slice(0, 5)
+      );
+    } catch (err) {
+      setError(err.message || "Failed to apply effect");
+    } finally {
+      setApplying(false);
+    }
   };
   const resetParams = () => {
     if (!selectedEffect) return;
     const p = {};
-    (selectedEffect.parameters || []).forEach((pr) => (p[pr.name] = pr.default));
+    (selectedEffect.parameters || []).forEach(
+      (pr) => (p[pr.name] = pr.default)
+    );
     setParams(p);
   };
 
@@ -360,7 +553,9 @@ const EffectsLibrary = ({
             max={def.max}
             step={def.step || (def.max - def.min) / 100}
             value={value}
-            onChange={(e) => handleParamChange(def.name, parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleParamChange(def.name, parseFloat(e.target.value))
+            }
             className="w-full h-2 rounded-lg cursor-pointer"
           />
         </div>
@@ -412,7 +607,9 @@ const EffectsLibrary = ({
     if (def.type === "toggle") {
       return (
         <label className="flex items-center justify-between text-xs">
-          <span className="font-medium">{def.name.replace(/([A-Z])/g, " $1")}</span>
+          <span className="font-medium">
+            {def.name.replace(/([A-Z])/g, " $1")}
+          </span>
           <input
             type="checkbox"
             checked={!!value}
@@ -426,7 +623,9 @@ const EffectsLibrary = ({
   };
 
   return (
-    <div className={`relative bg-card border-2 border-border rounded-lg overflow-hidden ${className}`}>
+    <div
+      className={`relative bg-card border-2 border-border rounded-lg overflow-hidden ${className}`}
+    >
       {/* Header (wraps; no horizontal scroll) */}
       <div className="p-4 border-b-2 border-border bg-muted/50">
         <div className="flex flex-wrap items-center gap-3">
@@ -445,7 +644,9 @@ const EffectsLibrary = ({
             <button
               onClick={() => setPreviewOn((v) => !v)}
               className={`px-2.5 py-1 rounded border text-xs flex items-center gap-1 ${
-                previewOn ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                previewOn
+                  ? "border-primary text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground"
               }`}
               title="Toggle real-time preview"
             >
@@ -455,7 +656,9 @@ const EffectsLibrary = ({
             <button
               onClick={() => setShowPremiumOnly((v) => !v)}
               className={`px-2.5 py-1 rounded border text-xs flex items-center gap-1 ${
-                showPremiumOnly ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                showPremiumOnly
+                  ? "border-primary text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground"
               }`}
               title="Show only Pro effects"
             >
@@ -499,7 +702,9 @@ const EffectsLibrary = ({
         {filtered.length === 0 ? (
           <div className="text-center py-16">
             <Wand2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No effects match your filters.</p>
+            <p className="text-sm text-muted-foreground">
+              No effects match your filters.
+            </p>
             <button
               onClick={() => {
                 setSearch("");
@@ -523,15 +728,23 @@ const EffectsLibrary = ({
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   className={`text-left rounded-xl border-2 transition-all p-4 w-full
-                    ${active
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50 bg-card"}`}
+                    ${
+                      active
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50 bg-card"
+                    }`}
                   title={e.description}
                 >
                   <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mx-auto mb-3">
-                    <Icon className={`w-6 h-6 ${active ? "text-primary" : "text-primary"}`} />
+                    <Icon
+                      className={`w-6 h-6 ${
+                        active ? "text-primary" : "text-primary"
+                      }`}
+                    />
                   </div>
-                  <h4 className="text-sm font-semibold text-center truncate">{e.name}</h4>
+                  <h4 className="text-sm font-semibold text-center truncate">
+                    {e.name}
+                  </h4>
                   <p className="text-xs text-muted-foreground text-center mt-1 line-clamp-2">
                     {e.description}
                   </p>
@@ -568,7 +781,9 @@ const EffectsLibrary = ({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <selectedEffect.icon className="w-5 h-5 text-primary shrink-0" />
-                    <h4 className="text-sm font-semibold truncate">{selectedEffect.name}</h4>
+                    <h4 className="text-sm font-semibold truncate">
+                      {selectedEffect.name}
+                    </h4>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {selectedEffect.description}
@@ -586,7 +801,9 @@ const EffectsLibrary = ({
               {realTimePreview && previewOn && (
                 <div className="flex items-center gap-2 p-2 rounded border border-green-200 bg-green-50">
                   <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-xs text-green-700">Real-time preview active</span>
+                  <span className="text-xs text-green-700">
+                    Real-time preview active
+                  </span>
                 </div>
               )}
 
@@ -603,7 +820,9 @@ const EffectsLibrary = ({
                       Reset
                     </button>
                     <button
-                      onClick={() => {/* hook up save preset here if needed */}}
+                      onClick={() => {
+                        /* hook up save preset here if needed */
+                      }}
                       className="px-2 py-1 text-[11px] rounded border border-border hover:bg-card flex items-center gap-1"
                       title="Save preset"
                     >
@@ -621,21 +840,24 @@ const EffectsLibrary = ({
               </div>
 
               <div className="pt-2 border-t-2 border-border">
-                <button
-                  onClick={applyEffect}
-                  disabled={!selectedClip}
-                  className={`w-full text-sm font-medium rounded-md px-3 py-2 transition
-                    ${selectedClip
-                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-95"
-                      : "bg-muted text-muted-foreground cursor-not-allowed border border-border"}`}
-                >
-                  Apply Effect
-                </button>
-                {!selectedClip && (
-                  <p className="mt-2 text-[11px] text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
-                    Select a clip to apply effects.
-                  </p>
+                {error && (
+                  <div className="mb-2 p-2 text-xs text-red-700 bg-red-100 rounded border border-red-300">
+                    {error}
+                  </div>
                 )}
+                <button
+                  onClick={handleApplyEffect}
+                  disabled={applying}
+                  className={`w-full text-sm font-medium rounded-md px-3 py-2 transition
+                    bg-gradient-to-r from-blue-500 to-purple-600 text-white 
+                    ${
+                      applying
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:opacity-95"
+                    }`}
+                >
+                  {applying ? "Applying Effect..." : "Apply Effect"}
+                </button>
               </div>
             </div>
           </motion.div>

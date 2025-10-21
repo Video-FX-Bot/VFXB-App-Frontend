@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import EnhancedTimeline from "../components/EnhancedTimeline";
 import { useLocation } from "react-router-dom";
 import {
   Play,
@@ -42,6 +41,7 @@ import {
 import socketService from "../services/socketService";
 import projectService from "../services/projectService";
 import aiService from "../services/aiService";
+import useVideoStore from "../context/videoStore";
 
 /* ===========================================================
    FrameStrip (unchanged except for formatting)
@@ -251,12 +251,20 @@ const AIEditor = () => {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const videoRef = useRef(null);
   const [uploadedVideo, setUploadedVideo] = useState(null);
+  const prevStoreVideoRef = useRef({ id: null, url: null }); // Track previous store values
+  const processedResponseIds = useRef(new Set()); // Track processed AI responses to prevent duplicates
+  const hasShownWelcomeMessage = useRef(false); // Track if we've shown the welcome message to prevent duplicates
+
+  // Connect to video store - only select what we need to prevent re-renders
+  const storeCurrentVideo = useVideoStore((state) => state.currentVideo);
+  const applyGlobalEffect = useVideoStore((state) => state.applyGlobalEffect);
+  const setCurrentVideo = useVideoStore((state) => state.setCurrentVideo);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     {
       type: "ai",
@@ -286,6 +294,12 @@ const AIEditor = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
+
+  // Track current effect parameters for manual controls
+  const [currentEffectParams, setCurrentEffectParams] = useState({
+    brightness: 0,
+    contrast: 0,
+  });
 
   const [selectedTool, setSelectedTool] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -448,6 +462,7 @@ const AIEditor = () => {
   };
 
   const handleAIAction = async (action) => {
+    console.log("🎯 handleAIAction called with:", action);
     try {
       setIsProcessing(true);
       setProcessingProgress(0);
@@ -464,7 +479,11 @@ const AIEditor = () => {
         return;
       }
 
-      switch (action.kind) {
+      // Check both action.kind (old format) and action.action (new format)
+      const actionType = action.kind || action.action;
+      console.log("🎯 actionType resolved to:", actionType);
+
+      switch (actionType) {
         case "exec": {
           const res = await aiService.executeVideoOperation(
             action.operation,
@@ -524,13 +543,11 @@ const AIEditor = () => {
         }
         case "tool": {
           if (action.name === "trim-tool") {
-            setShowTimeline(true);
             setSelectedTool({ id: "trim", name: "Trim" });
             aiService.openTrimTool?.();
           } else if (action.name === "auto-trim") {
             aiService.autoDetectTrimPoints?.();
           } else if (action.name === "color-tool") {
-            setShowTimeline(true);
             setSelectedTool({
               id: "color-correction",
               name: "Color Correction",
@@ -542,6 +559,366 @@ const AIEditor = () => {
             aiService.showNoiseSettings?.();
           } else if (action.name === "subtitle-upload") {
             aiService.openSubtitleUpload?.();
+          }
+          break;
+        }
+        case "adjust_brightness":
+        case "adjust_contrast":
+        case "reset": {
+          // Get current video from store
+          const currentVideo = useVideoStore.getState().currentVideo;
+          if (!currentVideo?.id) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: "No video loaded to adjust.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
+
+          // Show processing state
+          setIsGeneratingVideo(true);
+          setProcessingProgress(10);
+
+          // Simulate progress updates
+          const progressInterval = setInterval(() => {
+            setProcessingProgress((prev) => {
+              if (prev >= 90) {
+                clearInterval(progressInterval);
+                return 90;
+              }
+              return prev + 10;
+            });
+          }, 300);
+
+          // Apply the effect
+          const applyEffect = useVideoStore.getState().applyGlobalEffect;
+          try {
+            await applyEffect({
+              id: "brightness",
+              name: "Brightness/Contrast",
+              type: "color",
+              parameters: action.parameters || {},
+              timestamp: Date.now(),
+            });
+
+            // Complete progress
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+
+            setTimeout(() => {
+              setIsGeneratingVideo(false);
+              setProcessingProgress(0);
+            }, 500);
+
+            // Update current effect parameters for manual controls
+            const params = action.parameters;
+            setCurrentEffectParams({
+              brightness: params.brightness || 0,
+              contrast: params.contrast || 0,
+            });
+
+            // Show confirmation with quick actions again
+            let confirmationMsg = "✅ Done! ";
+
+            if (action.action === "reset") {
+              confirmationMsg = "✅ Reset to original video!";
+            } else if (params.brightness && params.brightness !== 0) {
+              confirmationMsg += `Brightness ${
+                params.brightness > 0 ? "increased" : "decreased"
+              }.`;
+            } else if (params.contrast && params.contrast !== 0) {
+              confirmationMsg += `Contrast ${
+                params.contrast > 0 ? "increased" : "decreased"
+              }.`;
+            }
+
+            // Add the same quick actions for further adjustments
+            const quickActions = [
+              {
+                label: "✨ Brighten More",
+                action: "adjust_brightness",
+                parameters: { brightness: 30, contrast: 0 },
+              },
+              {
+                label: "🌙 Darken",
+                action: "adjust_brightness",
+                parameters: { brightness: -30, contrast: 0 },
+              },
+              {
+                label: "📈 Increase Contrast",
+                action: "adjust_contrast",
+                parameters: { brightness: 0, contrast: 30 },
+              },
+              {
+                label: "📉 Decrease Contrast",
+                action: "adjust_contrast",
+                parameters: { brightness: 0, contrast: -30 },
+              },
+              {
+                label: "🔄 Reset to Original",
+                action: "reset",
+                parameters: { brightness: 0, contrast: 0 },
+              },
+            ];
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                id: `msg-${Date.now()}-${Math.random()}`,
+                type: "ai",
+                content: confirmationMsg,
+                timestamp: new Date().toISOString(),
+                actions: quickActions,
+              },
+            ]);
+          } catch (error) {
+            clearInterval(progressInterval);
+            setIsGeneratingVideo(false);
+            setProcessingProgress(0);
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ Sorry, I couldn't apply the effect: ${error.message}`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
+          break;
+        }
+        case "lut-filter": {
+          // Handle LUT filter button clicks
+          const currentVideo = useVideoStore.getState().currentVideo;
+          const applyEffect = useVideoStore.getState().applyGlobalEffect;
+
+          if (!currentVideo?.id) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: "❌ No video available to apply filter.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            break;
+          }
+
+          const params = action.parameters || {};
+          const lutType = params.lut || "Cinematic";
+          const intensity = params.intensity || 100;
+
+          console.log(`Applying LUT filter: ${lutType} at ${intensity}%`);
+
+          setIsGeneratingVideo(true);
+          setProcessingProgress(10);
+
+          const progressInterval = setInterval(() => {
+            setProcessingProgress((prev) => {
+              if (prev >= 90) {
+                clearInterval(progressInterval);
+                return 90;
+              }
+              return prev + 10;
+            });
+          }, 300);
+
+          try {
+            const effectConfig = {
+              id: "lut-filter",
+              name: "LUT Filter",
+              type: "color",
+              parameters: { lut: lutType, intensity },
+              timestamp: Date.now(),
+            };
+
+            await applyEffect(effectConfig);
+
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+
+            setTimeout(() => {
+              setIsGeneratingVideo(false);
+              setProcessingProgress(0);
+            }, 500);
+
+            // Show confirmation with all LUT options
+            const quickActions = [
+              {
+                label: "🎬 Cinematic",
+                action: "lut-filter",
+                parameters: { lut: "Cinematic", intensity: 100 },
+              },
+              {
+                label: "🌅 Warm",
+                action: "lut-filter",
+                parameters: { lut: "Warm", intensity: 100 },
+              },
+              {
+                label: "❄️ Cool",
+                action: "lut-filter",
+                parameters: { lut: "Cool", intensity: 100 },
+              },
+              {
+                label: "📷 Vintage",
+                action: "lut-filter",
+                parameters: { lut: "Vintage", intensity: 100 },
+              },
+              {
+                label: "⚡ Dramatic",
+                action: "lut-filter",
+                parameters: { lut: "Dramatic", intensity: 100 },
+              },
+            ];
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                id: `msg-${Date.now()}-${Math.random()}`,
+                type: "ai",
+                content: `✅ ${lutType} filter applied at ${intensity}% intensity!`,
+                timestamp: new Date().toISOString(),
+                actions: quickActions,
+              },
+            ]);
+          } catch (error) {
+            clearInterval(progressInterval);
+            setIsGeneratingVideo(false);
+            setProcessingProgress(0);
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ Failed to apply LUT filter: ${error.message}`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
+          break;
+        }
+        case "gaussian-blur":
+        case "motion-blur": {
+          // Handle blur button clicks
+          const currentVideo = useVideoStore.getState().currentVideo;
+          const applyEffect = useVideoStore.getState().applyGlobalEffect;
+
+          if (!currentVideo?.id) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: "❌ No video available to apply blur.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            break;
+          }
+
+          const params = action.parameters || {};
+          const isGaussian = actionType === "gaussian-blur";
+
+          console.log(
+            `Applying ${isGaussian ? "Gaussian" : "Motion"} blur:`,
+            params
+          );
+
+          setIsGeneratingVideo(true);
+          setProcessingProgress(10);
+
+          const progressInterval = setInterval(() => {
+            setProcessingProgress((prev) => {
+              if (prev >= 90) {
+                clearInterval(progressInterval);
+                return 90;
+              }
+              return prev + 10;
+            });
+          }, 300);
+
+          try {
+            const effectConfig = {
+              id: isGaussian ? "gaussian-blur" : "motion-blur",
+              name: isGaussian ? "Gaussian Blur" : "Motion Blur",
+              type: "blur",
+              parameters: params,
+              timestamp: Date.now(),
+            };
+
+            await applyEffect(effectConfig);
+
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+
+            setTimeout(() => {
+              setIsGeneratingVideo(false);
+              setProcessingProgress(0);
+            }, 500);
+
+            // Show confirmation with blur adjustment options
+            const quickActions = [
+              {
+                label: "🔼 More Blur",
+                action: actionType,
+                parameters: isGaussian
+                  ? { radius: (params.radius || 5) + 3 }
+                  : {
+                      angle: params.angle || 0,
+                      strength: (params.strength || 10) + 5,
+                    },
+              },
+              {
+                label: "🔽 Less Blur",
+                action: actionType,
+                parameters: isGaussian
+                  ? { radius: Math.max(1, (params.radius || 5) - 3) }
+                  : {
+                      angle: params.angle || 0,
+                      strength: Math.max(1, (params.strength || 10) - 5),
+                    },
+              },
+              {
+                label: "🔄 Remove Blur",
+                action: "reset",
+                parameters: {},
+              },
+            ];
+
+            const blurDetails = isGaussian
+              ? `radius ${params.radius || 5}`
+              : `angle ${params.angle || 0}° with strength ${
+                  params.strength || 10
+                }`;
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                id: `msg-${Date.now()}-${Math.random()}`,
+                type: "ai",
+                content: `✅ ${
+                  isGaussian ? "Gaussian" : "Motion"
+                } blur applied (${blurDetails})!`,
+                timestamp: new Date().toISOString(),
+                actions: quickActions,
+              },
+            ]);
+          } catch (error) {
+            clearInterval(progressInterval);
+            setIsGeneratingVideo(false);
+            setProcessingProgress(0);
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ Failed to apply blur: ${error.message}`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
           }
           break;
         }
@@ -653,6 +1030,374 @@ const AIEditor = () => {
   /* -------------------------------
      Scroll chat to bottom
   --------------------------------*/
+  // Connect to socket and listen for AI responses
+  useEffect(() => {
+    console.log("🔌 Setting up socket connection in AIEditor");
+    console.log("Component mounted, setting up listeners...");
+
+    socketService.connect();
+
+    // Listen for AI responses - using socketService wrapper
+    const handleAIResponse = (response) => {
+      console.log("🎬 ===============================================");
+      console.log("🎬 AI Response received in AIEditor handleAIResponse");
+      console.log("🎬 ===============================================");
+      console.log("Full response:", response);
+      console.log("Intent:", response.intent);
+      console.log("Intent action:", response.intent?.action);
+      console.log("Intent parameters:", response.intent?.parameters);
+
+      // Prevent duplicate processing of the same response
+      if (response.id && processedResponseIds.current.has(response.id)) {
+        console.log("⚠️ Duplicate response detected, skipping:", response.id);
+        return;
+      }
+      if (response.id) {
+        processedResponseIds.current.add(response.id);
+      }
+
+      // Don't show AI message if it's a brightness/contrast/blur/lut intent - we'll show confirmation after applying
+      const isAutoApplyIntent =
+        response.intent?.action === "brightness" ||
+        response.intent?.action === "contrast" ||
+        response.intent?.action === "gaussian-blur" ||
+        response.intent?.action === "motion-blur" ||
+        response.intent?.action === "lut-filter";
+
+      if (!isAutoApplyIntent) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            type: "ai",
+            content: response.message,
+            timestamp: response.timestamp,
+            actions: response.actions,
+            tips: response.tips,
+          },
+        ]);
+      }
+
+      setIsChatLoading(false);
+      setIsTyping(false);
+      setIsGeneratingVideo(false);
+
+      // Automatically apply brightness/contrast/blur/lut effects
+      // Get fresh video ID from store, not from stale closure
+      const applyEffect = useVideoStore.getState().applyGlobalEffect;
+      const videoFromStore = useVideoStore.getState().currentVideo;
+      const intentAction = response.intent?.action;
+
+      if (
+        (intentAction === "brightness" ||
+          intentAction === "contrast" ||
+          intentAction === "gaussian-blur" ||
+          intentAction === "motion-blur" ||
+          intentAction === "lut-filter" ||
+          intentAction === "cross-dissolve" ||
+          intentAction === "zoom-transition") &&
+        videoFromStore?.id
+      ) {
+        const effectName =
+          intentAction === "brightness"
+            ? "brightness"
+            : intentAction === "contrast"
+            ? "contrast"
+            : intentAction === "gaussian-blur"
+            ? "Gaussian Blur"
+            : intentAction === "motion-blur"
+            ? "Motion Blur"
+            : intentAction === "lut-filter"
+            ? "LUT Filter"
+            : intentAction === "cross-dissolve"
+            ? "Cross Dissolve"
+            : "Zoom Transition";
+        console.log(
+          `✅ ${effectName} intent detected! Auto-applying effect...`
+        );
+        console.log("Intent parameters:", response.intent.parameters);
+        console.log("Current video in store:", videoFromStore);
+        console.log("Calling applyGlobalEffect...");
+
+        // Show processing state
+        setIsGeneratingVideo(true);
+        setProcessingProgress(10);
+
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setProcessingProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }, 300);
+
+        // Determine effect configuration based on intent
+        let effectConfig = {
+          parameters: response.intent.parameters || {},
+          timestamp: Date.now(),
+        };
+
+        if (intentAction === "brightness" || intentAction === "contrast") {
+          effectConfig.id = "brightness";
+          effectConfig.name = "Brightness/Contrast";
+          effectConfig.type = "color";
+        } else if (intentAction === "gaussian-blur") {
+          effectConfig.id = "gaussian-blur";
+          effectConfig.name = "Gaussian Blur";
+          effectConfig.type = "blur";
+        } else if (intentAction === "motion-blur") {
+          effectConfig.id = "motion-blur";
+          effectConfig.name = "Motion Blur";
+          effectConfig.type = "blur";
+        } else if (intentAction === "lut-filter") {
+          effectConfig.id = "lut-filter";
+          effectConfig.name = "LUT Filter";
+          effectConfig.type = "color";
+        } else if (intentAction === "cross-dissolve") {
+          effectConfig.id = "cross-dissolve";
+          effectConfig.name = "Cross Dissolve";
+          effectConfig.type = "transition";
+        } else if (intentAction === "zoom-transition") {
+          effectConfig.id = "zoom-transition";
+          effectConfig.name = "Zoom Transition";
+          effectConfig.type = "transition";
+        }
+
+        applyEffect(effectConfig)
+          .then((result) => {
+            console.log("✅ Effect applied successfully! Result:", result);
+            console.log("Updated video store:", videoFromStore);
+
+            // Update current effect parameters for manual controls (brightness/contrast only)
+            if (intentAction === "brightness" || intentAction === "contrast") {
+              const params = response.intent.parameters;
+              setCurrentEffectParams({
+                brightness: params.brightness || 0,
+                contrast: params.contrast || 0,
+              });
+            }
+
+            // Complete progress and hide after a short delay
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+
+            setTimeout(() => {
+              setIsGeneratingVideo(false);
+              setProcessingProgress(0);
+            }, 500);
+
+            // Show specific confirmation based on what was changed
+            const params = response.intent.parameters;
+            let confirmationMsg = "✅ Done! ";
+
+            if (intentAction === "gaussian-blur") {
+              confirmationMsg = `✅ Blur applied with radius ${
+                params.radius || 5
+              }!`;
+            } else if (intentAction === "motion-blur") {
+              confirmationMsg = `✅ Motion blur applied at ${
+                params.angle || 0
+              }° with strength ${params.strength || 10}!`;
+            } else if (intentAction === "lut-filter") {
+              const lutType = params.lutType || params.lut || "Cinematic";
+              const intensity = params.intensity || 100;
+              confirmationMsg = `✅ ${lutType} LUT filter applied at ${intensity}% intensity!`;
+            } else if (intentAction === "cross-dissolve") {
+              const duration = params.duration || 1;
+              confirmationMsg = `✅ Cross dissolve transition applied (${duration}s)!`;
+            } else if (intentAction === "zoom-transition") {
+              const zoomType = params.zoomType || "Zoom In";
+              const duration = params.duration || 1;
+              confirmationMsg = `✅ Zoom transition applied (${zoomType}, ${duration}s)!`;
+            } else {
+              // Brightness/contrast
+              if (params.brightness && params.brightness !== 0) {
+                confirmationMsg += `Brightness ${
+                  params.brightness > 0 ? "increased" : "decreased"
+                }.`;
+              }
+              if (params.contrast && params.contrast !== 0) {
+                if (params.brightness && params.brightness !== 0)
+                  confirmationMsg += " ";
+                confirmationMsg += `Contrast ${
+                  params.contrast > 0 ? "increased" : "decreased"
+                }.`;
+              }
+            }
+
+            // Add interactive action buttons for quick adjustments
+            let quickActions = [];
+            if (intentAction === "brightness" || intentAction === "contrast") {
+              quickActions = [
+                {
+                  label: "✨ Brighten More",
+                  action: "adjust_brightness",
+                  parameters: { brightness: 30, contrast: 0 },
+                },
+                {
+                  label: "🌙 Darken",
+                  action: "adjust_brightness",
+                  parameters: { brightness: -30, contrast: 0 },
+                },
+                {
+                  label: "📈 Increase Contrast",
+                  action: "adjust_contrast",
+                  parameters: { brightness: 0, contrast: 30 },
+                },
+                {
+                  label: "📉 Decrease Contrast",
+                  action: "adjust_contrast",
+                  parameters: { brightness: 0, contrast: -30 },
+                },
+                {
+                  label: "🔄 Reset to Original",
+                  action: "reset",
+                  parameters: { brightness: 0, contrast: 0 },
+                },
+              ];
+            } else if (intentAction === "lut-filter") {
+              // Show all LUT filter options
+              quickActions = [
+                {
+                  label: "🎬 Cinematic",
+                  action: "lut-filter",
+                  parameters: { lut: "Cinematic", intensity: 100 },
+                },
+                {
+                  label: "🌅 Warm",
+                  action: "lut-filter",
+                  parameters: { lut: "Warm", intensity: 100 },
+                },
+                {
+                  label: "❄️ Cool",
+                  action: "lut-filter",
+                  parameters: { lut: "Cool", intensity: 100 },
+                },
+                {
+                  label: "📷 Vintage",
+                  action: "lut-filter",
+                  parameters: { lut: "Vintage", intensity: 100 },
+                },
+                {
+                  label: "⚡ Dramatic",
+                  action: "lut-filter",
+                  parameters: { lut: "Dramatic", intensity: 100 },
+                },
+              ];
+            } else if (
+              intentAction === "gaussian-blur" ||
+              intentAction === "motion-blur"
+            ) {
+              // Show blur adjustment options
+              quickActions = [
+                {
+                  label: "🔼 More Blur",
+                  action: intentAction,
+                  parameters:
+                    intentAction === "gaussian-blur"
+                      ? { radius: (params.radius || 5) + 3 }
+                      : {
+                          angle: params.angle || 0,
+                          strength: (params.strength || 10) + 5,
+                        },
+                },
+                {
+                  label: "🔽 Less Blur",
+                  action: intentAction,
+                  parameters:
+                    intentAction === "gaussian-blur"
+                      ? { radius: Math.max(1, (params.radius || 5) - 3) }
+                      : {
+                          angle: params.angle || 0,
+                          strength: Math.max(1, (params.strength || 10) - 5),
+                        },
+                },
+                {
+                  label: "🔄 Remove Blur",
+                  action: "reset",
+                  parameters: {},
+                },
+              ];
+            }
+
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                id: `msg-${Date.now()}-${Math.random()}`,
+                type: "ai",
+                content: confirmationMsg,
+                timestamp: new Date().toISOString(),
+                actions: quickActions,
+              },
+            ]);
+          })
+          .catch((error) => {
+            console.error("❌ Error applying effect:", error);
+            console.error("Error stack:", error.stack);
+
+            // Hide processing state on error
+            clearInterval(progressInterval);
+            setIsGeneratingVideo(false);
+            setProcessingProgress(0);
+
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                type: "ai",
+                content: `❌ Sorry, I couldn't apply the effect: ${error.message}`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          });
+      } else {
+        console.log(
+          "⚠️ Brightness/contrast intent not detected or no video loaded"
+        );
+        console.log(
+          "- Intent action matches 'brightness' or 'contrast'?",
+          intentAction === "brightness" || intentAction === "contrast"
+        );
+        console.log("- Video ID exists?", !!videoFromStore?.id);
+      }
+    };
+
+    // Register listeners using socketService wrapper
+    console.log("🎯 Registering AI response listener in AIEditor");
+    socketService.onAIResponse(handleAIResponse);
+
+    // Listen for AI typing indicator
+    socketService.onAITyping((data) => {
+      setIsTyping(data.typing);
+      setIsChatLoading(data.typing);
+    });
+
+    // Listen for chat errors
+    socketService.onChatError((error) => {
+      console.error("Chat error:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content:
+            error.error || "Sorry, I encountered an error. Please try again.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setIsChatLoading(false);
+      setIsTyping(false);
+      setIsGeneratingVideo(false);
+    });
+
+    return () => {
+      console.log("🔌 Cleaning up socket listeners in AIEditor");
+      socketService.off("ai_response", handleAIResponse);
+      socketService.off("ai_typing");
+      socketService.off("chat_error");
+    };
+  }, []); // Only connect once on mount, don't reconnect when video changes
+
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
@@ -660,13 +1405,129 @@ const AIEditor = () => {
   }, [chatMessages, isChatLoading]);
 
   /* -------------------------------
+     Watch for video updates from store (when effects are applied)
+  --------------------------------*/
+  useEffect(() => {
+    if (!storeCurrentVideo || !uploadedVideo) return;
+
+    const prevId = prevStoreVideoRef.current.id;
+    const prevUrl = prevStoreVideoRef.current.url;
+    const currentId = storeCurrentVideo.id;
+    const currentUrl = storeCurrentVideo.url;
+
+    // Check if ID or URL actually changed
+    const idChanged = currentId !== prevId && currentId !== uploadedVideo.id;
+    const urlChanged =
+      currentUrl !== prevUrl && currentUrl !== uploadedVideo.url;
+
+    if (idChanged || urlChanged) {
+      console.log("=== Video Store Update Detected ===");
+      console.log("Previous store values:", prevStoreVideoRef.current);
+      console.log("Current store video:", storeCurrentVideo);
+      console.log("Current uploadedVideo:", uploadedVideo);
+      console.log("ID changed:", idChanged, `(${prevId} -> ${currentId})`);
+      console.log("URL changed:", urlChanged);
+      console.log("Old URL:", prevUrl);
+      console.log("New URL:", currentUrl);
+
+      // Update uploadedVideo with new data from store
+      const updatedVideo = {
+        ...uploadedVideo,
+        id: currentId,
+        url: currentUrl,
+        streamUrl: currentUrl,
+      };
+
+      console.log("Setting uploadedVideo to:", updatedVideo);
+      setUploadedVideo(updatedVideo);
+
+      // Update ref for next comparison
+      prevStoreVideoRef.current = { id: currentId, url: currentUrl };
+
+      // Force video player to reload (though key prop should handle this)
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log("Calling videoRef.current.load()");
+          videoRef.current.load();
+        }
+      }, 100);
+    }
+  }, [storeCurrentVideo?.id, storeCurrentVideo?.url]); // Only watch for store changes
+
+  /* -------------------------------
      Load from navigation + set AI context
   --------------------------------*/
   useEffect(() => {
     if (location.state?.video) {
       const video = location.state.video;
+      console.log("=== AI Editor Video Loading Debug ===");
+      console.log("Video data received:", video);
+      console.log("Video URL:", video.url);
+      console.log("Video streamUrl:", video.streamUrl);
 
-      setUploadedVideo(video);
+      // Ensure we have a valid video URL
+      if (!video.url && !video.streamUrl) {
+        console.error("No valid video URL found in video data");
+        return;
+      }
+
+      const videoUrl = video.url || video.streamUrl;
+      console.log("Selected videoUrl:", videoUrl);
+
+      // Ensure the URL is absolute with proper base URL
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      console.log("Base URL from env:", baseUrl);
+
+      let fullUrl = videoUrl.startsWith("http")
+        ? videoUrl
+        : `${baseUrl}${videoUrl}`;
+
+      console.log("Full URL before token:", fullUrl);
+
+      // Add authentication token to the URL
+      const token = localStorage.getItem("authToken");
+      console.log("Auth token present:", !!token);
+
+      if (token && fullUrl) {
+        fullUrl = `${fullUrl}${
+          fullUrl.includes("?") ? "&" : "?"
+        }token=${token}`;
+      }
+
+      console.log("Final video URL with token:", fullUrl);
+      console.log("=====================================");
+
+      const processedVideo = {
+        ...video,
+        url: fullUrl,
+        streamUrl: fullUrl,
+      };
+
+      setUploadedVideo(processedVideo);
+
+      // IMPORTANT: Also set in videoStore so effects can be applied
+      setCurrentVideo(processedVideo);
+      console.log("Video set in videoStore:", processedVideo);
+
+      // Initialize tracks with a clip
+      setTracks([
+        {
+          id: "video-track-1",
+          type: "video",
+          name: "Main Video",
+          clips: [
+            {
+              id: video.id,
+              type: "video",
+              url: fullUrl,
+              start: 0,
+              duration: video.duration || 0,
+              selected: true,
+              effects: [],
+            },
+          ],
+        },
+      ]);
 
       extractVideoMetadata(video)
         .then(async (videoMetadata) => {
@@ -802,26 +1663,35 @@ const AIEditor = () => {
             });
           }
 
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              type: "ai",
-              content: `Great! I've analyzed your video "${
-                video.name
-              }" and automatically created a project for you. Here are the details:\n\n📹 **Video Information:**\n- Duration: ${Math.floor(
-                videoMetadata.duration / 60
-              )}:${String(Math.floor(videoMetadata.duration % 60)).padStart(
-                2,
-                "0"
-              )}\n- Resolution: ${videoMetadata.resolution}\n- File Size: ${(
-                videoMetadata.fileSize /
-                (1024 * 1024)
-              ).toFixed(
-                1
-              )} MB\n\n✅ **Project Status:**\n- Automatically saved to Projects page\n- Ready for editing\n\nThe video has been added to your timeline with separate video and audio tracks. You can now start editing!`,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
+          // Only show welcome message once
+          if (!hasShownWelcomeMessage.current) {
+            hasShownWelcomeMessage.current = true;
+
+            const videoName =
+              video.name || video.title || newProjectName || "your video";
+
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                type: "ai",
+                content: `Great! I've analyzed your video "${videoName}" and automatically created a project for you. Here are the details:\n\n📹 **Video Information:**\n- Duration: ${Math.floor(
+                  videoMetadata.duration / 60
+                )}:${String(Math.floor(videoMetadata.duration % 60)).padStart(
+                  2,
+                  "0"
+                )}\n- Resolution: ${
+                  videoMetadata.resolution ||
+                  videoMetadata.width + "x" + videoMetadata.height
+                }\n- File Size: ${(
+                  (videoMetadata.fileSize || video.size) /
+                  (1024 * 1024)
+                ).toFixed(
+                  1
+                )} MB\n\n✅ **Project Status:**\n- Automatically saved to Projects page\n- Ready for editing\n\nThe video has been added to your timeline with separate video and audio tracks. You can now start editing!`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
         })
         .catch((error) => {
           console.error("Error extracting video metadata:", error);
@@ -833,80 +1703,6 @@ const AIEditor = () => {
         });
     }
   }, [location.state]);
-
-  /* -------------------------------
-     Socket setup (unchanged)
-  --------------------------------*/
-  useEffect(() => {
-    socketService.connect();
-
-    socketService.onAIResponse((data) => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          content: data.message,
-          actions: data.actions || [],
-          tips: data.tips || [],
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      setIsTyping(false);
-      setIsChatLoading(false);
-      setIsGeneratingVideo(false);
-    });
-
-    socketService.onVideoAnalysisComplete(() => {
-      setIsGeneratingVideo(false);
-    });
-
-    socketService.onVideoAnalysisComplete((data) => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          content: data.message,
-          actions: data.actions || [],
-          tips: data.tips || [],
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    });
-
-    socketService.onChatError((error) => {
-      console.error("Socket error:", error);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          content: "Sorry, I encountered an error. Please try again.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      setIsTyping(false);
-      setIsChatLoading(false);
-      setIsGeneratingVideo(false);
-    });
-
-    socketService.onAITyping((data) => {
-      setIsTyping(data.typing);
-    });
-
-    socketService.onMessageReceived((data) => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "user",
-          content: data.message,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    });
-
-    return () => {
-      socketService.disconnect();
-    };
-  }, []);
 
   /* -------------------------------
      Player controls
@@ -994,7 +1790,6 @@ const AIEditor = () => {
     setNewMessage("");
     setIsChatLoading(true);
     setIsTyping(true);
-    setIsGeneratingVideo(true);
 
     if (videoRef.current && !videoRef.current.paused) {
       videoRef.current.pause();
@@ -1002,57 +1797,15 @@ const AIEditor = () => {
     }
 
     try {
-      // 1) Local AI intent + actions
-      const aiResult = await aiService.processMessage(newMessage, {
-        videoId: projectName || uploadedVideo?.name || "local-video",
-        videoLoaded: !!uploadedVideo,
-        hasAudio: true,
-        videoDuration: duration || 0,
-      });
+      // Use socket service to send message to backend
+      socketService.sendChatMessage(
+        newMessage,
+        storeCurrentVideo?.id,
+        "default-conversation",
+        storeCurrentVideo?.filePath
+      );
 
-      const actions = toActionDescriptors(aiResult.intent, aiResult.parameters);
-
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          content: aiResult.response?.content || "OK, I can do that.",
-          actions,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-
-      // 2) Optional: still notify backend/socket
-      try {
-        await socketService.sendChatMessage({
-          message: newMessage,
-          videoMetadata: uploadedVideo
-            ? {
-                name: uploadedVideo.name,
-                duration,
-                size: uploadedVideo.size,
-                type: uploadedVideo.type,
-              }
-            : null,
-          chatHistory,
-          projectContext: { tracks, currentTime, projectName },
-        });
-
-        if (uploadedVideo && chatHistory.length === 0) {
-          await socketService.notifyVideoUpload({
-            videoName: uploadedVideo.name,
-            videoSize: uploadedVideo.size,
-            videoType: uploadedVideo.type,
-            duration,
-          });
-        }
-      } catch (e) {
-        console.warn("Socket notify (optional) failed:", e);
-      }
-
-      setIsChatLoading(false);
-      setIsTyping(false);
-      setIsGeneratingVideo(false);
+      // The response will come via socket event listener (set up in useEffect)
     } catch (error) {
       console.error("Error sending message:", error);
       setChatMessages((prev) => [
@@ -1212,6 +1965,7 @@ const AIEditor = () => {
             <div className="relative bg-black rounded-lg overflow-hidden shadow-elevation-2 mb-3 aspect-video md:aspect-auto md:h-[670px]">
               {uploadedVideo ? (
                 <EnhancedVideoPlayer
+                  key={uploadedVideo.url} // Force re-render when URL changes
                   ref={videoRef}
                   src={uploadedVideo.url}
                   poster={uploadedVideo.thumbnail}
@@ -1252,43 +2006,54 @@ const AIEditor = () => {
               )}
 
               {isGeneratingVideo && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-                  <div className="w-12 h-12 rounded-full border-4 border-white/30 border-t-transparent animate-spin mb-4" />
-                  <div className="text-white text-sm font-medium tracking-wide">
-                    Generating video…
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center z-10">
+                  <div className="bg-card/90 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-primary/20 max-w-md mx-4">
+                    {/* Animated spinner */}
+                    <div className="relative w-20 h-20 mx-auto mb-6">
+                      <div className="absolute inset-0 rounded-full border-4 border-primary/30"></div>
+                      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin"></div>
+                      <div
+                        className="absolute inset-2 rounded-full border-4 border-transparent border-t-primary/50 animate-spin"
+                        style={{
+                          animationDuration: "1.5s",
+                          animationDirection: "reverse",
+                        }}
+                      ></div>
+                    </div>
+
+                    {/* Title */}
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold text-foreground mb-2">
+                        Applying Effect
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Processing your video with AI magic...
+                      </p>
+                    </div>
+
+                    {/* Progress bar */}
+                    {processingProgress > 0 && (
+                      <div className="w-full bg-border rounded-full h-2 mb-3 overflow-hidden">
+                        <div
+                          className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${processingProgress}%` }}
+                        ></div>
+                      </div>
+                    )}
+
+                    {/* Status text */}
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground animate-pulse">
+                        This may take a few seconds...
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Mobile mini timeline */}
-          {!showTimeline && uploadedVideo && (
-            <div className="md:hidden -mt-2 mb-3">
-              <div
-                onClick={() => setShowTimeline(true)}
-                className="cursor-pointer overflow-hidden w-full"
-              >
-                <FrameStrip
-                  videoUrl={uploadedVideo.url}
-                  duration={
-                    duration ||
-                    tracks.find((t) => t.type === "video")?.clips?.[0]
-                      ?.duration ||
-                    30
-                  }
-                  currentTime={currentTime}
-                  height={72}
-                  frames={Math.max(
-                    24,
-                    Math.min(80, Math.floor(duration || 60))
-                  )}
-                  isPlaying={isPlaying}
-                  isGenerating={isGeneratingVideo}
-                />
-              </div>
-            </div>
-          )}
+          {/* Mobile timeline is now integrated into the main timeline */}
 
           {/* Right: Sidebar Tabs */}
           <div className="bg-card border-2 border-border shadow-elevation-2 rounded-lg flex flex-col w-full md:w-1/3 md:h-[670px]">
@@ -1381,7 +2146,7 @@ const AIEditor = () => {
                   <div className="space-y-6 pb-6">
                     {chatMessages.map((message, index) => (
                       <div
-                        key={index}
+                        key={message.id || `msg-${index}`}
                         className={`flex ${
                           message.type === "user"
                             ? "justify-end"
@@ -1500,12 +2265,9 @@ const AIEditor = () => {
               <div className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-4 md:max-h-none max-h-[60vh]">
                   <EffectsLibrary
-                    onApplyEffect={(effect, params) => {
-                      console.log("Applying effect:", effect, params);
-                    }}
-                    selectedClips={tracks.flatMap((track) =>
-                      track.clips.filter((clip) => clip.selected)
-                    )}
+                    className="w-full"
+                    currentEffectParams={currentEffectParams}
+                    onEffectParamsChange={setCurrentEffectParams}
                   />
                 </div>
               </div>
@@ -1514,78 +2276,25 @@ const AIEditor = () => {
         </div>
 
         {/* Timeline Area */}
-        <div className={`w-full mb-4 ${showTimeline ? "" : "hidden md:block"}`}>
-          {!showTimeline ? (
-            uploadedVideo ? (
-              <div
-                onClick={() => setShowTimeline(true)}
-                className="cursor-pointer overflow-hidden w-full"
-              >
-                <FrameStrip
-                  videoUrl={uploadedVideo.url}
-                  duration={
-                    duration ||
-                    tracks.find((t) => t.type === "video")?.clips?.[0]
-                      ?.duration ||
-                    30
-                  }
-                  currentTime={currentTime}
-                  onSeek={(t) => {
-                    handleTimeChange(t);
-                    setShowTimeline(true);
-                  }}
-                  height={72}
-                  frames={Math.max(
-                    24,
-                    Math.min(80, Math.floor(duration || 60))
-                  )}
-                  isPlaying={isPlaying}
-                  autoScroll={false}
-                  stretchToFit
-                  isGenerating={isGeneratingVideo}
-                />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-                Upload a video to see the frame strip.
-              </div>
-            )
-          ) : (
-            <div className="bg-card border-2 border-border shadow-elevation-1 rounded-lg overflow-hidden w-full">
-              <div className="p-4 border-b border-border bg-card/50 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Timeline
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowTimeline(false)}
-                  className="text-sm px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted transition-colors"
-                  title="Collapse back to mini timeline"
-                >
-                  Back to mini timeline
-                </button>
-              </div>
-              <EnhancedTimeline
-                tracks={tracks}
-                currentTime={currentTime}
+        <div className="w-full mb-4">
+          {uploadedVideo ? (
+            <div className="overflow-hidden w-full">
+              <FrameStrip
+                videoUrl={uploadedVideo.url}
                 duration={duration || 30}
-                zoom={timelineZoom}
+                currentTime={currentTime}
+                onSeek={handleTimeChange}
+                height={72}
+                frames={Math.max(24, Math.min(80, Math.floor(duration || 60)))}
                 isPlaying={isPlaying}
-                theme="dark"
-                onTimeChange={handleTimeChange}
-                onZoomChange={setTimelineZoom}
-                onPlay={() => {
-                  setIsPlaying(true);
-                  videoRef?.current?.play();
-                }}
-                onPause={() => {
-                  setIsPlaying(false);
-                  videoRef?.current?.pause();
-                }}
-                onTracksChange={setTracks}
-                addTrack={addTrack}
-                className="min-h-[200px]"
+                autoScroll={false}
+                stretchToFit
+                isGenerating={isGeneratingVideo}
               />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+              Upload a video to see the timeline.
             </div>
           )}
         </div>

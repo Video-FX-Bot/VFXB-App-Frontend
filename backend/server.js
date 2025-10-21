@@ -21,6 +21,7 @@ import aiRoutes from "./src/routes/ai.js";
 import userRoutes from "./src/routes/user.js";
 import testRoutes from "./src/routes/test.js";
 import projectRoutes from "./src/routes/project.js";
+import videoEditRoutes from "./src/routes/videoEdit.js";
 
 // Import middleware
 import { errorHandler } from "./src/middleware/errorHandler.js";
@@ -42,7 +43,7 @@ const io = new Server(server, {
   },
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
@@ -70,6 +71,7 @@ app.use("/api/videos", videoRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/video-edit", videoEditRoutes);
 app.use("/api/test", testRoutes);
 
 // Health check

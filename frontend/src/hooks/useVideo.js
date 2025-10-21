@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import useVideoStore from '../context/videoStore';
-import apiService from '../services/apiService';
-import { validateVideoFile, formatTime } from '../utils';
-import { UPLOAD_CONFIG, VIDEO_PROCESSING } from '../constants';
+import { useState, useEffect, useCallback, useRef } from "react";
+import useVideoStore from "../context/videoStore";
+import apiService from "../services/apiService";
+import { validateVideoFile, formatTime } from "../utils";
+import { UPLOAD_CONFIG, VIDEO_PROCESSING } from "../constants";
 
 // Custom hook for video management
 export const useVideo = () => {
@@ -53,169 +53,187 @@ export const useVideo = () => {
   }, [setVideos]);
 
   // Upload video file
-  const uploadVideo = useCallback(async (file, onProgress) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const uploadVideo = useCallback(
+    async (file, onProgress) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // Validate file
-      const validation = validateVideoFile(file);
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
-      }
+        // Validate file
+        const validation = validateVideoFile(file);
+        if (!validation.isValid) {
+          throw new Error(validation.errors.join(", "));
+        }
 
-      // Upload file
-      const response = await apiService.uploadVideo(file, onProgress);
-      if (response.success) {
-        // Add to videos list
-        setVideos(prev => [response.data, ...prev]);
-        return response.data;
-      } else {
-        throw new Error(response.error);
+        // Upload file
+        const response = await apiService.uploadVideo(file, onProgress);
+        if (response.success && response.data && response.data.video) {
+          // Add to videos list and set as current video
+          const uploadedVideo = response.data.video;
+          setVideos((prev) => [uploadedVideo, ...prev]);
+          setCurrentVideo(uploadedVideo);
+          return response.data;
+        } else {
+          console.error("Invalid upload response:", response); // Debug log
+          throw new Error(response.error || "Invalid response from server");
+        }
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [setVideos]);
+    },
+    [setVideos]
+  );
 
   // Select video for editing
-  const selectVideo = useCallback(async (videoId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiService.getVideo(videoId);
-      if (response.success) {
-        setCurrentVideo(response.data);
-        // Reset playback state
-        setPlaybackState(false);
-        setCurrentTime(0);
-      } else {
-        setError(response.error);
+  const selectVideo = useCallback(
+    async (videoId) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await apiService.getVideo(videoId);
+        if (response.success) {
+          setCurrentVideo(response.data);
+          // Reset playback state
+          setPlaybackState(false);
+          setCurrentTime(0);
+        } else {
+          setError(response.error);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [setCurrentVideo, setPlaybackState, setCurrentTime]);
+    },
+    [setCurrentVideo, setPlaybackState, setCurrentTime]
+  );
 
   // Delete video
-  const deleteVideo = useCallback(async (videoId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiService.deleteVideo(videoId);
-      if (response.success) {
-        setVideos(prev => prev.filter(v => v.id !== videoId));
-        if (currentVideo?.id === videoId) {
-          setCurrentVideo(null);
+  const deleteVideo = useCallback(
+    async (videoId) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await apiService.deleteVideo(videoId);
+        if (response.success) {
+          setVideos((prev) => prev.filter((v) => v.id !== videoId));
+          if (currentVideo?.id === videoId) {
+            setCurrentVideo(null);
+          }
+        } else {
+          setError(response.error);
         }
-      } else {
-        setError(response.error);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [setVideos, currentVideo, setCurrentVideo]);
+    },
+    [setVideos, currentVideo, setCurrentVideo]
+  );
 
   // Process video with AI operation
-  const processVideo = useCallback(async (operation, parameters = {}) => {
-    if (!currentVideo) {
-      setError('No video selected');
-      return;
-    }
+  const processVideo = useCallback(
+    async (operation, parameters = {}) => {
+      if (!currentVideo) {
+        setError("No video selected");
+        return;
+      }
 
-    try {
-      setError(null);
-      
-      // Create processing job
-      const jobId = `job_${Date.now()}`;
-      const job = {
-        id: jobId,
-        videoId: currentVideo.id,
-        operation,
-        parameters,
-        status: 'pending',
-        progress: 0,
-        startTime: new Date(),
-      };
-      
-      addProcessingJob(job);
-      
-      // Start processing
-      const response = await apiService.processVideo(currentVideo.id, {
-        operation,
-        parameters,
-        jobId,
-      });
-      
-      if (response.success) {
-        // Add to edit history
-        addToEditHistory({
-          id: `edit_${Date.now()}`,
+      try {
+        setError(null);
+
+        // Create processing job
+        const jobId = `job_${Date.now()}`;
+        const job = {
+          id: jobId,
+          videoId: currentVideo.id,
           operation,
           parameters,
-          timestamp: new Date(),
-          description: `Applied ${operation} operation`,
+          status: "pending",
+          progress: 0,
+          startTime: new Date(),
+        };
+
+        addProcessingJob(job);
+
+        // Start processing
+        const response = await apiService.processVideo(currentVideo.id, {
+          operation,
+          parameters,
+          jobId,
         });
-        
-        return response.data;
-      } else {
-        updateProcessingJob(jobId, {
-          status: 'failed',
-          error: response.error,
-          endTime: new Date(),
-        });
-        setError(response.error);
+
+        if (response.success) {
+          // Add to edit history
+          addToEditHistory({
+            id: `edit_${Date.now()}`,
+            operation,
+            parameters,
+            timestamp: new Date(),
+            description: `Applied ${operation} operation`,
+          });
+
+          return response.data;
+        } else {
+          updateProcessingJob(jobId, {
+            status: "failed",
+            error: response.error,
+            endTime: new Date(),
+          });
+          setError(response.error);
+        }
+      } catch (err) {
+        setError(err.message);
       }
-    } catch (err) {
-      setError(err.message);
-    }
-  }, [currentVideo, addProcessingJob, updateProcessingJob, addToEditHistory]);
+    },
+    [currentVideo, addProcessingJob, updateProcessingJob, addToEditHistory]
+  );
 
   // Export video
-  const exportVideo = useCallback(async (format = 'mp4', quality = 'high') => {
-    if (!currentVideo) {
-      setError('No video selected');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await apiService.exportVideo(
-        currentVideo.id,
-        format,
-        quality
-      );
-      
-      if (response.success) {
-        // Trigger download
-        const link = document.createElement('a');
-        link.href = response.data.downloadUrl;
-        link.download = response.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        return response.data;
-      } else {
-        setError(response.error);
+  const exportVideo = useCallback(
+    async (format = "mp4", quality = "high") => {
+      if (!currentVideo) {
+        setError("No video selected");
+        return;
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentVideo]);
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await apiService.exportVideo(
+          currentVideo.id,
+          format,
+          quality
+        );
+
+        if (response.success) {
+          // Trigger download
+          const link = document.createElement("a");
+          link.href = response.data.downloadUrl;
+          link.download = response.data.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          return response.data;
+        } else {
+          setError(response.error);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [currentVideo]
+  );
 
   // Video player controls
   const play = useCallback(() => {
@@ -240,33 +258,45 @@ export const useVideo = () => {
     }
   }, [isPlaying, play, pause]);
 
-  const seek = useCallback((time) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  }, [setCurrentTime]);
+  const seek = useCallback(
+    (time) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+        setCurrentTime(time);
+      }
+    },
+    [setCurrentTime]
+  );
 
-  const seekBy = useCallback((seconds) => {
-    if (videoRef.current) {
-      const newTime = Math.max(0, Math.min(
-        videoRef.current.duration,
-        videoRef.current.currentTime + seconds
-      ));
-      seek(newTime);
-    }
-  }, [seek]);
+  const seekBy = useCallback(
+    (seconds) => {
+      if (videoRef.current) {
+        const newTime = Math.max(
+          0,
+          Math.min(
+            videoRef.current.duration,
+            videoRef.current.currentTime + seconds
+          )
+        );
+        seek(newTime);
+      }
+    },
+    [seek]
+  );
 
-  const changeVolume = useCallback((newVolume) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    if (videoRef.current) {
-      videoRef.current.volume = clampedVolume;
-    }
-    setVolume(clampedVolume);
-    if (clampedVolume > 0 && muted) {
-      setMuted(false);
-    }
-  }, [setVolume, muted, setMuted]);
+  const changeVolume = useCallback(
+    (newVolume) => {
+      const clampedVolume = Math.max(0, Math.min(1, newVolume));
+      if (videoRef.current) {
+        videoRef.current.volume = clampedVolume;
+      }
+      setVolume(clampedVolume);
+      if (clampedVolume > 0 && muted) {
+        setMuted(false);
+      }
+    },
+    [setVolume, muted, setMuted]
+  );
 
   const toggleMute = useCallback(() => {
     if (videoRef.current) {
@@ -275,12 +305,15 @@ export const useVideo = () => {
     setMuted(!muted);
   }, [muted, setMuted]);
 
-  const changePlaybackRate = useCallback((rate) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-    }
-    setPlaybackRate(rate);
-  }, [setPlaybackRate]);
+  const changePlaybackRate = useCallback(
+    (rate) => {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = rate;
+      }
+      setPlaybackRate(rate);
+    },
+    [setPlaybackRate]
+  );
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -311,7 +344,7 @@ export const useVideo = () => {
         width: videoRef.current.videoWidth,
         height: videoRef.current.videoHeight,
       };
-      
+
       // Update current video with metadata
       setCurrentVideo({
         ...currentVideo,
@@ -331,66 +364,74 @@ export const useVideo = () => {
   useEffect(() => {
     if (videoRef.current) {
       const video = videoRef.current;
-      
-      video.addEventListener('timeupdate', handleTimeUpdate);
-      video.addEventListener('loadedmetadata', handleLoadedMetadata);
-      video.addEventListener('ended', handleEnded);
-      
+
+      video.addEventListener("timeupdate", handleTimeUpdate);
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("ended", handleEnded);
+
       // Set initial properties
       video.volume = volume;
       video.muted = muted;
       video.playbackRate = playbackRate;
-      
+
       return () => {
-        video.removeEventListener('timeupdate', handleTimeUpdate);
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        video.removeEventListener('ended', handleEnded);
+        video.removeEventListener("timeupdate", handleTimeUpdate);
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video.removeEventListener("ended", handleEnded);
       };
     }
-  }, [volume, muted, playbackRate, handleTimeUpdate, handleLoadedMetadata, handleEnded]);
+  }, [
+    volume,
+    muted,
+    playbackRate,
+    handleTimeUpdate,
+    handleLoadedMetadata,
+    handleEnded,
+  ]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!currentVideo) return;
-      
+
       // Check if user is typing in an input field
-      const isTyping = e.target.tagName === 'INPUT' || 
-                      e.target.tagName === 'TEXTAREA' || 
-                      e.target.contentEditable === 'true' ||
-                      e.target.closest('[contenteditable="true"]') ||
-                      e.target.closest('input') ||
-                      e.target.closest('textarea');
-      
+      const isTyping =
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA" ||
+        e.target.contentEditable === "true" ||
+        e.target.closest('[contenteditable="true"]') ||
+        e.target.closest("input") ||
+        e.target.closest("textarea");
+
       switch (e.code) {
-        case 'Space':
+        case "Space":
           // Don't prevent default if user is typing
           if (!isTyping) {
             e.preventDefault();
             togglePlay();
           }
           break;
-        case 'ArrowLeft':
+        case "ArrowLeft":
           e.preventDefault();
           seekBy(-5);
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           e.preventDefault();
           seekBy(5);
           break;
-        case 'ArrowUp':
+        case "ArrowUp":
           e.preventDefault();
           changeVolume(volume + 0.1);
           break;
-        case 'ArrowDown':
+        case "ArrowDown":
           e.preventDefault();
           changeVolume(volume - 0.1);
           break;
-        case 'KeyM':
+        case "KeyM":
           e.preventDefault();
           toggleMute();
           break;
-        case 'KeyF':
+        case "KeyF":
           e.preventDefault();
           toggleFullscreen();
           break;
@@ -398,10 +439,18 @@ export const useVideo = () => {
           break;
       }
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentVideo, togglePlay, seekBy, changeVolume, volume, toggleMute, toggleFullscreen]);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    currentVideo,
+    togglePlay,
+    seekBy,
+    changeVolume,
+    volume,
+    toggleMute,
+    toggleFullscreen,
+  ]);
 
   // Format current time and duration
   const formattedCurrentTime = formatTime(currentTime);
@@ -421,11 +470,11 @@ export const useVideo = () => {
     editHistory,
     loading,
     error,
-    
+
     // Formatted values
     formattedCurrentTime,
     formattedDuration,
-    
+
     // Video management
     loadVideos,
     uploadVideo,
@@ -433,7 +482,7 @@ export const useVideo = () => {
     deleteVideo,
     processVideo,
     exportVideo,
-    
+
     // Playback controls
     play,
     pause,
@@ -444,10 +493,10 @@ export const useVideo = () => {
     toggleMute,
     changePlaybackRate,
     toggleFullscreen,
-    
+
     // Refs
     videoRef,
-    
+
     // Utilities
     clearError: () => setError(null),
   };

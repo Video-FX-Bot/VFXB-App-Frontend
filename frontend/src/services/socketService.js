@@ -1,4 +1,4 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
 class SocketService {
   constructor() {
@@ -12,40 +12,46 @@ class SocketService {
       return this.socket;
     }
 
-    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    
+    const serverUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
     const options = {
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       timeout: 20000,
-      forceNew: true
+      forceNew: true,
     };
 
     // Add authentication if token is provided
     // For now, we'll use a demo token or skip auth for development
-    const authToken = token || localStorage.getItem('authToken') || 'demo-token';
-    if (authToken && authToken !== 'demo-token') {
+    const authToken =
+      token || localStorage.getItem("authToken") || "demo-token";
+    if (authToken && authToken !== "demo-token") {
       options.auth = { token: authToken };
     }
 
     this.socket = io(serverUrl, options);
 
     // Connection event handlers
-    this.socket.on('connect', () => {
-      console.log('✅ Connected to server');
+    this.socket.on("connect", () => {
+      console.log("✅ Connected to server");
       this.isConnected = true;
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from server:', reason);
+    this.socket.on("disconnect", (reason) => {
+      console.log("❌ Disconnected from server:", reason);
       this.isConnected = false;
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('🔥 Connection error:', error);
+    this.socket.on("connect_error", (error) => {
+      console.error("🔥 Connection error:", error);
       this.isConnected = false;
     });
 
     return this.socket;
+  }
+
+  getSocketId() {
+    if (!this.socket) return null;
+    return this.socket.id;
   }
 
   disconnect() {
@@ -58,66 +64,77 @@ class SocketService {
   }
 
   // Send chat message to AI
-  sendChatMessage(message, videoId = null, conversationId = null, videoPath = null) {
+  sendChatMessage(
+    message,
+    videoId = null,
+    conversationId = null,
+    videoPath = null
+  ) {
     if (!this.socket || !this.isConnected) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
 
-    this.socket.emit('chat_message', {
+    console.log("📤 Sending chat message:", {
       message,
       videoId,
       conversationId,
-      videoPath
+      videoPath,
+    });
+    this.socket.emit("chat_message", {
+      message,
+      videoId,
+      conversationId,
+      videoPath,
     });
   }
 
   // Notify server about video upload
   notifyVideoUpload(videoId, videoPath, fileName) {
     if (!this.socket || !this.isConnected) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
 
-    this.socket.emit('video_uploaded', {
+    this.socket.emit("video_uploaded", {
       videoId,
       videoPath,
-      fileName
+      fileName,
     });
   }
 
   // Execute video operation
   executeVideoOperation(operation, parameters, videoId, videoPath) {
     if (!this.socket || !this.isConnected) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
 
-    this.socket.emit('execute_video_operation', {
+    this.socket.emit("execute_video_operation", {
       operation,
       parameters,
       videoId,
-      videoPath
+      videoPath,
     });
   }
 
   // Get conversation history
   getConversationHistory(conversationId, limit = 50) {
     if (!this.socket || !this.isConnected) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
 
-    this.socket.emit('get_conversation_history', {
+    this.socket.emit("get_conversation_history", {
       conversationId,
-      limit
+      limit,
     });
   }
 
   // Event listeners
   on(event, callback) {
     if (!this.socket) {
-      throw new Error('Socket not initialized');
+      throw new Error("Socket not initialized");
     }
 
     this.socket.on(event, callback);
-    
+
     // Store listener for cleanup
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
@@ -132,7 +149,7 @@ class SocketService {
 
     if (callback) {
       this.socket.off(event, callback);
-      
+
       // Remove from stored listeners
       const eventListeners = this.listeners.get(event);
       if (eventListeners) {
@@ -149,46 +166,59 @@ class SocketService {
 
   // Convenience methods for common events
   onMessageReceived(callback) {
-    this.on('message_received', callback);
+    this.on("message_received", callback);
   }
 
   onAIResponse(callback) {
-    this.on('ai_response', callback);
+    console.log("🎯 Registering AI response listener");
+    console.log("🎯 Callback type:", typeof callback);
+    console.log("🎯 Callback is:", callback);
+    this.on("ai_response", (data) => {
+      console.log("📨 AI response received in socketService:", data);
+      console.log("📨 About to call callback...");
+      console.log("📨 Callback exists?", !!callback);
+      if (callback) {
+        callback(data);
+        console.log("📨 Callback executed!");
+      } else {
+        console.error("❌ No callback provided!");
+      }
+    });
   }
 
   onAITyping(callback) {
-    this.on('ai_typing', callback);
+    this.on("ai_typing", callback);
   }
 
   onVideoAnalysisComplete(callback) {
-    this.on('video_analysis_complete', callback);
+    this.on("video_analysis_complete", callback);
   }
 
   onVideoOperationComplete(callback) {
-    this.on('video_operation_complete', callback);
+    this.on("video_operation_complete", callback);
   }
 
   onVideoOperationStarted(callback) {
-    this.on('video_operation_started', callback);
+    this.on("video_operation_started", callback);
   }
 
   onVideoOperationError(callback) {
-    this.on('video_operation_error', callback);
+    this.on("video_operation_error", callback);
   }
 
   onChatError(callback) {
-    this.on('chat_error', callback);
+    this.on("chat_error", callback);
   }
 
   onConversationHistory(callback) {
-    this.on('conversation_history', callback);
+    this.on("conversation_history", callback);
   }
 
   // Get connection status
   getConnectionStatus() {
     return {
       isConnected: this.isConnected,
-      socketId: this.socket?.id || null
+      socketId: this.socket?.id || null,
     };
   }
 }

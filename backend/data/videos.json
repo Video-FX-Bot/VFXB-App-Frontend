@@ -1,1 +1,3451 @@
-[]
+[
+  {
+    "_id": "video_1760998288228_6c7500jh1",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_0d28d4db-f7d5-41c0-9c7c-4c2afac0eb7e.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_0d28d4db-f7d5-41c0-9c7c-4c2afac0eb7e.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:11:28.233Z",
+    "updatedAt": "2025-10-20T22:11:28.233Z"
+  },
+  {
+    "_id": "video_1760998294733_138kxleti",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_54b4d19d-f42d-4497-b5c5-c8923f4a53d2.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_54b4d19d-f42d-4497-b5c5-c8923f4a53d2.mp4",
+    "fileSize": 2497099,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 828053,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2497099
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:11:34.733Z",
+    "updatedAt": "2025-10-20T22:11:34.733Z"
+  },
+  {
+    "_id": "video_1760998451533_xs2dmkede",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "1331c89a-4727-49d0-8699-111f026a46f4_1760998451470.mp4",
+    "filePath": "uploads\\videos\\1331c89a-4727-49d0-8699-111f026a46f4_1760998451470.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:11.533Z",
+    "updatedAt": "2025-10-20T22:14:11.537Z"
+  },
+  {
+    "_id": "video_1760998493979_xnhwxa30a",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_5c1ef4c1-1251-40a1-a3e7-10be7e6b1c8e.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_5c1ef4c1-1251-40a1-a3e7-10be7e6b1c8e.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:53.980Z",
+    "updatedAt": "2025-10-20T22:14:53.980Z"
+  },
+  {
+    "_id": "video_1760998494017_ieflmcjkn",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_5cf254cd-a4a3-4e1f-8990-b529fdf380b7.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_5cf254cd-a4a3-4e1f-8990-b529fdf380b7.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:54.021Z",
+    "updatedAt": "2025-10-20T22:14:54.021Z"
+  },
+  {
+    "_id": "video_1760998494058_q0ua68sjp",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_899841f8-9fd4-41bd-b738-2a60abf14638.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_899841f8-9fd4-41bd-b738-2a60abf14638.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:54.060Z",
+    "updatedAt": "2025-10-20T22:14:54.060Z"
+  },
+  {
+    "_id": "video_1760998494085_569cvvxrk",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_69c61e91-c245-4b97-8617-6d75fa285b77.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_69c61e91-c245-4b97-8617-6d75fa285b77.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:54.088Z",
+    "updatedAt": "2025-10-20T22:14:54.088Z"
+  },
+  {
+    "_id": "video_1760998494111_ht81gzsuj",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_6cfc2a86-ad7e-4ba8-ab61-265d88d6fe96.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_6cfc2a86-ad7e-4ba8-ab61-265d88d6fe96.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:54.113Z",
+    "updatedAt": "2025-10-20T22:14:54.113Z"
+  },
+  {
+    "_id": "video_1760998494207_34cd9wy8h",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_52650904-8b43-4bf9-94b6-289fea7472f9.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_52650904-8b43-4bf9-94b6-289fea7472f9.mp4",
+    "fileSize": 2680074,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 888728,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2680074
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:14:54.208Z",
+    "updatedAt": "2025-10-20T22:14:54.208Z"
+  },
+  {
+    "_id": "video_1760998502113_u8vz7ib3z",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_079c6583-2402-4ba1-997a-e5d9b370946d.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_079c6583-2402-4ba1-997a-e5d9b370946d.mp4",
+    "fileSize": 2497099,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 828053,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2497099
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:15:02.114Z",
+    "updatedAt": "2025-10-20T22:15:02.114Z"
+  },
+  {
+    "_id": "video_1760998510697_xq3gprfvc",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (lut-filter) (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_835580dc-74e1-4c7e-89f1-a4d0ef051315.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_835580dc-74e1-4c7e-89f1-a4d0ef051315.mp4",
+    "fileSize": 2226884,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 738448,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2226884
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:15:10.698Z",
+    "updatedAt": "2025-10-20T22:15:10.698Z"
+  },
+  {
+    "_id": "video_1760998662486_koa59smkh",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (lut-filter) (lut-filter) (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_87c4024f-c0fd-402d-8da2-32f7d22e345a.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_87c4024f-c0fd-402d-8da2-32f7d22e345a.mp4",
+    "fileSize": 2437095,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 808155,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2437095
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-20T22:17:42.486Z",
+    "updatedAt": "2025-10-20T22:17:42.486Z"
+  },
+  {
+    "_id": "video_1761013319552_ocoqucdgd",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "d357e4df-b3bd-4538-bcdb-f90af8b4287f_1761013319505.mp4",
+    "filePath": "uploads\\videos\\d357e4df-b3bd-4538-bcdb-f90af8b4287f_1761013319505.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:21:59.552Z",
+    "updatedAt": "2025-10-21T02:21:59.556Z"
+  },
+  {
+    "_id": "video_1761013366719_1wafnt39y",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_cfa4103e-c989-44df-b8c1-a840a0c62769.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_cfa4103e-c989-44df-b8c1-a840a0c62769.mp4",
+    "fileSize": 2574269,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 853643,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2574269
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:22:46.719Z",
+    "updatedAt": "2025-10-21T02:22:46.719Z"
+  },
+  {
+    "_id": "video_1761013390965_9uzsvvl39",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_c89d750d-b346-4cae-a023-a4d7a65651cf.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_c89d750d-b346-4cae-a023-a4d7a65651cf.mp4",
+    "fileSize": 2909162,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 964695,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2909162
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:23:10.966Z",
+    "updatedAt": "2025-10-21T02:23:10.966Z"
+  },
+  {
+    "_id": "video_1761013400629_vi37gpir1",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "ddb2c093-d364-4f03-913b-9cb227b9c0d7_1761013400572.mp4",
+    "filePath": "uploads\\videos\\ddb2c093-d364-4f03-913b-9cb227b9c0d7_1761013400572.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:23:20.629Z",
+    "updatedAt": "2025-10-21T02:23:20.632Z"
+  },
+  {
+    "_id": "video_1761013419165_5u7963z42",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_77ba94dd-78fe-4867-b209-007c07d0e92b.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_77ba94dd-78fe-4867-b209-007c07d0e92b.mp4",
+    "fileSize": 2776222,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 920612,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2776222
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:23:39.165Z",
+    "updatedAt": "2025-10-21T02:23:39.165Z"
+  },
+  {
+    "_id": "video_1761013432238_56u8p0k0t",
+    "title": "Iman Gadzhi raw.mp4 (lut-filter) (brightness)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "lut-filter",
+      "effect",
+      "brightness"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_b1149460-c763-42e7-8889-f2e6ee8b561d.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_b1149460-c763-42e7-8889-f2e6ee8b561d.mp4",
+    "fileSize": 3426244,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1136163,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3426244
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T02:23:52.238Z",
+    "updatedAt": "2025-10-21T02:23:52.238Z"
+  },
+  {
+    "_id": "video_1761073465434_uvodgmvu6",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "760a2110-beb6-42a9-a89d-2e0c5ca7e962_1761073464900.mp4",
+    "filePath": "uploads\\videos\\760a2110-beb6-42a9-a89d-2e0c5ca7e962_1761073464900.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:04:25.434Z",
+    "updatedAt": "2025-10-21T19:04:25.439Z"
+  },
+  {
+    "_id": "video_1761073884092_4y55runhd",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "86c9ff26-9b24-41bc-9907-61243a7c8345_1761073884034.mp4",
+    "filePath": "uploads\\videos\\86c9ff26-9b24-41bc-9907-61243a7c8345_1761073884034.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:11:24.092Z",
+    "updatedAt": "2025-10-21T19:11:24.095Z"
+  },
+  {
+    "_id": "video_1761074255745_6500enu1x",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "dcf962e3-6f39-4fb6-bdd0-c77b582abd25_1761074255688.mp4",
+    "filePath": "uploads\\videos\\dcf962e3-6f39-4fb6-bdd0-c77b582abd25_1761074255688.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:17:35.745Z",
+    "updatedAt": "2025-10-21T19:17:35.749Z"
+  },
+  {
+    "_id": "video_1761074532192_9fs8eur6l",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "16780e9a-b4fa-4827-8c2e-04af48ca06bb_1761074532127.mp4",
+    "filePath": "uploads\\videos\\16780e9a-b4fa-4827-8c2e-04af48ca06bb_1761074532127.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:22:12.192Z",
+    "updatedAt": "2025-10-21T19:22:12.196Z"
+  },
+  {
+    "_id": "video_1761074541733_f8yq4qqn9",
+    "title": "Iman Gadzhi raw.mp4 (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_7f0d3605-a0c4-4cc8-abac-476190d77787.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_7f0d3605-a0c4-4cc8-abac-476190d77787.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:22:21.733Z",
+    "updatedAt": "2025-10-21T19:22:21.733Z"
+  },
+  {
+    "_id": "video_1761074563161_qolonk599",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "2377fb8c-64ea-4e5c-b114-66bf7b14c138_1761074563116.mp4",
+    "filePath": "uploads\\videos\\2377fb8c-64ea-4e5c-b114-66bf7b14c138_1761074563116.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:22:43.161Z",
+    "updatedAt": "2025-10-21T19:22:43.165Z"
+  },
+  {
+    "_id": "video_1761074584176_7apf6jkug",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_8443b46d-daab-4837-a84e-adce02530b98.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_8443b46d-daab-4837-a84e-adce02530b98.mp4",
+    "fileSize": 2544317,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 843710,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2544317
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:23:04.180Z",
+    "updatedAt": "2025-10-21T19:23:04.180Z"
+  },
+  {
+    "_id": "video_1761074584218_ew8nthlty",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_4c7e487c-c8fc-45a3-aee2-e664459ea5e7.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_4c7e487c-c8fc-45a3-aee2-e664459ea5e7.mp4",
+    "fileSize": 2544317,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 843710,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2544317
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:23:04.219Z",
+    "updatedAt": "2025-10-21T19:23:04.219Z"
+  },
+  {
+    "_id": "video_1761074617544_w01bpk207",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition) (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition",
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_51c10824-c097-40ca-97bd-22bc6676dc97.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_51c10824-c097-40ca-97bd-22bc6676dc97.mp4",
+    "fileSize": 2694268,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 893435,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2694268
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:23:37.545Z",
+    "updatedAt": "2025-10-21T19:23:37.545Z"
+  },
+  {
+    "_id": "video_1761074617551_fj367o9vx",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition) (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition",
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_09b6d106-0fe7-4ae6-b8ee-7f2931b0dec0.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_09b6d106-0fe7-4ae6-b8ee-7f2931b0dec0.mp4",
+    "fileSize": 2694268,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 893435,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2694268
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:23:37.552Z",
+    "updatedAt": "2025-10-21T19:23:37.552Z"
+  },
+  {
+    "_id": "video_1761074786113_11hepwum8",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "3d3960bc-4454-4849-8ce9-254bb60125ad_1761074786038.mp4",
+    "filePath": "uploads\\videos\\3d3960bc-4454-4849-8ce9-254bb60125ad_1761074786038.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:26:26.113Z",
+    "updatedAt": "2025-10-21T19:26:26.119Z"
+  },
+  {
+    "_id": "video_1761074804591_cdfo2bisn",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_217eeeaf-e9f9-4bb1-aca3-fc387ff3b0e7.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_217eeeaf-e9f9-4bb1-aca3-fc387ff3b0e7.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:26:44.592Z",
+    "updatedAt": "2025-10-21T19:26:44.592Z"
+  },
+  {
+    "_id": "video_1761074804659_pmeoouddy",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_8a21f8c4-253a-4868-acf6-e8d2695caac0.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_8a21f8c4-253a-4868-acf6-e8d2695caac0.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:26:44.659Z",
+    "updatedAt": "2025-10-21T19:26:44.659Z"
+  },
+  {
+    "_id": "video_1761074804665_jk5qkmymd",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_60b5af88-0ac0-4e0b-b793-7b0bf901b652.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_60b5af88-0ac0-4e0b-b793-7b0bf901b652.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:26:44.665Z",
+    "updatedAt": "2025-10-21T19:26:44.665Z"
+  },
+  {
+    "_id": "video_1761074825650_um7hwoeax",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "1798f14d-a160-488a-aba2-ae7cc2c56124_1761074825597.mp4",
+    "filePath": "uploads\\videos\\1798f14d-a160-488a-aba2-ae7cc2c56124_1761074825597.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:27:05.650Z",
+    "updatedAt": "2025-10-21T19:27:05.654Z"
+  },
+  {
+    "_id": "video_1761074958262_zddys8zi7",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "80d562fc-9443-4e84-8ab5-c069d7295091_1761074958206.mp4",
+    "filePath": "uploads\\videos\\80d562fc-9443-4e84-8ab5-c069d7295091_1761074958206.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:29:18.262Z",
+    "updatedAt": "2025-10-21T19:29:18.268Z"
+  },
+  {
+    "_id": "video_1761074985487_8txiour4e",
+    "title": "Iman Gadzhi raw.mp4 (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_639f18b1-92cc-43eb-9f8c-9f914f367d4d.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_639f18b1-92cc-43eb-9f8c-9f914f367d4d.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:29:45.488Z",
+    "updatedAt": "2025-10-21T19:29:45.488Z"
+  },
+  {
+    "_id": "video_1761074985507_fedf2rrea",
+    "title": "Iman Gadzhi raw.mp4 (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_dac0720f-b117-48e7-b13c-d2fa1ec37f16.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_dac0720f-b117-48e7-b13c-d2fa1ec37f16.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:29:45.508Z",
+    "updatedAt": "2025-10-21T19:29:45.508Z"
+  },
+  {
+    "_id": "video_1761074985561_4zq21n819",
+    "title": "Iman Gadzhi raw.mp4 (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_3171dc85-7d56-456e-9dc5-c0397190e0f6.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_3171dc85-7d56-456e-9dc5-c0397190e0f6.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:29:45.561Z",
+    "updatedAt": "2025-10-21T19:29:45.561Z"
+  },
+  {
+    "_id": "video_1761074985610_4ro8fdcuy",
+    "title": "Iman Gadzhi raw.mp4 (cross-dissolve)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "cross-dissolve"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_c74b9e8f-7f25-4c63-892e-6e231db3a9e8.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_c74b9e8f-7f25-4c63-892e-6e231db3a9e8.mp4",
+    "fileSize": 2762147,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 915944,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2762147
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:29:45.611Z",
+    "updatedAt": "2025-10-21T19:29:45.611Z"
+  },
+  {
+    "_id": "video_1761075767028_owk1txfu8",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "7f95468e-0c4e-4ad3-ad38-2ffc91f30605_1761075766969.mp4",
+    "filePath": "uploads\\videos\\7f95468e-0c4e-4ad3-ad38-2ffc91f30605_1761075766969.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:42:47.028Z",
+    "updatedAt": "2025-10-21T19:42:47.033Z"
+  },
+  {
+    "_id": "video_1761075788494_w2ga2qd8a",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_1d963fcf-0943-413c-931b-711d52acb657.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_1d963fcf-0943-413c-931b-711d52acb657.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.503Z",
+    "updatedAt": "2025-10-21T19:43:08.503Z"
+  },
+  {
+    "_id": "video_1761075788517_g87xlnm2j",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_b860e30c-a4d2-46d0-9ce4-cda270a2c302.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_b860e30c-a4d2-46d0-9ce4-cda270a2c302.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.517Z",
+    "updatedAt": "2025-10-21T19:43:08.517Z"
+  },
+  {
+    "_id": "video_1761075788523_33vi15ixk",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_8e61a4ae-5eec-432d-a2e7-fd55a4efbc52.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_8e61a4ae-5eec-432d-a2e7-fd55a4efbc52.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.524Z",
+    "updatedAt": "2025-10-21T19:43:08.524Z"
+  },
+  {
+    "_id": "video_1761075788533_0bkbl1vv8",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_09deb18d-baca-4cbd-b950-5d089f11efdf.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_09deb18d-baca-4cbd-b950-5d089f11efdf.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.534Z",
+    "updatedAt": "2025-10-21T19:43:08.534Z"
+  },
+  {
+    "_id": "video_1761075788536_ujkato7yr",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_ebb14f08-ced2-4024-bdfd-1000180a171b.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_ebb14f08-ced2-4024-bdfd-1000180a171b.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.539Z",
+    "updatedAt": "2025-10-21T19:43:08.539Z"
+  },
+  {
+    "_id": "video_1761075788587_tt5ko14ro",
+    "title": "Iman Gadzhi raw.mp4 (wipe-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "wipe-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_b142141d-af58-43eb-82b4-b6b941915885.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_b142141d-af58-43eb-82b4-b6b941915885.mp4",
+    "fileSize": 2691155,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 892403,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 2691155
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:43:08.589Z",
+    "updatedAt": "2025-10-21T19:43:08.589Z"
+  },
+  {
+    "_id": "video_1761076080054_54e0gu7zj",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "a1852dd3-bbb5-4fb8-bb68-b6f9b9121974_1761076079998.mp4",
+    "filePath": "uploads\\videos\\a1852dd3-bbb5-4fb8-bb68-b6f9b9121974_1761076079998.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:48:00.054Z",
+    "updatedAt": "2025-10-21T19:48:00.060Z"
+  },
+  {
+    "_id": "video_1761076232207_if3z4ue9o",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "08db9318-66ef-40e5-819d-c7877f0c75bd_1761076232132.mp4",
+    "filePath": "uploads\\videos\\08db9318-66ef-40e5-819d-c7877f0c75bd_1761076232132.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:50:32.207Z",
+    "updatedAt": "2025-10-21T19:50:32.213Z"
+  },
+  {
+    "_id": "video_1761076330812_yuyjkygcq",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "1cd0d29f-0990-42b0-9a6f-583250adaf13_1761076330742.mp4",
+    "filePath": "uploads\\videos\\1cd0d29f-0990-42b0-9a6f-583250adaf13_1761076330742.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:52:10.812Z",
+    "updatedAt": "2025-10-21T19:52:10.818Z"
+  },
+  {
+    "_id": "video_1761076356003_scevcqsst",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "96e1256c-1798-4dfb-8a08-10b5e579fd98_1761076355944.mp4",
+    "filePath": "uploads\\videos\\96e1256c-1798-4dfb-8a08-10b5e579fd98_1761076355944.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:52:36.003Z",
+    "updatedAt": "2025-10-21T19:52:36.008Z"
+  },
+  {
+    "_id": "video_1761076639731_22nvzu3d3",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "ccba7ba6-0fc0-43c2-84c7-354095307f26_1761076639651.mp4",
+    "filePath": "uploads\\videos\\ccba7ba6-0fc0-43c2-84c7-354095307f26_1761076639651.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:19.731Z",
+    "updatedAt": "2025-10-21T19:57:19.738Z"
+  },
+  {
+    "_id": "video_1761076658562_0m587la5j",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_c7a0367c-ad89-4ebf-a702-b00a842628d0.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_c7a0367c-ad89-4ebf-a702-b00a842628d0.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:38.562Z",
+    "updatedAt": "2025-10-21T19:57:38.562Z"
+  },
+  {
+    "_id": "video_1761076658607_0ktam5x81",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_026107c8-6a28-4c82-bbeb-e3f6d3583571.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_026107c8-6a28-4c82-bbeb-e3f6d3583571.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:38.609Z",
+    "updatedAt": "2025-10-21T19:57:38.609Z"
+  },
+  {
+    "_id": "video_1761076658656_43ko5rcgv",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_8b655e0e-c589-47c1-9918-9f5a6d57f051.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_8b655e0e-c589-47c1-9918-9f5a6d57f051.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:38.667Z",
+    "updatedAt": "2025-10-21T19:57:38.667Z"
+  },
+  {
+    "_id": "video_1761076658884_78wgkrot6",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_eb6ec9a0-c46f-4288-bc4a-8e0ecd974107.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_eb6ec9a0-c46f-4288-bc4a-8e0ecd974107.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:38.885Z",
+    "updatedAt": "2025-10-21T19:57:38.885Z"
+  },
+  {
+    "_id": "video_1761076667919_i69nweayx",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_99467da3-68c0-4af5-8615-94f2d408914a.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_99467da3-68c0-4af5-8615-94f2d408914a.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:47.920Z",
+    "updatedAt": "2025-10-21T19:57:47.920Z"
+  },
+  {
+    "_id": "video_1761076668069_l6emqp73d",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_3d32b793-cd90-4380-9a2d-d8a3655054d9.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_3d32b793-cd90-4380-9a2d-d8a3655054d9.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:48.070Z",
+    "updatedAt": "2025-10-21T19:57:48.070Z"
+  },
+  {
+    "_id": "video_1761076668114_eqce3inp2",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_275c8129-a22c-4a47-b8f9-4c06cdd05f8a.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_275c8129-a22c-4a47-b8f9-4c06cdd05f8a.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:48.115Z",
+    "updatedAt": "2025-10-21T19:57:48.115Z"
+  },
+  {
+    "_id": "video_1761076668292_fphhwfoah",
+    "title": "Iman Gadzhi raw.mp4 (zoom-transition)",
+    "description": "Uploaded via dashboard",
+    "tags": [
+      "effect",
+      "zoom-transition"
+    ],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "effect_Iman Gadzhi raw.mp4",
+    "filename": "multi_effect_e61a91fe-320a-4dea-88b2-23c9c815d358.mp4",
+    "filePath": "D:\\Coding-Projects\\vfxb\\backend\\uploads\\videos\\multi_effect_e61a91fe-320a-4dea-88b2-23c9c815d358.mp4",
+    "fileSize": 3360599,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.125011,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1114395,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3360599
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T19:57:48.292Z",
+    "updatedAt": "2025-10-21T19:57:48.292Z"
+  },
+  {
+    "_id": "video_1761076817567_wk313qfxa",
+    "title": "Iman Gadzhi raw.mp4",
+    "description": "Uploaded via dashboard",
+    "tags": [],
+    "userId": "f40f4695-5344-42c4-b594-ba6a40a52b43",
+    "originalFilename": "Iman Gadzhi raw.mp4",
+    "filename": "95cff40e-f11b-48c4-92fe-d01c9f0b85d6_1761076817514.mp4",
+    "filePath": "uploads\\videos\\95cff40e-f11b-48c4-92fe-d01c9f0b85d6_1761076817514.mp4",
+    "fileSize": 3435209,
+    "mimeType": "video/mp4",
+    "resolution": {
+      "width": 0,
+      "height": 0
+    },
+    "status": "ready",
+    "processingStatus": "pending",
+    "metadata": {
+      "duration": 24.12,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "bitrate": 1139372,
+      "codec": "h264",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "audioChannels": 2,
+      "audioSampleRate": 44100,
+      "fileSize": 3435209
+    },
+    "analytics": {
+      "views": 0,
+      "likes": 0,
+      "shares": 0,
+      "comments": 0,
+      "watchTime": 0,
+      "completionRate": 0
+    },
+    "privacy": {
+      "visibility": "private",
+      "allowDownload": false,
+      "allowComments": true,
+      "allowEmbedding": false
+    },
+    "processing": {
+      "jobs": [],
+      "currentJob": null,
+      "progress": 0,
+      "logs": [],
+      "errors": []
+    },
+    "exports": [],
+    "createdAt": "2025-10-21T20:00:17.567Z",
+    "updatedAt": "2025-10-21T20:00:17.573Z"
+  }
+]

@@ -27,17 +27,17 @@ export default defineConfig({
     port: 4000,
     proxy: {
       // REST API
-      "/api": { target: "http://localhost:3001", changeOrigin: true },
+      "/api": { target: "http://localhost:5000", changeOrigin: true },
 
       // Socket.IO (websockets)
       "/socket.io": {
-        target: "http://localhost:3001",
+        target: "http://localhost:5000",
         ws: true,
         changeOrigin: true,
       },
       // (optional) static files served by backend (if any)
       "/uploads": {
-        target: "http://localhost:3001",
+        target: "http://localhost:5000",
         changeOrigin: true,
       },
     },

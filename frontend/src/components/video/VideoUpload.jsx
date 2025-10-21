@@ -1,72 +1,90 @@
-import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { motion } from 'framer-motion';
-import { Upload, Video, X, AlertCircle } from 'lucide-react';
-import { Button, Card } from '../ui';
+import React, { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { motion } from "framer-motion";
+import { Upload, Video, X, AlertCircle } from "lucide-react";
+import { Button, Card } from "../ui";
+import { useVideo } from "../../hooks/useVideo";
 
 const VideoUpload = ({
   onVideoSelect,
   maxSize = 100 * 1024 * 1024, // 100MB default
-  acceptedFormats = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'],
-  className = ''
+  acceptedFormats = [
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "video/avi",
+    "video/mov",
+  ],
+  className = "",
 }) => {
+  const { uploadVideo } = useVideo();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  
-  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
-    setError(null);
-    
-    if (rejectedFiles.length > 0) {
-      const rejection = rejectedFiles[0];
-      if (rejection.errors[0]?.code === 'file-too-large') {
-        setError(`File is too large. Maximum size is ${Math.round(maxSize / (1024 * 1024))}MB`);
-      } else if (rejection.errors[0]?.code === 'file-invalid-type') {
-        setError('Invalid file type. Please upload a video file.');
-      } else {
-        setError('Failed to upload file. Please try again.');
-      }
-      return;
-    }
-    
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setSelectedVideo({
-        file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file)
-      });
-      
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadProgress(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
-          onVideoSelect?.({
-            file,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url: URL.createObjectURL(file)
-          });
+
+  const onDrop = useCallback(
+    async (acceptedFiles, rejectedFiles) => {
+      setError(null);
+
+      if (rejectedFiles.length > 0) {
+        const rejection = rejectedFiles[0];
+        if (rejection.errors[0]?.code === "file-too-large") {
+          setError(
+            `File is too large. Maximum size is ${Math.round(
+              maxSize / (1024 * 1024)
+            )}MB`
+          );
+        } else if (rejection.errors[0]?.code === "file-invalid-type") {
+          setError("Invalid file type. Please upload a video file.");
+        } else {
+          setError("Failed to upload file. Please try again.");
         }
-      }, 200);
-    }
-  }, [maxSize, onVideoSelect]);
-  
+        return;
+      }
+
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+
+        // Set initial state
+        setSelectedVideo({
+          file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: URL.createObjectURL(file),
+        });
+
+        try {
+          // Upload using the useVideo hook
+          const result = await uploadVideo(file, (progress) => {
+            setUploadProgress(Math.round(progress));
+          });
+
+          if (result) {
+            // The video is now set in the store and added to the videos list
+            onVideoSelect?.(result);
+          } else {
+            throw new Error(result.message || "Failed to upload video");
+          }
+        } catch (error) {
+          setError(error.message || "Failed to upload video");
+          setUploadProgress(0);
+          setSelectedVideo(null);
+        }
+      }
+    },
+    [maxSize, onVideoSelect, setError, setSelectedVideo, setUploadProgress]
+  );
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'video/*': acceptedFormats.map(format => format.split('/')[1])
+      "video/*": acceptedFormats.map((format) => format.split("/")[1]),
     },
     maxSize,
-    multiple: false
+    multiple: false,
   });
-  
+
   const removeVideo = () => {
     if (selectedVideo?.url) {
       URL.revokeObjectURL(selectedVideo.url);
@@ -75,15 +93,15 @@ const VideoUpload = ({
     setUploadProgress(0);
     setError(null);
   };
-  
+
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
-  
+
   if (selectedVideo && uploadProgress < 100) {
     return (
       <Card className={`p-6 ${className}`}>
@@ -105,7 +123,7 @@ const VideoUpload = ({
       </Card>
     );
   }
-  
+
   if (selectedVideo && uploadProgress === 100) {
     return (
       <Card className={`p-6 ${className}`}>
@@ -141,46 +159,49 @@ const VideoUpload = ({
       </Card>
     );
   }
-  
+
   return (
     <Card className={className}>
       <div
         {...getRootProps()}
         className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors duration-200 ${
           isDragActive
-            ? 'border-primary-500 bg-primary-50'
-            : 'border-gray-300 hover:border-gray-400'
+            ? "border-primary-500 bg-primary-50"
+            : "border-gray-300 hover:border-gray-400"
         }`}
       >
         <input {...getInputProps()} />
-        
+
         <motion.div
           animate={isDragActive ? { scale: 1.05 } : { scale: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <Upload className={`w-12 h-12 mx-auto mb-4 ${
-            isDragActive ? 'text-primary-600' : 'text-gray-400'
-          }`} />
-          
+          <Upload
+            className={`w-12 h-12 mx-auto mb-4 ${
+              isDragActive ? "text-primary-600" : "text-gray-400"
+            }`}
+          />
+
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {isDragActive ? 'Drop your video here' : 'Upload a video'}
+            {isDragActive ? "Drop your video here" : "Upload a video"}
           </h3>
-          
+
           <p className="text-sm text-gray-500 mb-4">
             Drag and drop your video file here, or click to browse
           </p>
-          
+
           <Button variant="outline" size="sm">
             Choose File
           </Button>
-          
+
           <p className="text-xs text-gray-400 mt-4">
-            Supported formats: MP4, WebM, OGG, AVI, MOV<br />
+            Supported formats: MP4, WebM, OGG, AVI, MOV
+            <br />
             Maximum file size: {Math.round(maxSize / (1024 * 1024))}MB
           </p>
         </motion.div>
       </div>
-      
+
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />

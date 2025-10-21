@@ -97,6 +97,15 @@ const EnhancedVideoPlayer = forwardRef(
     // Expose video element to parent component
     useImperativeHandle(ref, () => videoRef.current, []);
 
+    // Reload video when src changes
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video || !src) return;
+
+      console.log("EnhancedVideoPlayer src changed:", src);
+      video.load(); // Force reload the video with the new src
+    }, [src]);
+
     // Control visibility timer
     const controlsTimeoutRef = useRef(null);
 
@@ -460,320 +469,329 @@ const EnhancedVideoPlayer = forwardRef(
     }, [togglePlay, skip, toggleMute, toggleFullscreen, addBookmark]);
 
     return (
-  <Card className={`relative overflow-hidden bg-black ${className}`} padding="none">
-    {/* Main video wrapper ensures positioning context */}
-    <div
-      className="relative group w-full h-full"
-      onMouseEnter={() => {
-        setIsHovering(true);
-        resetControlsTimeout();
-      }}
-      onMouseLeave={() => {
-        setIsHovering(false);
-        setThumbnailPreview(null);
-      }}
-      onMouseMove={resetControlsTimeout}
-    >
-      {/* Video fills the container */}
-      <div className="relative w-full h-full overflow-hidden bg-black">
-        <video
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          autoPlay={autoPlay}
-          className="absolute inset-0 w-full h-full object-cover bg-black"
-          style={{ objectFit: "cover" }}
-          onClick={togglePlay}
-        />
-      </div>
+      <Card
+        className={`relative overflow-hidden bg-black ${className}`}
+        padding="none"
+      >
+        {/* Main video wrapper ensures positioning context */}
+        <div
+          className="relative group w-full h-full"
+          onMouseEnter={() => {
+            setIsHovering(true);
+            resetControlsTimeout();
+          }}
+          onMouseLeave={() => {
+            setIsHovering(false);
+            setThumbnailPreview(null);
+          }}
+          onMouseMove={resetControlsTimeout}
+        >
+          {/* Video fills the container */}
+          <div className="relative w-full h-full overflow-hidden bg-black">
+            <video
+              ref={videoRef}
+              src={src}
+              poster={poster}
+              autoPlay={autoPlay}
+              preload="metadata"
+              crossOrigin="anonymous"
+              className="absolute inset-0 w-full h-full object-cover bg-black"
+              style={{ objectFit: "cover" }}
+              onClick={togglePlay}
+            />
+          </div>
 
-      {/* Loading Spinner */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
-          />
-        </div>
-      )}
-
-      {/* Thumbnail Preview */}
-      <AnimatePresence>
-        {thumbnailPreview && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-20 bg-black bg-opacity-80 rounded-lg p-2 pointer-events-none z-50"
-            style={{
-              left: Math.max(
-                10,
-                Math.min(thumbnailPreview.x - 60, window.innerWidth - 130)
-              ),
-            }}
-          >
-            <div className="w-24 h-14 bg-gray-700 rounded mb-1 flex items-center justify-center">
-              <Play className="w-6 h-6 text-white" />
+          {/* Loading Spinner */}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
+              />
             </div>
-            <div className="text-white text-xs text-center">
-              {formatTime(previewTime)}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Enhanced Controls */}
-      {controls && (
-        <AnimatePresence>
-          {showControls && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6"
-            >
-              {/* Waveform Visualization */}
-              {enableWaveform && waveformData.length > 0 && (
-                <div className="mb-4 h-12 flex items-end space-x-1">
-                  {waveformData.map((height, index) => (
-                    <div
-                      key={index}
-                      className="bg-purple-500 opacity-60 flex-1 rounded-sm"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Enhanced Progress Bar */}
-              <div className="mb-4">
-                <div
-                  ref={progressRef}
-                  className="relative w-full h-2 bg-white bg-opacity-30 rounded-full cursor-pointer group"
-                  onClick={handleSeek}
-                  onMouseMove={handleProgressHover}
-                  onMouseLeave={() => setThumbnailPreview(null)}
-                >
-                  {buffered.map((range, index) => (
-                    <div
-                      key={index}
-                      className="absolute h-full bg-white bg-opacity-50 rounded-full"
-                      style={{
-                        left: `${(range.start / duration) * 100}%`,
-                        width: `${
-                          ((range.end - range.start) / duration) * 100
-                        }%`,
-                      }}
-                    />
-                  ))}
-                  <div
-                    className="absolute h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-200"
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                  <div
-                    className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-y-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ left: `calc(${progressPercentage}% - 8px)` }}
-                  />
-                  {bookmarks.map((bookmark) => (
-                    <div
-                      key={bookmark.id}
-                      className="absolute w-2 h-2 bg-yellow-400 rounded-full transform -translate-y-1"
-                      style={{
-                        left: `calc(${
-                          (bookmark.time / duration) * 100
-                        }% - 4px)`,
-                      }}
-                      title={bookmark.label}
-                    />
-                  ))}
-                  {chapters.map((chapter, index) => (
-                    <div
-                      key={index}
-                      className="absolute w-1 h-full bg-white bg-opacity-70"
-                      style={{ left: `${(chapter.time / duration) * 100}%` }}
-                      title={chapter.title}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Control Buttons */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="clear"
-                    size="sm"
-                    onClick={() => skip(-30)}
-                    className="text-white"
-                  >
-                    <RotateCcw className="w-4 h-4 text-white" />
-                  </Button>
-                  <Button
-                    variant="clear"
-                    size="sm"
-                    onClick={() => skip(-10)}
-                    className="text-white"
-                  >
-                    <SkipBack className="w-5 h-5 text-white" />
-                  </Button>
-                  <Button
-                    variant="clear"
-                    size="lg"
-                    onClick={togglePlay}
-                    className="text-white"
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-6 h-6 text-white" />
-                    ) : (
-                      <Play className="w-6 h-6 text-white" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="clear"
-                    size="sm"
-                    onClick={() => skip(10)}
-                    className="text-white"
-                  >
-                    <SkipForward className="w-5 h-5 text-white" />
-                  </Button>
-                  <Button
-                    variant="clear"
-                    size="sm"
-                    onClick={() =>
-                      setLoopMode(loopMode === "none" ? "single" : "none")
-                    }
-                    className={`text-white ${loopMode !== "none" ? 'bg-white/10' : ''}`}
-                  >
-                    {loopMode === "single" ? (
-                      <Repeat1 className="w-4 h-4 text-white" />
-                    ) : (
-                      <Repeat className="w-4 h-4 text-white" />
-                    )}
-                  </Button>
-
-                  {/* Volume */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="clear"
-                      size="sm"
-                      onClick={toggleMute}
-                      className="text-white"
-                    >
-                      {isMuted ? (
-                        <VolumeX className="w-4 h-4 text-white" />
-                      ) : (
-                        <Volume2 className="w-4 h-4 text-white" />
-                      )}
-                    </Button>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={isMuted ? 0 : volume}
-                      onChange={handleVolumeChange}
-                      className="w-20 h-1 bg-white bg-opacity-30 rounded-full appearance-none cursor-pointer slider"
-                    />
-                  </div>
-
-                  {/* Playback Speed */}
-                  <div className="relative">
-                    <Button
-                      variant="clear"
-                      size="sm"
-                      onClick={() => setShowSettings(!showSettings)}
-                      className="text-white flex items-center space-x-1"
-                    >
-                      <Gauge className="w-4 h-4 text-white" />
-                      <span className="text-xs text-white">
-                        {playbackRate}x
-                      </span>
-                    </Button>
-                    <AnimatePresence>
-                      {showSettings && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute bottom-full mb-2 left-0 bg-black bg-opacity-90 rounded-lg p-2 min-w-[120px]"
-                        >
-                          <div className="text-white text-xs mb-2 font-medium">
-                            Playback Speed
-                          </div>
-                          {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(
-                            (rate) => (
-                              <button
-                                key={rate}
-                                onClick={() => {
-                                  changePlaybackRate(rate);
-                                  setShowSettings(false);
-                                }}
-                                className={`block w-full text-left px-2 py-1 text-xs rounded hover:bg-gray-700 hover:bg-opacity-80 ${
-                                  playbackRate === rate
-                                    ? "bg-gray-700 bg-opacity-60"
-                                    : ""
-                                }`}
-                              >
-                                {rate}x
-                              </button>
-                            )
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <span className="text-white text-sm font-mono">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
-
-                  {enablePiP && (
-                    <Button
-                      variant="clear"
-                      size="sm"
-                      onClick={togglePiP}
-                      className={`text-white ${isPiP ? 'bg-white/10' : ''}`}
-                    >
-                      <PictureInPicture className="w-4 h-4 text-white" />
-                    </Button>
-                  )}
-               
-                  <Button
-                    variant="clear"
-                    size="sm"
-                    onClick={toggleFullscreen}
-                    className="text-white"
-                  >
-                    {isFullscreen ? (
-                      <Minimize className="w-4 h-4 text-white" />
-                    ) : (
-                      <Maximize className="w-4 h-4 text-white" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
           )}
-        </AnimatePresence>
-      )}
 
-      {/* Minimap */}
-      {showMinimap && duration > 0 && (
-        <div className="absolute top-4 right-4 w-32 h-2 bg-black bg-opacity-50 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-white bg-opacity-70 transition-all duration-200"
-            style={{ width: `${progressPercentage}%` }}
-          />
+          {/* Thumbnail Preview */}
+          <AnimatePresence>
+            {thumbnailPreview && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute bottom-20 bg-black bg-opacity-80 rounded-lg p-2 pointer-events-none z-50"
+                style={{
+                  left: Math.max(
+                    10,
+                    Math.min(thumbnailPreview.x - 60, window.innerWidth - 130)
+                  ),
+                }}
+              >
+                <div className="w-24 h-14 bg-gray-700 rounded mb-1 flex items-center justify-center">
+                  <Play className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-white text-xs text-center">
+                  {formatTime(previewTime)}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Enhanced Controls */}
+          {controls && (
+            <AnimatePresence>
+              {showControls && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6"
+                >
+                  {/* Waveform Visualization */}
+                  {enableWaveform && waveformData.length > 0 && (
+                    <div className="mb-4 h-12 flex items-end space-x-1">
+                      {waveformData.map((height, index) => (
+                        <div
+                          key={index}
+                          className="bg-purple-500 opacity-60 flex-1 rounded-sm"
+                          style={{ height: `${height}%` }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Enhanced Progress Bar */}
+                  <div className="mb-4">
+                    <div
+                      ref={progressRef}
+                      className="relative w-full h-2 bg-white bg-opacity-30 rounded-full cursor-pointer group"
+                      onClick={handleSeek}
+                      onMouseMove={handleProgressHover}
+                      onMouseLeave={() => setThumbnailPreview(null)}
+                    >
+                      {buffered.map((range, index) => (
+                        <div
+                          key={index}
+                          className="absolute h-full bg-white bg-opacity-50 rounded-full"
+                          style={{
+                            left: `${(range.start / duration) * 100}%`,
+                            width: `${
+                              ((range.end - range.start) / duration) * 100
+                            }%`,
+                          }}
+                        />
+                      ))}
+                      <div
+                        className="absolute h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-200"
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                      <div
+                        className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-y-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ left: `calc(${progressPercentage}% - 8px)` }}
+                      />
+                      {bookmarks.map((bookmark) => (
+                        <div
+                          key={bookmark.id}
+                          className="absolute w-2 h-2 bg-yellow-400 rounded-full transform -translate-y-1"
+                          style={{
+                            left: `calc(${
+                              (bookmark.time / duration) * 100
+                            }% - 4px)`,
+                          }}
+                          title={bookmark.label}
+                        />
+                      ))}
+                      {chapters.map((chapter, index) => (
+                        <div
+                          key={index}
+                          className="absolute w-1 h-full bg-white bg-opacity-70"
+                          style={{
+                            left: `${(chapter.time / duration) * 100}%`,
+                          }}
+                          title={chapter.title}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Control Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        variant="clear"
+                        size="sm"
+                        onClick={() => skip(-30)}
+                        className="text-white"
+                      >
+                        <RotateCcw className="w-4 h-4 text-white" />
+                      </Button>
+                      <Button
+                        variant="clear"
+                        size="sm"
+                        onClick={() => skip(-10)}
+                        className="text-white"
+                      >
+                        <SkipBack className="w-5 h-5 text-white" />
+                      </Button>
+                      <Button
+                        variant="clear"
+                        size="lg"
+                        onClick={togglePlay}
+                        className="text-white"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-6 h-6 text-white" />
+                        ) : (
+                          <Play className="w-6 h-6 text-white" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="clear"
+                        size="sm"
+                        onClick={() => skip(10)}
+                        className="text-white"
+                      >
+                        <SkipForward className="w-5 h-5 text-white" />
+                      </Button>
+                      <Button
+                        variant="clear"
+                        size="sm"
+                        onClick={() =>
+                          setLoopMode(loopMode === "none" ? "single" : "none")
+                        }
+                        className={`text-white ${
+                          loopMode !== "none" ? "bg-white/10" : ""
+                        }`}
+                      >
+                        {loopMode === "single" ? (
+                          <Repeat1 className="w-4 h-4 text-white" />
+                        ) : (
+                          <Repeat className="w-4 h-4 text-white" />
+                        )}
+                      </Button>
+
+                      {/* Volume */}
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="clear"
+                          size="sm"
+                          onClick={toggleMute}
+                          className="text-white"
+                        >
+                          {isMuted ? (
+                            <VolumeX className="w-4 h-4 text-white" />
+                          ) : (
+                            <Volume2 className="w-4 h-4 text-white" />
+                          )}
+                        </Button>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={isMuted ? 0 : volume}
+                          onChange={handleVolumeChange}
+                          className="w-20 h-1 bg-white bg-opacity-30 rounded-full appearance-none cursor-pointer slider"
+                        />
+                      </div>
+
+                      {/* Playback Speed */}
+                      <div className="relative">
+                        <Button
+                          variant="clear"
+                          size="sm"
+                          onClick={() => setShowSettings(!showSettings)}
+                          className="text-white flex items-center space-x-1"
+                        >
+                          <Gauge className="w-4 h-4 text-white" />
+                          <span className="text-xs text-white">
+                            {playbackRate}x
+                          </span>
+                        </Button>
+                        <AnimatePresence>
+                          {showSettings && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className="absolute bottom-full mb-2 left-0 bg-black bg-opacity-90 rounded-lg p-2 min-w-[120px]"
+                            >
+                              <div className="text-white text-xs mb-2 font-medium">
+                                Playback Speed
+                              </div>
+                              {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(
+                                (rate) => (
+                                  <button
+                                    key={rate}
+                                    onClick={() => {
+                                      changePlaybackRate(rate);
+                                      setShowSettings(false);
+                                    }}
+                                    className={`block w-full text-left px-2 py-1 text-xs rounded hover:bg-gray-700 hover:bg-opacity-80 ${
+                                      playbackRate === rate
+                                        ? "bg-gray-700 bg-opacity-60"
+                                        : ""
+                                    }`}
+                                  >
+                                    {rate}x
+                                  </button>
+                                )
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <span className="text-white text-sm font-mono">
+                        {formatTime(currentTime)} / {formatTime(duration)}
+                      </span>
+
+                      {enablePiP && (
+                        <Button
+                          variant="clear"
+                          size="sm"
+                          onClick={togglePiP}
+                          className={`text-white ${isPiP ? "bg-white/10" : ""}`}
+                        >
+                          <PictureInPicture className="w-4 h-4 text-white" />
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="clear"
+                        size="sm"
+                        onClick={toggleFullscreen}
+                        className="text-white"
+                      >
+                        {isFullscreen ? (
+                          <Minimize className="w-4 h-4 text-white" />
+                        ) : (
+                          <Maximize className="w-4 h-4 text-white" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+
+          {/* Minimap */}
+          {showMinimap && duration > 0 && (
+            <div className="absolute top-4 right-4 w-32 h-2 bg-black bg-opacity-50 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white bg-opacity-70 transition-all duration-200"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          )}
         </div>
-      )}
-    </div>
 
-    {/* Range thumb styling */}
-    <style>{`
+        {/* Range thumb styling */}
+        <style>{`
       .slider::-webkit-slider-thumb {
         appearance: none;
         width: 12px;
@@ -793,9 +811,8 @@ const EnhancedVideoPlayer = forwardRef(
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
     `}</style>
-  </Card>
-);
-
+      </Card>
+    );
   }
 );
 
