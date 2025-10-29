@@ -1,6 +1,7 @@
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { promises as fs } from "fs";
+import fsSync from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "../utils/logger.js";
@@ -96,6 +97,41 @@ export class VideoProcessor {
         });
       });
     });
+  }
+
+  // Generate video thumbnail
+  async generateThumbnail(videoPath, videoId) {
+    try {
+      const thumbnailDir = path.join(this.outputDir, "thumbnails");
+      await fs.mkdir(thumbnailDir, { recursive: true });
+
+      const thumbnailPath = path.join(thumbnailDir, `${videoId}.jpg`);
+
+      return new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+          .screenshots({
+            timestamps: ["10%"], // Take screenshot at 10% of video duration
+            filename: `${videoId}.jpg`,
+            folder: thumbnailDir,
+            size: "320x180", // 16:9 aspect ratio thumbnail
+          })
+          .on("end", () => {
+            logger.info(`Thumbnail generated: ${thumbnailPath}`);
+            resolve({
+              success: true,
+              thumbnailPath,
+              url: `/uploads/thumbnails/${videoId}.jpg`,
+            });
+          })
+          .on("error", (err) => {
+            logger.error("Error generating thumbnail:", err);
+            reject(err);
+          });
+      });
+    } catch (error) {
+      logger.error("Error in generateThumbnail:", error);
+      throw error;
+    }
   }
 
   // Trim video
@@ -360,6 +396,12 @@ export class VideoProcessor {
   // Add transition (fade in/out)
   async addTransition(videoPath, parameters) {
     try {
+      // 🔍 Debug: Log the input video path
+      logger.info(`🎬 Adding transition to video:`, {
+        inputVideoPath: videoPath,
+        parameters,
+      });
+
       const { type = "fade", duration = 1, position = "start" } = parameters;
       const outputPath = path.join(this.tempDir, `transition_${uuidv4()}.mp4`);
 
@@ -401,6 +443,100 @@ export class VideoProcessor {
       logger.error("Error in addTransition:", error);
       throw error;
     }
+  }
+
+  // Apply subtitles to video with custom styling
+  async applySubtitles(videoPath, srtPath, outputPath, style = {}) {
+    try {
+      logger.info(`📝 Applying subtitles to video: ${videoPath}`);
+
+      // Build subtitle style string for FFmpeg
+      const fontsize = style.fontSize || 24;
+      const fontcolor = style.fontColor || "white";
+      const bordercolor = style.outlineColor || "black";
+      const borderw = style.outlineWidth || 2;
+      const fontname = style.fontFamily || "Arial";
+      const bold = style.bold ? 1 : 0;
+      const italic = style.italic ? 1 : 0;
+
+      // Position calculation
+      let marginV = 50;
+      if (style.position === "top") {
+        marginV = style.marginTop || 50;
+      } else if (style.position === "bottom") {
+        marginV = style.marginBottom || 50;
+      }
+
+      // Alignment: 1=left, 2=center, 3=right
+      const alignment =
+        style.alignment === "left" ? 1 : style.alignment === "right" ? 3 : 2;
+
+      // Build force_style string
+      const forceStyle = [
+        `FontName=${fontname}`,
+        `FontSize=${fontsize}`,
+        `PrimaryColour=&H${this.colorToHex(fontcolor)}`,
+        `OutlineColour=&H${this.colorToHex(bordercolor)}`,
+        `BorderStyle=1`,
+        `Outline=${borderw}`,
+        `Bold=${bold}`,
+        `Italic=${italic}`,
+        `Alignment=${alignment}`,
+        `MarginV=${marginV}`,
+      ].join(",");
+
+      // Escape SRT path for FFmpeg (Windows paths need forward slashes and escaped colons)
+      const escapedSrtPath = srtPath.replace(/\\/g, "/").replace(/:/g, "\\:");
+
+      return new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+          .outputOptions([
+            `-vf`,
+            `subtitles=${escapedSrtPath}:force_style='${forceStyle}'`,
+          ])
+          .videoCodec("libx264")
+          .audioCodec("copy")
+          .outputOptions(["-preset", "medium", "-crf", "23"])
+          .output(outputPath)
+          .on("end", () => {
+            logger.info("✅ Subtitles applied successfully:", outputPath);
+            resolve({
+              success: true,
+              outputPath,
+              operation: "apply-subtitles",
+            });
+          })
+          .on("error", (err) => {
+            logger.error("❌ Error applying subtitles:", err);
+            reject(err);
+          })
+          .run();
+      });
+    } catch (error) {
+      logger.error("Error in applySubtitles:", error);
+      throw error;
+    }
+  }
+
+  // Convert color name to FFmpeg hex format
+  colorToHex(color) {
+    const colors = {
+      white: "FFFFFF",
+      black: "000000",
+      red: "0000FF",
+      green: "00FF00",
+      blue: "FF0000",
+      yellow: "00FFFF",
+      cyan: "FFFF00",
+      magenta: "FF00FF",
+    };
+
+    // If it's a hex color already, remove # and return
+    if (color.startsWith("#")) {
+      return color.slice(1).toUpperCase();
+    }
+
+    return colors[color.toLowerCase()] || "FFFFFF";
   }
 
   // Export video in different formats
@@ -967,6 +1103,79 @@ export class VideoProcessor {
               break;
             }
 
+            case "enhance-quality": {
+              // Video quality enhancement with denoising, sharpening, and optional upscaling
+              const denoise = parameters.denoise !== false; // default true
+              const sharpen = parameters.sharpen !== false; // default true
+              const upscale = parameters.upscale || false;
+              const targetResolution = parameters.targetResolution;
+              const enhanceContrast = parameters.enhanceContrast !== false; // default true
+              const enhanceColors = parameters.enhanceColors !== false; // default true
+
+              // Apply stronger denoise filter (hqdn3d - high quality denoise 3D)
+              // Increased strength for more visible results
+              if (denoise) {
+                // luma_spatial:chroma_spatial:luma_tmp:chroma_tmp
+                // Stronger settings: 6:4:9:6 instead of 4:3:6:4.5
+                filters.push(`hqdn3d=6:4:9:6`);
+              }
+
+              // Apply more aggressive unsharp mask for noticeable sharpening
+              if (sharpen) {
+                // unsharp=luma_msize_x:luma_msize_y:luma_amount:chroma_msize_x:chroma_msize_y:chroma_amount
+                // Increased amount from 1.0 to 1.5 for more visible sharpening
+                filters.push(`unsharp=5:5:1.5:5:5:0.5`);
+              }
+
+              // Enhance contrast for more punch
+              if (enhanceContrast) {
+                // Subtle contrast boost: 1.15 = 15% increase
+                filters.push(`eq=contrast=1.15:brightness=0.02`);
+              }
+
+              // Enhance color saturation slightly
+              if (enhanceColors) {
+                // Subtle saturation boost: 1.2 = 20% increase
+                filters.push(`eq=saturation=1.2`);
+              }
+
+              // Optional upscaling
+              if (upscale) {
+                const currentWidth = metadata.video.width || 1920;
+                const currentHeight = metadata.video.height || 1080;
+
+                let targetWidth, targetHeight;
+
+                if (targetResolution === "4k") {
+                  targetWidth = 3840;
+                  targetHeight = 2160;
+                } else if (targetResolution === "1080p") {
+                  targetWidth = 1920;
+                  targetHeight = 1080;
+                } else if (targetResolution === "720p") {
+                  targetWidth = 1280;
+                  targetHeight = 720;
+                } else {
+                  // Default 2x upscale
+                  targetWidth = currentWidth * 2;
+                  targetHeight = currentHeight * 2;
+                }
+
+                // Use lanczos for high-quality upscaling
+                filters.push(
+                  `scale=${targetWidth}:${targetHeight}:flags=lanczos`
+                );
+                logger.info(
+                  `Upscaling from ${currentWidth}x${currentHeight} to ${targetWidth}x${targetHeight}`
+                );
+              }
+
+              logger.info(
+                `Quality enhancement filters applied: denoise=${denoise}, sharpen=${sharpen}, contrast=${enhanceContrast}, colors=${enhanceColors}, upscale=${upscale}`
+              );
+              break;
+            }
+
             case "color-correction": {
               const temperature = (parameters.temperature || 0) / 100;
               const tint = (parameters.tint || 0) / 100;
@@ -987,8 +1196,17 @@ export class VideoProcessor {
             }
 
             case "lut-filter": {
-              const lutType = parameters.lut || "Cinematic";
-              const intensity = (parameters.intensity || 100) / 100;
+              const lutType =
+                parameters.lut || parameters.preset || "Cinematic";
+              const intensityRaw = parameters.intensity || 100;
+
+              // Use linear scaling - simple and predictable
+              // User expects 50% = half strength, not 25% strength
+              const intensity = intensityRaw / 100;
+
+              logger.info(
+                `LUT Filter in multi-effect: ${lutType}, intensity: ${intensityRaw}%`
+              );
 
               let lutFilter = "";
               switch (lutType) {
@@ -1011,11 +1229,74 @@ export class VideoProcessor {
                   lutFilter = "null";
               }
 
-              // For multi-effect, we'll apply at full intensity in the chain
-              // Individual intensity blending is complex in filter chains
-              if (lutFilter !== "null") {
-                // Split the comma-separated filters and add them individually
-                lutFilter.split(",").forEach((f) => filters.push(f));
+              // Apply intensity by scaling the filter parameters
+              if (lutFilter !== "null" && intensity > 0) {
+                if (intensity < 1) {
+                  // For multi-effect chains with intensity < 100%, we need to use a more complex approach
+                  // We'll use split and blend to mix original with filtered
+                  // This needs to be handled specially in the filter chain
+
+                  // Calculate adjusted parameters based on intensity
+                  // This is a simplified approach that adjusts each filter in the chain
+                  const adjustedFilter = lutFilter
+                    .split(",")
+                    .map((f) => {
+                      // For eq filter, scale the parameters
+                      if (f.startsWith("eq=")) {
+                        const params = f.substring(3).split(":");
+                        const adjusted = params
+                          .map((p) => {
+                            const [key, val] = p.split("=");
+                            const numVal = parseFloat(val);
+                            if (!isNaN(numVal) && key !== "saturation") {
+                              // Scale values towards 0 based on intensity
+                              return `${key}=${(numVal * intensity).toFixed(
+                                4
+                              )}`;
+                            } else if (key === "saturation") {
+                              // Saturation: scale from 1.0 towards target based on intensity
+                              const adjusted = 1 + (numVal - 1) * intensity;
+                              return `${key}=${adjusted.toFixed(4)}`;
+                            } else if (key === "contrast") {
+                              // Contrast: scale from 1.0 towards target based on intensity
+                              const adjusted = 1 + (numVal - 1) * intensity;
+                              return `${key}=${adjusted.toFixed(4)}`;
+                            }
+                            return p;
+                          })
+                          .join(":");
+                        return `eq=${adjusted}`;
+                      }
+                      // For colorbalance, scale all parameters
+                      else if (f.startsWith("colorbalance=")) {
+                        const params = f.substring(13).split(":");
+                        const adjusted = params
+                          .map((p) => {
+                            const [key, val] = p.split("=");
+                            const numVal = parseFloat(val);
+                            if (!isNaN(numVal)) {
+                              return `${key}=${(numVal * intensity).toFixed(
+                                4
+                              )}`;
+                            }
+                            return p;
+                          })
+                          .join(":");
+                        return `colorbalance=${adjusted}`;
+                      }
+                      // Keep other filters as-is (like curves)
+                      return f;
+                    })
+                    .join(",");
+
+                  logger.info(
+                    `Adjusted LUT filter for intensity ${intensityRaw}%: ${adjustedFilter}`
+                  );
+                  adjustedFilter.split(",").forEach((f) => filters.push(f));
+                } else {
+                  // Full intensity - apply as-is
+                  lutFilter.split(",").forEach((f) => filters.push(f));
+                }
               }
               break;
             }
@@ -1050,6 +1331,64 @@ export class VideoProcessor {
 
               filters.push(
                 `zoompan=z=${zoomExpr}:d=${totalFrames}:s=${metadata.video.width}x${metadata.video.height}:fps=${fps}`
+              );
+              break;
+            }
+
+            case "snow": {
+              // Snow particle effect - subtle white specks
+              const density = (parameters.density || 50) / 100; // 0-1
+              const size = Math.max(1, Math.min(10, parameters.size || 3));
+
+              // Simple approach: light noise with high contrast to create white specks
+              const noiseAmount = Math.floor(density * 50);
+
+              filters.push(
+                // Add animated white noise
+                `noise=alls=${noiseAmount}:allf=t+u`,
+                // Boost contrast to make noise look like white dots
+                `eq=contrast=3:brightness=0.2`,
+                // Slight blur for softer snowflakes
+                `boxblur=${Math.max(1, Math.floor(size / 2))}:1`
+              );
+              break;
+            }
+
+            case "fire": {
+              // Fire particle effect - warm glow
+              const intensity = (parameters.intensity || 70) / 100;
+
+              // Simple warm color overlay
+              filters.push(
+                // Warm orange/red color shift
+                `colorbalance=rs=${intensity * 0.4}:gs=${intensity * 0.2}:bs=-${
+                  intensity * 0.3
+                }`,
+                // Boost saturation and add brightness
+                `eq=saturation=${1 + intensity * 0.8}:brightness=${
+                  intensity * 0.15
+                }`,
+                // Add slight blur for glow
+                `boxblur=2:1`
+              );
+              break;
+            }
+
+            case "sparkles": {
+              // Sparkles effect - twinkling bright points
+              const count = Math.max(10, Math.min(200, parameters.count || 50));
+              const size = Math.max(1, Math.min(20, parameters.size || 5));
+
+              const sparkleIntensity = count / 200;
+              const noiseAmount = Math.floor(sparkleIntensity * 60);
+
+              filters.push(
+                // Create bright random points
+                `noise=alls=${noiseAmount}:allf=t+u`,
+                // High contrast to create distinct sparkles
+                `eq=contrast=3.5:brightness=0.3`,
+                // Blur for glow effect
+                `boxblur=${Math.max(1, Math.floor(size / 2))}:1`
               );
               break;
             }
@@ -1115,6 +1454,48 @@ export class VideoProcessor {
       });
     } catch (error) {
       logger.error("Error in applyMultipleEffects:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract a frame from video as base64 for AI vision analysis
+   */
+  async extractFrameAsBase64(videoPath, timeInSeconds = 5) {
+    try {
+      const framePath = path.join(this.tempDir, `frame_${uuidv4()}.jpg`);
+
+      return new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+          .seekInput(timeInSeconds)
+          .frames(1)
+          .output(framePath)
+          .outputOptions([
+            "-q:v",
+            "2", // High quality JPEG
+          ])
+          .on("end", () => {
+            // Read the frame and convert to base64
+            const frameBuffer = fsSync.readFileSync(framePath);
+            const base64Frame = frameBuffer.toString("base64");
+
+            // Clean up temp file
+            try {
+              fsSync.unlinkSync(framePath);
+            } catch (e) {
+              logger.warn("Could not delete temp frame:", e.message);
+            }
+
+            resolve(base64Frame);
+          })
+          .on("error", (err) => {
+            logger.error("Error extracting frame:", err);
+            reject(err);
+          })
+          .run();
+      });
+    } catch (error) {
+      logger.error("Error in extractFrameAsBase64:", error);
       throw error;
     }
   }

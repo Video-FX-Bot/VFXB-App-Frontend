@@ -25,6 +25,34 @@ import {
   isVideoThumbnailSupported,
 } from "../../utils/videoThumbnailGenerator";
 
+// API URL for thumbnail loading
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// Thumbnail component with error handling
+const ProjectThumbnail = ({ thumb, name, EMPTY_THUMB }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!thumb || thumb === EMPTY_THUMB || hasError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-600/20">
+        <Video className="w-4 h-4 lg:w-5 lg:h-5 text-pink-400" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={thumb}
+      alt={name}
+      className="w-full h-full object-cover"
+      onError={() => {
+        console.error("Failed to load thumbnail:", thumb);
+        setHasError(true);
+      }}
+    />
+  );
+};
+
 /* ---------------- helpers (avoid undefined crashes) ---------------- */
 
 const getProjectId = (p) => p?._id ?? p?.id ?? null;
@@ -69,28 +97,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
 
   // Generate thumbnail for a project if it has video data but no thumbnail
   const generateThumbnailForProject = async (project) => {
-    try {
-      if (
-        !project?.thumbnail &&
-        project?.videoData &&
-        isVideoThumbnailSupported()
-      ) {
-        const videoUrl = project.videoData.url || project.videoData.src;
-        if (videoUrl) {
-          const thumbnail = await generateVideoThumbnail(videoUrl, 1, 160, 90);
-          const updatedProject = {
-            ...project,
-            thumbnail,
-            lastModified: "Just now",
-            updatedAt: new Date().toISOString(),
-          };
-          await projectService.saveProject(updatedProject);
-          return updatedProject;
-        }
-      }
-    } catch (error) {
-      console.warn("Failed generating thumbnail:", project?.name, error);
-    }
+    // Backend now generates thumbnails automatically, so just return the project as-is
     return project;
   };
 
@@ -106,54 +113,8 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
         if (!aliveRef.current) return;
 
         if (list.length === 0) {
-          // Default filler list (safe placeholders)
-          setProjects([
-            {
-              id: 1,
-              name: "Summer Vacation Video",
-              thumbnail:
-                "https://images.pexels.com/photos/1144275/pexels-photo-1144275.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "2:45",
-              lastModified: "2 hours ago",
-              status: "completed",
-            },
-            {
-              id: 2,
-              name: "Product Demo",
-              thumbnail:
-                "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "1:30",
-              lastModified: "1 day ago",
-              status: "draft",
-            },
-            {
-              id: 3,
-              name: "Wedding Highlights",
-              thumbnail:
-                "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "3:20",
-              lastModified: "3 days ago",
-              status: "completed",
-            },
-            {
-              id: 4,
-              name: "Travel Vlog",
-              thumbnail:
-                "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "4:15",
-              lastModified: "5 days ago",
-              status: "draft",
-            },
-            {
-              id: 5,
-              name: "Corporate Training",
-              thumbnail:
-                "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=160",
-              duration: "6:30",
-              lastModified: "1 week ago",
-              status: "completed",
-            },
-          ]);
+          // No projects - show empty state
+          setProjects([]);
         } else {
           const processed = await Promise.all(
             list.map((p) => generateThumbnailForProject(p))
@@ -477,182 +438,200 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
             </div>
 
             <div className="space-y-1 lg:space-y-2">
-              {list.map((project) => {
-                const pid = getProjectId(project);
-                const name = safeStr(project?.name, "Untitled Project");
-                const thumb = project?.thumbnail || EMPTY_THUMB;
-                const status = safeStatus(project?.status);
-                const duration = safeStr(project?.duration, "—");
+              {list.length === 0 ? (
+                <div className="text-center py-6 lg:py-8">
+                  <p className="text-xs lg:text-sm text-muted-foreground">
+                    No projects yet
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click the + button to create your first project
+                  </p>
+                </div>
+              ) : (
+                list.map((project) => {
+                  const pid = getProjectId(project);
+                  const name = safeStr(project?.name, "Untitled Project");
+                  // Prepend API_URL if thumbnail is a relative path
+                  const rawThumb = project?.thumbnail || EMPTY_THUMB;
+                  const thumb =
+                    rawThumb &&
+                    rawThumb !== EMPTY_THUMB &&
+                    rawThumb.startsWith("/")
+                      ? `${API_URL}${rawThumb}`
+                      : rawThumb;
+                  const status = safeStatus(project?.status);
+                  const duration = safeStr(project?.duration, "—");
 
-                return (
-                  <motion.div
-                    key={pid ?? name}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="group relative"
-                  >
-                    <div
-                      onClick={() => {
-                        if (pid != null) handleProjectAction("open", pid);
-                        setIsSidebarOpen(false);
-                      }}
-                      className="bg-muted rounded-lg p-3 hover:bg-muted/80 transition-colors cursor-pointer relative"
+                  return (
+                    <motion.div
+                      key={pid ?? name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group relative"
                     >
-                      <div className="flex items-start gap-3">
-                        {/* Thumbnail */}
-                        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-                          <img
-                            src={thumb}
-                            alt={name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        <div
-                          className={`absolute -top-1 -right-1 w-3 h-3 rounded-full z-10 ${getStatusColor(
-                            status
-                          )}`}
-                        />
-
-                        {project?.favorite && (
-                          <div className="absolute -top-1 -left-1 z-10">
-                            <Star className="w-3 h-3 text-yellow-400" />
-                          </div>
-                        )}
-
-                        {/* Project Info */}
-                        <div className="flex-1 min-w-0">
-                          {editingProjectId === pid ? (
-                            <input
-                              type="text"
-                              value={editingProjectName}
-                              onChange={(e) =>
-                                setEditingProjectName(e.target.value)
-                              }
-                              onBlur={() => handleRenameSave(pid)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleRenameSave(pid);
-                                if (e.key === "Escape") handleRenameCancel();
-                              }}
-                              className="w-full bg-background border border-border rounded px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                              autoFocus
+                      <div
+                        onClick={() => {
+                          if (pid != null) handleProjectAction("open", pid);
+                          setIsSidebarOpen(false);
+                        }}
+                        className="bg-muted rounded-lg p-3 hover:bg-muted/80 transition-colors cursor-pointer relative"
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Thumbnail */}
+                          <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                            <ProjectThumbnail
+                              thumb={thumb}
+                              name={name}
+                              EMPTY_THUMB={EMPTY_THUMB}
                             />
-                          ) : (
-                            <>
-                              <h4 className="text-xs lg:text-sm font-medium text-foreground truncate group-hover:text-pink-300 transition-colors">
-                                {name}
-                              </h4>
-                              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                                <div className="flex items-center space-x-1 lg:space-x-2">
-                                  <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
-                                  <span className="text-xs">{duration}</span>
-                                </div>
-                                <span
-                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                    status === "completed"
-                                      ? "bg-success-light text-success-light border border-green-500/30"
-                                      : status === "draft"
-                                      ? "bg-warning-light text-warning-light border border-yellow-500/30"
-                                      : status === "processing"
-                                      ? "bg-info-light text-info-light border border-blue-500/30"
-                                      : "bg-muted text-muted-foreground border border-border"
-                                  }`}
-                                >
-                                  {capFirst(status, "Draft")}
-                                </span>
-                              </div>
-                            </>
+                          </div>
+
+                          <div
+                            className={`absolute -top-1 -right-1 w-3 h-3 rounded-full z-10 ${getStatusColor(
+                              status
+                            )}`}
+                          />
+
+                          {project?.favorite && (
+                            <div className="absolute -top-1 -left-1 z-10">
+                              <Star className="w-3 h-3 text-yellow-400" />
+                            </div>
                           )}
+
+                          {/* Project Info */}
+                          <div className="flex-1 min-w-0">
+                            {editingProjectId === pid ? (
+                              <input
+                                type="text"
+                                value={editingProjectName}
+                                onChange={(e) =>
+                                  setEditingProjectName(e.target.value)
+                                }
+                                onBlur={() => handleRenameSave(pid)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleRenameSave(pid);
+                                  if (e.key === "Escape") handleRenameCancel();
+                                }}
+                                className="w-full bg-background border border-border rounded px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                autoFocus
+                              />
+                            ) : (
+                              <>
+                                <h4 className="text-xs lg:text-sm font-medium text-foreground truncate group-hover:text-pink-300 transition-colors">
+                                  {name}
+                                </h4>
+                                <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center space-x-1 lg:space-x-2">
+                                    <Clock className="w-2 h-2 lg:w-3 lg:h-3" />
+                                    <span className="text-xs">{duration}</span>
+                                  </div>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      status === "completed"
+                                        ? "bg-success-light text-success-light border border-green-500/30"
+                                        : status === "draft"
+                                        ? "bg-warning-light text-warning-light border border-yellow-500/30"
+                                        : status === "processing"
+                                        ? "bg-info-light text-info-light border border-blue-500/30"
+                                        : "bg-muted text-muted-foreground border border-border"
+                                    }`}
+                                  >
+                                    {capFirst(status, "Draft")}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Menu Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProjectMenuOpen(
+                                projectMenuOpen === pid ? null : pid
+                              );
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-muted transition-all"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
                         </div>
 
-                        {/* Menu Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setProjectMenuOpen(
-                              projectMenuOpen === pid ? null : pid
-                            );
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-muted transition-all"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                        {/* Project Menu */}
+                        {projectMenuOpen === pid && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute right-2 top-12 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px] bg-card"
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleProjectAction("open", pid);
+                                setIsSidebarOpen(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                            >
+                              <Play className="w-4 h-4" />
+                              Open
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingProjectId(pid);
+                                setEditingProjectName(name);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                              Rename
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleProjectAction("duplicate", pid);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              Duplicate
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleProjectAction("favorite", pid);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                            >
+                              <Star className="w-4 h-4" />
+                              {project?.favorite
+                                ? "Remove from Favorites"
+                                : "Add to Favorites"}
+                            </button>
+                            <hr className="border-border my-1" />
+                            <button
+                              data-action="delete"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleProjectAction("delete", pid);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-destructive text-destructive hover:text-destructive-foreground flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </motion.div>
+                        )}
                       </div>
-
-                      {/* Project Menu */}
-                      {projectMenuOpen === pid && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute right-2 top-12 bg-popover border border-border rounded-lg shadow-xl z-50 py-1 min-w-[140px] bg-card"
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleProjectAction("open", pid);
-                              setIsSidebarOpen(false);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
-                          >
-                            <Play className="w-4 h-4" />
-                            Open
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setEditingProjectId(pid);
-                              setEditingProjectName(name);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            Rename
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleProjectAction("duplicate", pid);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
-                          >
-                            <Copy className="w-4 h-4" />
-                            Duplicate
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleProjectAction("favorite", pid);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
-                          >
-                            <Star className="w-4 h-4" />
-                            {project?.favorite
-                              ? "Remove from Favorites"
-                              : "Add to Favorites"}
-                          </button>
-                          <hr className="border-border my-1" />
-                          <button
-                            data-action="delete"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleProjectAction("delete", pid);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-destructive text-destructive hover:text-destructive-foreground flex items-center gap-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        </motion.div>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
 
             {/* View All Projects */}

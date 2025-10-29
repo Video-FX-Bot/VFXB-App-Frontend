@@ -13,10 +13,18 @@ export const setupSocketHandlers = (io) => {
   io.on("connection", (socket) => {
     // Handle both authenticated and anonymous users
     const userId = socket.userId || `anonymous_${socket.id}`;
-    logger.info(`User connected: ${userId}`);
+    const roomName = `user_${userId}`;
+
+    logger.info(`🔌 User connected: ${userId}`);
+    logger.info(`📍 Socket ID: ${socket.id}`);
+    logger.info(`🏠 Joining room: ${roomName}`);
 
     // Join user to their personal room
-    socket.join(`user_${userId}`);
+    socket.join(roomName);
+
+    // Verify room was joined
+    const rooms = Array.from(socket.rooms);
+    logger.info(`✅ Socket now in rooms: ${rooms.join(", ")}`);
 
     // Store userId for later use
     socket.userId = userId;
@@ -26,11 +34,14 @@ export const setupSocketHandlers = (io) => {
       try {
         const { message, videoId, conversationId } = data;
 
-        logger.info("Received chat message:", {
+        logger.info("📨 Received chat message:", {
           userId: socket.userId,
           message,
           videoId,
           conversationId,
+          videoPath: data.videoPath, // 🔍 Log the videoPath being received
+          lastAppliedEffect: data.lastAppliedEffect,
+          appliedEffects: data.appliedEffects,
         });
 
         // Save user message to database
@@ -60,6 +71,8 @@ export const setupSocketHandlers = (io) => {
           videoId,
           conversationId,
           videoPath: data.videoPath || null,
+          lastAppliedEffect: data.lastAppliedEffect || null,
+          appliedEffects: data.appliedEffects || [],
         };
 
         const aiResponse = await aiService.processChatMessage(message, context);

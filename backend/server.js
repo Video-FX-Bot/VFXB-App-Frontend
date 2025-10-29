@@ -22,6 +22,9 @@ import userRoutes from "./src/routes/user.js";
 import testRoutes from "./src/routes/test.js";
 import projectRoutes from "./src/routes/project.js";
 import videoEditRoutes from "./src/routes/videoEdit.js";
+import classificationRoutes from "./src/routes/classification.js";
+import editOperationsRoutes from "./src/routes/editOperations.js";
+import gcRoutes from "./src/routes/admin/gc.js";
 
 // Import middleware
 import { errorHandler } from "./src/middleware/errorHandler.js";
@@ -42,6 +45,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+// Make io globally accessible for background tasks
+global.io = io;
 
 const PORT = process.env.PORT || 5000;
 
@@ -72,7 +78,12 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/video-edit", videoEditRoutes);
+app.use("/api/classification", classificationRoutes);
 app.use("/api/test", testRoutes);
+
+// Hybrid workflow routes
+app.use("/api/projects", editOperationsRoutes);
+app.use("/api/admin/gc", gcRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -131,6 +142,9 @@ const startServer = async () => {
         }`
       );
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      logger.info(
+        "🎬 Hybrid workflow render queue ready (auto-processes on job submission)"
+      );
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

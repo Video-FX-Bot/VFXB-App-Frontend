@@ -12,6 +12,9 @@ import { TranscriptionService } from "../services/transcriptionService.js";
 import { CloudinaryService } from "../services/cloudinaryService.js";
 import { ReplicateService } from "../services/replicateService.js";
 import { ElevenLabsService } from "../services/elevenlabsService.js";
+import { AutoEditService } from "../services/autoEditService.js";
+import { computeFileSHA256, deduplicateUpload } from "../utils/fileUtils.js";
+import localStorageService from "../services/localStorageService.js";
 import {
   authenticateToken,
   checkSubscriptionLimits,
@@ -51,6 +54,7 @@ const transcriptionService = new TranscriptionService();
 const cloudinaryService = new CloudinaryService();
 const replicateService = new ReplicateService();
 const elevenlabsService = new ElevenLabsService();
+const autoEditService = new AutoEditService();
 
 // Rate limiting
 const uploadLimiter = rateLimit({
@@ -184,6 +188,40 @@ router.post(
         });
       }
 
+      // Compute SHA256 hash for deduplication
+      logger.info("Computing SHA256 hash for uploaded video...");
+      const sha256 = await computeFileSHA256(req.file.path);
+      logger.info(`SHA256 computed: ${sha256}`);
+
+      // Check for duplicate video
+      const duplicateVideo = await deduplicateUpload(
+        req.file.path,
+        sha256,
+        localStorageService
+      );
+
+      if (duplicateVideo) {
+        // Duplicate found - return existing video reference
+        logger.info(
+          `Duplicate video detected, returning existing video: ${duplicateVideo._id}`
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: "Video already exists, using existing copy",
+          video: {
+            id: duplicateVideo._id,
+            title: duplicateVideo.title,
+            url:
+              duplicateVideo.url || `/api/videos/${duplicateVideo._id}/stream`,
+            metadata: duplicateVideo.metadata,
+            duplicate: true,
+            originalId: duplicateVideo._id,
+            refCount: duplicateVideo.refCount,
+          },
+        });
+      }
+
       // Create video record
       const video = new Video({
         title: title.trim(),
@@ -201,6 +239,8 @@ router.post(
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         visibility,
+        sha256: sha256, // Store SHA256 hash
+        refCount: 1, // Initialize reference count
         metadata: {
           duration: metadata.duration || 0,
           width: metadata.video?.width || 0,
@@ -241,14 +281,14 @@ router.post(
         );
       }
 
-      // Start background processing
-      processVideoInBackground(video._id);
+      // Start background processing (thumbnail generation only)
+      processVideoInBackground(video._id, req.user.id, { thumbnailOnly: true });
 
       logger.info(`Video uploaded: ${video._id} by user ${req.user.id}`);
 
       res.status(201).json({
         success: true,
-        message: "Video uploaded successfully",
+        message: "Video uploaded successfully. AI enhancement in progress...",
         data: {
           video: {
             id: video._id,
@@ -306,32 +346,427 @@ router.post(
   }
 );
 
-// Background video processing function
-async function processVideoInBackground(videoId) {
+// Background video processing function with auto-editing
+async function processVideoInBackground(videoId, userId, options = {}) {
   try {
-    const video = await Video.findById(videoId);
-    if (!video) return;
+    const { thumbnailOnly = false } = options;
 
-    // Generate thumbnails
-    // This would typically involve FFmpeg to extract frames
-    // For now, we'll simulate the process
+    logger.info(`🎬 Starting background processing for video: ${videoId}`);
+    logger.info(`👤 User ID: ${userId}`);
+    logger.info(`📋 Thumbnail only mode: ${thumbnailOnly}`);
+    logger.info(`�📡 Target room name: user_${userId}`);
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+      logger.error(`❌ Video not found: ${videoId}`);
+      return;
+    }
+
+    // Get io instance for socket emissions
+    const io = global.io;
+    if (!io) {
+      logger.error(
+        "❌ Socket.io instance not found! Cannot emit progress updates."
+      );
+      logger.error("Make sure global.io is set in server.js");
+    } else {
+      logger.info("✅ Socket.io instance found");
+
+      // Debug: Show all active rooms and sockets
+      const allRooms = io.sockets.adapter.rooms;
+      logger.info(
+        `📋 All active rooms: ${Array.from(allRooms.keys()).join(", ")}`
+      );
+
+      const targetRoom = `user_${userId}`;
+      const roomSockets = allRooms.get(targetRoom);
+      if (roomSockets) {
+        logger.info(
+          `👥 Found ${roomSockets.size} socket(s) in room ${targetRoom}`
+        );
+        logger.info(`🔌 Socket IDs: ${Array.from(roomSockets).join(", ")}`);
+      } else {
+        logger.warn(`⚠️ No sockets found in room ${targetRoom}!`);
+        logger.warn(
+          "The user may not be connected yet, or the userId format is wrong."
+        );
+      }
+    }
+
+    // Update status to processing
+    video.status = "processing";
+    video.processingProgress = 10;
+    await video.save();
+
+    // Emit processing started event
+    if (io && userId) {
+      const roomName = `user_${userId}`;
+      logger.info(`📤 Emitting video_processing event to room: ${roomName}`);
+      io.to(roomName).emit("video_processing", {
+        videoId: video._id,
+        status: "processing",
+        progress: 10,
+        message: "Starting video analysis...",
+        isAutoEnhancement: true, // Flag to identify auto-enhancement events
+      });
+      logger.info("✅ Event emitted successfully");
+    }
+
+    // Step 1: Generate thumbnails
+    try {
+      video.processingProgress = 30;
+      await video.save();
+
+      // Emit progress update
+      if (io && userId) {
+        io.to(`user_${userId}`).emit("video_processing", {
+          videoId: video._id,
+          status: "processing",
+          progress: 30,
+          message: "Generating thumbnails...",
+          isAutoEnhancement: true,
+        });
+      }
+
+      // Thumbnail generation would happen here
+      const thumbnailResult = await videoProcessor.generateThumbnail(
+        video.filePath,
+        video._id
+      );
+
+      // Save thumbnail info to video
+      video.thumbnails = [
+        {
+          url: thumbnailResult.url,
+          timestamp: "10%",
+        },
+      ];
+      await video.save();
+
+      logger.info(`📸 Thumbnails generated for video: ${videoId}`);
+    } catch (error) {
+      logger.error(`❌ Thumbnail generation failed for ${videoId}:`, error);
+    }
+
+    // Skip AI analysis and auto-edit if thumbnailOnly mode
+    if (thumbnailOnly) {
+      video.status = "ready";
+      video.processingProgress = 100;
+      await video.save();
+
+      logger.info(`✅ Video processing completed (thumbnail only): ${videoId}`);
+      return;
+    }
+
+    // Step 2: AI Analysis and Auto-Edit
+    try {
+      video.processingProgress = 50;
+      await video.save();
+
+      // Emit progress update
+      if (io && userId) {
+        io.to(`user_${userId}`).emit("video_processing", {
+          videoId: video._id,
+          status: "processing",
+          progress: 50,
+          message: "AI analyzing your video...",
+          isAutoEnhancement: true,
+        });
+      }
+
+      logger.info(`🤖 Starting AI analysis for video: ${videoId}`);
+
+      // Analyze video for auto-editing
+      const analysis = await autoEditService.analyzeForAutoEdit(
+        video.filePath,
+        video.metadata
+      );
+
+      if (analysis.success && analysis.recommendedEdits.length > 0) {
+        logger.info(
+          `✅ AI analysis complete. Found ${analysis.recommendedEdits.length} recommended edits`
+        );
+
+        // Store analysis in video metadata
+        video.aiEnhancements = video.aiEnhancements || [];
+        video.aiEnhancements.push({
+          type: "auto-edit-analysis",
+          timestamp: new Date(),
+          analysis: analysis.analysis,
+          transcription: analysis.transcription,
+          recommendedEdits: analysis.recommendedEdits,
+        });
+
+        video.processingProgress = 70;
+        await video.save();
+
+        // Emit progress update
+        if (io && userId) {
+          io.to(`user_${userId}`).emit("video_processing", {
+            videoId: video._id,
+            status: "processing",
+            progress: 70,
+            message: `Applying ${analysis.recommendedEdits.length} AI enhancements...`,
+            analysis: analysis.analysis,
+            isAutoEnhancement: true,
+          });
+        }
+
+        // Apply automatic edits
+        logger.info(
+          `🎨 Applying ${analysis.recommendedEdits.length} automatic edits...`
+        );
+        const editResult = await autoEditService.applyAutoEdits(
+          video,
+          analysis.recommendedEdits,
+          video.userId
+        );
+
+        if (editResult.success && editResult.outputPath) {
+          logger.info(
+            `✅ Auto-edits applied successfully: ${editResult.outputPath}`
+          );
+
+          // Move the file from temp to videos directory
+          const tempFilePath = editResult.outputPath;
+          const filename = path.basename(tempFilePath);
+
+          // Determine the videos directory
+          const uploadPath = process.env.UPLOAD_PATH || "./uploads";
+          const videosDir = path.join(uploadPath, "videos");
+          const permanentFilePath = path.join(videosDir, filename);
+
+          logger.info(`📁 Moving file from temp to permanent location...`);
+          logger.info(`   From: ${tempFilePath}`);
+          logger.info(`   To: ${permanentFilePath}`);
+
+          try {
+            // Ensure videos directory exists
+            await fs.mkdir(videosDir, { recursive: true });
+
+            await fs.rename(tempFilePath, permanentFilePath);
+            logger.info(`✅ File moved successfully`);
+          } catch (moveError) {
+            // If rename fails (different partitions), try copy + delete
+            logger.warn(
+              `⚠️ Rename failed, trying copy instead:`,
+              moveError.message
+            );
+            await fs.copyFile(tempFilePath, permanentFilePath);
+            await fs.unlink(tempFilePath);
+            logger.info(`✅ File copied and original deleted`);
+          }
+
+          // Create a new Video record for the auto-edited version
+          const editedVideo = new Video({
+            title: video.title, // Keep same title, add tag instead
+            description: `${
+              video.description || ""
+            }\n\n${autoEditService.generateEditSummary(
+              analysis.recommendedEdits,
+              analysis.analysis
+            )}`,
+            tags: [...(video.tags || []), "ai-enhanced", "auto-edited"],
+            userId: video.userId,
+            originalFilename: `auto_edited_${video.originalFilename}`,
+            filename: filename,
+            filePath: permanentFilePath, // Use permanent path
+            fileSize: fsSync.statSync(permanentFilePath).size,
+            mimeType: video.mimeType,
+            visibility: video.visibility,
+            metadata: {
+              ...video.metadata,
+              isAutoEdited: true,
+              originalVideoId: video._id,
+            },
+            parentVideoId: video._id.toString(),
+            appliedEffects: analysis.recommendedEdits.map((edit) => ({
+              effect: edit.type,
+              parameters: edit.parameters,
+              appliedAt: new Date(),
+            })),
+            status: "ready",
+          });
+
+          await editedVideo.save();
+
+          // Update original video with reference to auto-edited version
+          video.aiEnhancements.push({
+            type: "auto-edited-version",
+            timestamp: new Date(),
+            editedVideoId: editedVideo._id,
+            appliedEdits: analysis.recommendedEdits,
+            summary: autoEditService.generateEditSummary(
+              analysis.recommendedEdits,
+              analysis.analysis
+            ),
+          });
+          await video.save();
+
+          logger.info(`✅ Auto-edited version created: ${editedVideo._id}`);
+
+          // **IMPORTANT: Emit the auto-edited video to the frontend**
+          if (io && userId) {
+            const enhancedVideoUrl = `/api/videos/${editedVideo._id}/stream`;
+
+            // Don't include base URL - let frontend handle it
+            // This prevents double base URL issues
+            logger.info(`📤 Sending enhanced video URL: ${enhancedVideoUrl}`);
+
+            io.to(`user_${userId}`).emit("video_auto_edit_complete", {
+              originalVideoId: video._id,
+              enhancedVideoId: editedVideo._id,
+              enhancedVideo: {
+                id: editedVideo._id,
+                title: editedVideo.title,
+                description: editedVideo.description,
+                tags: editedVideo.tags,
+                url: enhancedVideoUrl, // Send relative URL
+                streamUrl: enhancedVideoUrl, // Send relative URL
+                thumbnailUrl: `/api/videos/${editedVideo._id}/thumbnail`,
+                duration: editedVideo.metadata.duration,
+                fileSize: editedVideo.fileSize,
+                status: editedVideo.status,
+                appliedEffects: editedVideo.appliedEffects,
+                aiEnhancements: analysis.analysis,
+                parentVideoId: video._id,
+                filePath: editedVideo.filePath, // Include file path for AI to apply effects
+              },
+              analysis: analysis.analysis,
+              appliedEdits: analysis.recommendedEdits,
+              summary: autoEditService.generateEditSummary(
+                analysis.recommendedEdits,
+                analysis.analysis
+              ),
+            });
+
+            logger.info(`📤 Emitted auto-edited video to user: ${userId}`);
+          }
+        } else {
+          logger.warn(`⚠️ Auto-edit application failed or produced no output`);
+
+          // Emit failure notification
+          if (io && userId) {
+            io.to(`user_${userId}`).emit("video_processing", {
+              videoId: video._id,
+              status: "ready",
+              progress: 100,
+              message: "Video ready (auto-edit skipped)",
+              isAutoEnhancement: true,
+            });
+          }
+        }
+      } else {
+        logger.info(`ℹ️ No auto-edits recommended for video: ${videoId}`);
+
+        // Emit notification that no edits were needed
+        if (io && userId) {
+          io.to(`user_${userId}`).emit("video_processing", {
+            videoId: video._id,
+            status: "ready",
+            progress: 100,
+            message: "Video ready (no enhancements needed)",
+            isAutoEnhancement: true,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error(`❌ Auto-edit processing failed for ${videoId}:`, error);
+      // Don't fail the entire process if auto-edit fails
+
+      // Emit error notification
+      if (io && userId) {
+        io.to(`user_${userId}`).emit("video_processing", {
+          videoId: video._id,
+          status: "ready",
+          progress: 100,
+          message: "Video ready (auto-edit failed)",
+          error: error.message,
+          isAutoEnhancement: true,
+        });
+      }
+    }
 
     // Update status to ready
     video.status = "ready";
     video.processingProgress = 100;
     await video.save();
 
-    logger.info(`Video processing completed: ${videoId}`);
+    // Emit final completion event
+    if (io && userId) {
+      io.to(`user_${userId}`).emit("video_processing", {
+        videoId: video._id,
+        status: "ready",
+        progress: 100,
+        message: "Processing complete!",
+        isAutoEnhancement: true,
+      });
+    }
+
+    logger.info(`✅ Video processing completed: ${videoId}`);
   } catch (error) {
-    logger.error(`Video processing failed for ${videoId}:`, error);
+    logger.error(`❌ Video processing failed for ${videoId}:`, error);
 
     // Update video status to failed
     await Video.findByIdAndUpdate(videoId, {
       status: "failed",
       processingError: error.message,
     });
+
+    // Emit error event
+    const io = global.io;
+    if (io && userId) {
+      io.to(`user_${userId}`).emit("video_processing", {
+        videoId,
+        status: "failed",
+        progress: 0,
+        message: "Processing failed",
+        error: error.message,
+        isAutoEnhancement: true,
+      });
+    }
   }
 }
+
+// @route   POST /api/videos/:id/start-ai-processing
+// @desc    Start AI analysis and auto-editing for a video
+// @access  Private
+router.post("/:id/start-ai-processing", authenticateToken, async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video not found",
+      });
+    }
+
+    // Check if user owns the video
+    if (video.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
+
+    // Start AI processing in background (without thumbnailOnly flag)
+    processVideoInBackground(video._id, req.user.id, { thumbnailOnly: false });
+
+    res.json({
+      success: true,
+      message: "AI processing started",
+      videoId: video._id,
+    });
+  } catch (error) {
+    logger.error("Error starting AI processing:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to start AI processing",
+      error: error.message,
+    });
+  }
+});
 
 // @route   GET /api/videos
 // @desc    Get user's videos
@@ -407,9 +842,7 @@ router.get("/", authenticateToken, generalLimiter, async (req, res) => {
 // @access  Private
 router.get("/:id", authenticateToken, generalLimiter, async (req, res) => {
   try {
-    const video = await Video.findById(req.params.id)
-      .populate("userId", "username avatar")
-      .populate("collaborators.userId", "username avatar");
+    const video = await Video.findById(req.params.id);
 
     if (!video) {
       return res.status(404).json({
@@ -418,17 +851,15 @@ router.get("/:id", authenticateToken, generalLimiter, async (req, res) => {
       });
     }
 
-    // Check access permissions
-    if (!video.canAccess(req.user.id, "viewer")) {
+    // Check access permissions - user must own the video or it must be public
+    if (
+      video.userId !== req.user.id &&
+      video.privacy?.visibility !== "public"
+    ) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
       });
-    }
-
-    // Add view if not the owner
-    if (video.userId._id.toString() !== req.user.id) {
-      await video.addView(req.user.id, 0, req.ip, req.get("User-Agent"));
     }
 
     res.json({
@@ -596,7 +1027,6 @@ router.post(
         confidence: transcriptionResult.confidence,
         provider: transcriptionResult.provider,
         segments: transcriptionResult.segments || [],
-        words: transcriptionResult.words || [],
         createdAt: new Date(),
       };
 
@@ -1084,6 +1514,47 @@ router.get(
     }
   }
 );
+
+// @route   GET /api/videos/:id/thumbnail
+// @desc    Get video thumbnail
+// @access  Private (with token in query)
+router.get("/:id/thumbnail", async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const thumbnailPath = path.join(
+      process.env.UPLOAD_PATH || "./uploads",
+      "thumbnails",
+      `${videoId}.jpg`
+    );
+
+    // Check if thumbnail exists
+    const thumbnailExists = await fs
+      .access(thumbnailPath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!thumbnailExists) {
+      // Return a 404 or generate thumbnail on-the-fly
+      return res.status(404).json({
+        success: false,
+        message: "Thumbnail not found",
+      });
+    }
+
+    // Stream the thumbnail
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+
+    const fileStream = fsSync.createReadStream(thumbnailPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    logger.error("Error serving thumbnail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to serve thumbnail",
+    });
+  }
+});
 
 // @route   GET /api/videos/:id/stream
 // @desc    Stream a video file

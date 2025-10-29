@@ -498,6 +498,28 @@ const EnhancedVideoPlayer = forwardRef(
               className="absolute inset-0 w-full h-full object-cover bg-black"
               style={{ objectFit: "cover" }}
               onClick={togglePlay}
+              onLoadStart={() => {
+                console.log("🎬 Video loadstart:", src);
+                setIsLoading(true);
+              }}
+              onLoadedMetadata={() => {
+                console.log("📊 Video metadata loaded:", src);
+              }}
+              onLoadedData={() => {
+                console.log("✅ Video data loaded:", src);
+                setIsLoading(false);
+              }}
+              onCanPlay={() => {
+                console.log("▶️ Video can play:", src);
+                setIsLoading(false);
+              }}
+              onError={(e) => {
+                console.error("❌ Video error:", e.target.error);
+                console.error("❌ Error code:", e.target.error?.code);
+                console.error("❌ Error message:", e.target.error?.message);
+                console.error("❌ Video src:", src);
+                setIsLoading(false);
+              }}
             />
           </div>
 

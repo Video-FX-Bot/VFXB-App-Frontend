@@ -48,16 +48,16 @@ const useVideoStore = create(
         try {
           // Use the current video ID (which has accumulated effects)
           // Not the original, because effects are stored on the processed versions
-          const videoId = get().currentVideo?.id;
+          const currentVideoId = get().currentVideo?.id;
 
           console.log("=== Apply Effect Debug ===");
           console.log("Current Video:", get().currentVideo);
           console.log("Original Video ID:", get().originalVideoId);
-          console.log("Using Video ID:", videoId);
+          console.log("Using Video ID:", currentVideoId);
           console.log("Effect:", effect);
           console.log("========================");
 
-          if (!videoId) {
+          if (!currentVideoId) {
             throw new Error("No video selected");
           }
 
@@ -66,7 +66,7 @@ const useVideoStore = create(
 
           // Call the API to apply the effect (ApiService is already a singleton instance)
           const result = await ApiService.applyVideoEffect(
-            videoId,
+            currentVideoId,
             effect.id,
             effect.parameters || {}
           );
@@ -80,29 +80,129 @@ const useVideoStore = create(
 
           console.log("Effect applied successfully, response:", data);
 
+          // Extract video data from response
+          let processedVideo = data.video || {};
+          const videoId =
+            data.effectVideo || processedVideo._id || processedVideo.id;
+
+          // If processedVideo is empty, fetch it from the backend
+          if (!processedVideo._id && !processedVideo.id && videoId) {
+            console.log(
+              "📋 processedVideo is empty, fetching from backend:",
+              videoId
+            );
+            try {
+              const token = localStorage.getItem("authToken");
+              const baseUrl =
+                import.meta.env.VITE_API_URL || "http://localhost:5000";
+              const videoResponse = await fetch(
+                `${baseUrl}/api/videos/${videoId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              const videoData = await videoResponse.json();
+              // Extract video from nested response
+              processedVideo =
+                videoData.data?.video || videoData.video || videoData;
+              console.log("📋 Fetched video from backend:", processedVideo);
+            } catch (error) {
+              console.error("Failed to fetch video details:", error);
+            }
+          }
+
           // Construct full video URL with authentication token
           const token = localStorage.getItem("authToken");
-          let newVideoUrl = data.downloadUrl || state.currentVideo?.url;
+          const baseUrl =
+            import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+          // Use downloadUrl from API or construct from video ID
+          let videoPath = data.downloadUrl || `/api/videos/${videoId}/stream`;
+          let newVideoUrl = videoPath.startsWith("http")
+            ? videoPath
+            : `${baseUrl}${videoPath}`;
 
           // Add token to the URL if not already present
-          if (newVideoUrl && token && !newVideoUrl.includes("token=")) {
+          if (token && !newVideoUrl.includes("token=")) {
             newVideoUrl = `${newVideoUrl}${
               newVideoUrl.includes("?") ? "&" : "?"
             }token=${token}`;
           }
 
+          // Add cache-busting timestamp to force reload
+          newVideoUrl = `${newVideoUrl}&t=${Date.now()}`;
+
           console.log("New video URL:", newVideoUrl);
+          console.log("Video ID:", videoId);
+          console.log("Processed video data:", processedVideo);
 
           // If the effect resulted in returning to the original (isOriginal flag)
           // clear global effects for this type
           const isReturningToOriginal = data.isOriginal === true;
 
+          // Use appliedEffects from backend response (which handles deduplication)
+          // If not available, fall back to current effects
+          let backendEffects =
+            processedVideo.appliedEffects ||
+            get().currentVideo?.appliedEffects ||
+            [];
+
+          console.log(
+            "📋 Raw appliedEffects from backend:",
+            processedVideo.appliedEffects
+          );
+          console.log(
+            "📋 Type of appliedEffects:",
+            typeof processedVideo.appliedEffects
+          );
+          console.log(
+            "📋 Is Array?:",
+            Array.isArray(processedVideo.appliedEffects)
+          );
+
+          // Normalize appliedEffects: convert object to array if needed
+          // (Sometimes backend returns object with numeric keys instead of array)
+          if (
+            !Array.isArray(backendEffects) &&
+            typeof backendEffects === "object" &&
+            backendEffects !== null
+          ) {
+            console.log("🔄 Converting object to array...");
+            console.log("🔄 Object keys:", Object.keys(backendEffects));
+
+            // Extract only numeric keys and convert to array (filter out non-numeric like "service", "environment")
+            const numericKeys = Object.keys(backendEffects)
+              .filter((key) => !isNaN(parseInt(key)))
+              .sort((a, b) => parseInt(a) - parseInt(b));
+
+            console.log("🔄 Numeric keys found:", numericKeys);
+
+            backendEffects = numericKeys
+              .map((key) => backendEffects[key])
+              .filter(
+                (item) =>
+                  item && typeof item === "object" && (item.effect || item.type)
+              );
+
+            console.log("✅ Converted to array:", backendEffects);
+          }
+
+          const updatedAppliedEffects = isReturningToOriginal
+            ? [] // Clear appliedEffects when returning to original
+            : backendEffects;
+
+          console.log("📋 Final updatedAppliedEffects:", updatedAppliedEffects);
+          console.log("📋 Length:", updatedAppliedEffects.length);
+
           set((state) => ({
             currentVideo: {
               ...state.currentVideo,
+              ...processedVideo, // Include all properties from backend
               id: data.effectVideo,
               url: newVideoUrl,
               streamUrl: newVideoUrl,
+              filePath: data.outputPath, // ✅ Preserve the file path from API response
+              appliedEffects: updatedAppliedEffects, // ✅ Use backend's appliedEffects (deduplication handled server-side)
             },
             // Keep originalVideoId unchanged - always reference the first uploaded video
             globalEffects: isReturningToOriginal

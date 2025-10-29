@@ -9,12 +9,16 @@ import {
 import { logger } from "../utils/logger.js";
 import rateLimit from "express-rate-limit";
 import effectsRouter from "./effects.js";
+import captionsRouter from "./captions.js";
+import videoEnhancementRouter from "./videoEnhancement.js";
 
 const router = express.Router();
 const videoProcessor = new VideoProcessor();
 
-// Use effects router
+// Use sub-routers
 router.use("/", effectsRouter);
+router.use("/", captionsRouter);
+router.use("/", videoEnhancementRouter);
 
 // Rate limiting for video editing operations
 const editLimiter = rateLimit({

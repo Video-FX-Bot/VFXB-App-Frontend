@@ -68,7 +68,9 @@ class SocketService {
     message,
     videoId = null,
     conversationId = null,
-    videoPath = null
+    videoPath = null,
+    lastAppliedEffect = null,
+    appliedEffects = []
   ) {
     if (!this.socket || !this.isConnected) {
       throw new Error("Socket not connected");
@@ -79,12 +81,16 @@ class SocketService {
       videoId,
       conversationId,
       videoPath,
+      lastAppliedEffect,
+      appliedEffects,
     });
     this.socket.emit("chat_message", {
       message,
       videoId,
       conversationId,
       videoPath,
+      lastAppliedEffect,
+      appliedEffects,
     });
   }
 
@@ -173,17 +179,9 @@ class SocketService {
     console.log("🎯 Registering AI response listener");
     console.log("🎯 Callback type:", typeof callback);
     console.log("🎯 Callback is:", callback);
-    this.on("ai_response", (data) => {
-      console.log("📨 AI response received in socketService:", data);
-      console.log("📨 About to call callback...");
-      console.log("📨 Callback exists?", !!callback);
-      if (callback) {
-        callback(data);
-        console.log("📨 Callback executed!");
-      } else {
-        console.error("❌ No callback provided!");
-      }
-    });
+
+    // Register directly without wrapper to ensure cleanup works properly
+    this.on("ai_response", callback);
   }
 
   onAITyping(callback) {

@@ -32,6 +32,9 @@ import {
 } from "lucide-react";
 import EnhancedVideoPlayer from "../components/video/EnhancedVideoPlayer";
 import EffectsLibrary from "../components/effects/EffectsLibrary";
+import AutoEditStatus from "../components/AutoEditStatus";
+import EnhancementLoadingScreen from "../components/EnhancementLoadingScreen";
+import AppliedEffectsList from "../components/AppliedEffectsList";
 import {
   videoWorker,
   smartCache,
@@ -255,6 +258,15 @@ const AIEditor = () => {
   const processedResponseIds = useRef(new Set()); // Track processed AI responses to prevent duplicates
   const hasShownWelcomeMessage = useRef(false); // Track if we've shown the welcome message to prevent duplicates
 
+  // Auto-enhancement loading state
+  const [isWaitingForEnhancement, setIsWaitingForEnhancement] = useState(false);
+  const [enhancementProgress, setEnhancementProgress] = useState(0);
+  const [enhancementMessage, setEnhancementMessage] = useState("");
+
+  // Track the original video before any effects are applied
+  const [originalVideoBeforeEffects, setOriginalVideoBeforeEffects] =
+    useState(null);
+
   // Connect to video store - only select what we need to prevent re-renders
   const storeCurrentVideo = useVideoStore((state) => state.currentVideo);
   const applyGlobalEffect = useVideoStore((state) => state.applyGlobalEffect);
@@ -294,6 +306,9 @@ const AIEditor = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
+
+  // Track last applied effect for intensity adjustments
+  const [lastAppliedEffect, setLastAppliedEffect] = useState(null);
 
   // Track current effect parameters for manual controls
   const [currentEffectParams, setCurrentEffectParams] = useState({
@@ -605,14 +620,9 @@ const AIEditor = () => {
               timestamp: Date.now(),
             });
 
-            // Complete progress
+            // Complete progress - loading screen will hide when new video loads
             clearInterval(progressInterval);
             setProcessingProgress(100);
-
-            setTimeout(() => {
-              setIsGeneratingVideo(false);
-              setProcessingProgress(0);
-            }, 500);
 
             // Update current effect parameters for manual controls
             const params = action.parameters;
@@ -740,11 +750,7 @@ const AIEditor = () => {
 
             clearInterval(progressInterval);
             setProcessingProgress(100);
-
-            setTimeout(() => {
-              setIsGeneratingVideo(false);
-              setProcessingProgress(0);
-            }, 500);
+            // Loading screen will auto-hide when new video loads
 
             // Show confirmation with all LUT options
             const quickActions = [
@@ -853,11 +859,7 @@ const AIEditor = () => {
 
             clearInterval(progressInterval);
             setProcessingProgress(100);
-
-            setTimeout(() => {
-              setIsGeneratingVideo(false);
-              setProcessingProgress(0);
-            }, 500);
+            // Loading screen will auto-hide when new video loads
 
             // Show confirmation with blur adjustment options
             const quickActions = [
@@ -916,6 +918,122 @@ const AIEditor = () => {
               {
                 type: "ai",
                 content: `❌ Failed to apply blur: ${error.message}`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
+          break;
+        }
+        case "enhance-quality": {
+          // Handle video quality enhancement
+          const currentVideo = useVideoStore.getState().currentVideo;
+          const applyEffect = useVideoStore.getState().applyGlobalEffect;
+
+          if (!currentVideo?.id) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: "❌ No video available to enhance quality.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            break;
+          }
+
+          const params = action.parameters || {};
+          console.log("Applying quality enhancement:", params);
+
+          setIsGeneratingVideo(true);
+          setProcessingProgress(10);
+
+          const progressInterval = setInterval(() => {
+            setProcessingProgress((prev) => {
+              if (prev >= 90) {
+                clearInterval(progressInterval);
+                return 90;
+              }
+              return prev + 5; // Slower progress for quality enhancement
+            });
+          }, 500);
+
+          try {
+            const effectConfig = {
+              id: "enhance-quality",
+              name: "Quality Enhancement",
+              type: "enhancement",
+              parameters: {
+                upscale: params.upscale || false,
+                denoise: params.denoise !== false, // default true
+                sharpen: params.sharpen !== false, // default true
+                targetResolution: params.targetResolution || null,
+                ...params,
+              },
+              timestamp: Date.now(),
+            };
+
+            await applyEffect(effectConfig);
+
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+
+            // Build description of what was done
+            let enhancements = [];
+            if (params.denoise !== false)
+              enhancements.push("✨ Noise Reduction");
+            if (params.sharpen !== false)
+              enhancements.push("🔍 Enhanced Sharpness");
+            enhancements.push("📊 Improved Contrast (+15%)");
+            enhancements.push("🎨 Boosted Color Saturation (+20%)");
+            if (params.upscale) enhancements.push("📐 Resolution Upscaling");
+            if (params.targetResolution)
+              enhancements.push(`🎯 Targeting ${params.targetResolution}`);
+
+            const enhancementList = enhancements.join("\n• ");
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                id: `msg-${Date.now()}-${Math.random()}`,
+                type: "ai",
+                content: `✅ **Video Quality Enhanced!**
+
+Your video has been upgraded with the following improvements:
+• ${enhancementList}
+
+**What Changed:**
+- **Clearer Details**: Sharper edges and text (50% stronger)
+- **Cleaner Image**: Reduced video noise and grain
+- **Better Colors**: 20% more vibrant and saturated
+- **Enhanced Contrast**: 15% boost for better depth
+- **Brighter Overall**: Subtle +2% brightness lift
+
+💡 *Tip: Look at fine details like text, faces, or edges to see the difference!*`,
+                timestamp: new Date().toISOString(),
+                actions: [
+                  {
+                    label: "� Enhance Even More",
+                    action: "enhance-quality",
+                    parameters: { upscale: true },
+                  },
+                  {
+                    label: "⚡ Make Brighter",
+                    action: "brightness",
+                    parameters: { brightness: 20 },
+                  },
+                ],
+              },
+            ]);
+          } catch (error) {
+            clearInterval(progressInterval);
+            setIsGeneratingVideo(false);
+            setProcessingProgress(0);
+
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ Failed to enhance quality: ${error.message}`,
                 timestamp: new Date().toISOString(),
               },
             ]);
@@ -1056,13 +1174,20 @@ const AIEditor = () => {
         processedResponseIds.current.add(response.id);
       }
 
-      // Don't show AI message if it's a brightness/contrast/blur/lut intent - we'll show confirmation after applying
+      // Don't show AI message if it's a brightness/contrast/blur/lut/caption intent - we'll show confirmation after applying
       const isAutoApplyIntent =
         response.intent?.action === "brightness" ||
         response.intent?.action === "contrast" ||
         response.intent?.action === "gaussian-blur" ||
         response.intent?.action === "motion-blur" ||
-        response.intent?.action === "lut-filter";
+        response.intent?.action === "lut-filter" ||
+        response.intent?.action === "caption" ||
+        response.intent?.action === "enhance-quality" ||
+        response.intent?.action === "remove-effect" ||
+        response.intent?.action === "reset-video" ||
+        response.intent?.action === "snow" ||
+        response.intent?.action === "fire" ||
+        response.intent?.action === "sparkles";
 
       if (!isAutoApplyIntent) {
         setChatMessages((prev) => [
@@ -1087,6 +1212,15 @@ const AIEditor = () => {
       const videoFromStore = useVideoStore.getState().currentVideo;
       const intentAction = response.intent?.action;
 
+      // Skip auto-apply for unavailable features
+      if (intentAction === "unavailable") {
+        console.log(
+          "⚠️ Unavailable feature requested - skipping effect application"
+        );
+        // Just show the AI's message explaining it's not available
+        return;
+      }
+
       if (
         (intentAction === "brightness" ||
           intentAction === "contrast" ||
@@ -1094,7 +1228,14 @@ const AIEditor = () => {
           intentAction === "motion-blur" ||
           intentAction === "lut-filter" ||
           intentAction === "cross-dissolve" ||
-          intentAction === "zoom-transition") &&
+          intentAction === "zoom-transition" ||
+          intentAction === "caption" ||
+          intentAction === "enhance-quality" ||
+          intentAction === "remove-effect" ||
+          intentAction === "reset-video" ||
+          intentAction === "snow" ||
+          intentAction === "fire" ||
+          intentAction === "sparkles") &&
         videoFromStore?.id
       ) {
         const effectName =
@@ -1110,7 +1251,21 @@ const AIEditor = () => {
             ? "LUT Filter"
             : intentAction === "cross-dissolve"
             ? "Cross Dissolve"
-            : "Zoom Transition";
+            : intentAction === "zoom-transition"
+            ? "Zoom Transition"
+            : intentAction === "enhance-quality"
+            ? "Quality Enhancement"
+            : intentAction === "remove-effect"
+            ? "Remove Effect"
+            : intentAction === "reset-video"
+            ? "Reset Video"
+            : intentAction === "snow"
+            ? "Snow Effect"
+            : intentAction === "fire"
+            ? "Fire Effect"
+            : intentAction === "sparkles"
+            ? "Sparkles Effect"
+            : "Captions";
         console.log(
           `✅ ${effectName} intent detected! Auto-applying effect...`
         );
@@ -1118,20 +1273,25 @@ const AIEditor = () => {
         console.log("Current video in store:", videoFromStore);
         console.log("Calling applyGlobalEffect...");
 
-        // Show processing state
-        setIsGeneratingVideo(true);
-        setProcessingProgress(10);
+        // Show processing state (but not for remove/reset operations)
+        if (
+          intentAction !== "remove-effect" &&
+          intentAction !== "reset-video"
+        ) {
+          setIsGeneratingVideo(true);
+          setProcessingProgress(10);
 
-        // Simulate progress updates
-        const progressInterval = setInterval(() => {
-          setProcessingProgress((prev) => {
-            if (prev >= 90) {
-              clearInterval(progressInterval);
-              return 90;
-            }
-            return prev + 10;
-          });
-        }, 300);
+          // Simulate progress updates
+          var progressInterval = setInterval(() => {
+            setProcessingProgress((prev) => {
+              if (prev >= 90) {
+                clearInterval(progressInterval);
+                return 90;
+              }
+              return prev + 10;
+            });
+          }, 300);
+        }
 
         // Determine effect configuration based on intent
         let effectConfig = {
@@ -1163,12 +1323,178 @@ const AIEditor = () => {
           effectConfig.id = "zoom-transition";
           effectConfig.name = "Zoom Transition";
           effectConfig.type = "transition";
+        } else if (intentAction === "caption") {
+          effectConfig.id = "caption";
+          effectConfig.name = "Captions";
+          effectConfig.type = "caption";
+        } else if (intentAction === "enhance-quality") {
+          effectConfig.id = "enhance-quality";
+          effectConfig.name = "Quality Enhancement";
+          effectConfig.type = "enhancement";
+        } else if (intentAction === "snow") {
+          effectConfig.id = "snow";
+          effectConfig.name = "Snow Effect";
+          effectConfig.type = "particle";
+        } else if (intentAction === "fire") {
+          effectConfig.id = "fire";
+          effectConfig.name = "Fire Effect";
+          effectConfig.type = "particle";
+        } else if (intentAction === "sparkles") {
+          effectConfig.id = "sparkles";
+          effectConfig.name = "Sparkles Effect";
+          effectConfig.type = "particle";
+        } else if (intentAction === "remove-effect") {
+          // Handle remove effect request
+          const effectType = response.intent.parameters?.effectType || "last";
+          const appliedEffects = videoFromStore.appliedEffects || [];
+
+          console.log("🔍 Remove effect debug:");
+          console.log("  - videoFromStore:", videoFromStore);
+          console.log("  - appliedEffects:", appliedEffects);
+          console.log("  - appliedEffects.length:", appliedEffects.length);
+
+          if (appliedEffects.length === 0) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content:
+                  "❌ No effects have been applied yet. Your video is already in its original state.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
+
+          // Check if no effects match
+          if (effectType === "none") {
+            const effectsList = appliedEffects
+              .map((e, i) => `${i + 1}. ${e.effect || e.id || e.type}`)
+              .join("\n");
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ I couldn't find that effect in your video. Currently applied effects:\n${effectsList}\n\nTry specifying one of these effects, or say "remove last effect".`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
+
+          // Find the effect to remove
+          let indexToRemove = -1;
+          if (effectType === "last" || effectType === "all") {
+            indexToRemove = appliedEffects.length - 1; // Remove last effect
+          } else {
+            // Find by exact match first
+            for (let i = appliedEffects.length - 1; i >= 0; i--) {
+              const effect = appliedEffects[i];
+              const effectName = effect.effect || effect.id || effect.type;
+              console.log(
+                `🔍 Checking effect ${i}: ${effectName} vs ${effectType}`
+              );
+              if (effectName === effectType) {
+                indexToRemove = i;
+                console.log(`✅ Found exact match at index ${i}`);
+                break;
+              }
+            }
+            // If no exact match, try partial match
+            if (indexToRemove === -1) {
+              console.log(`⚠️ No exact match, trying partial match...`);
+              for (let i = appliedEffects.length - 1; i >= 0; i--) {
+                const effect = appliedEffects[i];
+                const effectName = effect.effect || effect.id || effect.type;
+                if (
+                  effectName?.includes(effectType) ||
+                  effectType?.includes(effectName)
+                ) {
+                  indexToRemove = i;
+                  console.log(
+                    `✅ Found partial match at index ${i}: ${effectName}`
+                  );
+                  break;
+                }
+              }
+            }
+          }
+
+          console.log(
+            `📊 Final indexToRemove: ${indexToRemove}, total effects: ${appliedEffects.length}`
+          );
+
+          if (indexToRemove >= 0) {
+            const effectToRemove = appliedEffects[indexToRemove];
+            const effectName =
+              effectToRemove.effect || effectToRemove.id || effectToRemove.type;
+
+            console.log(
+              `🗑️ Calling handleRemoveEffect with index ${indexToRemove}: ${effectName}`
+            );
+            console.log(`📋 Applied effects before removal:`, appliedEffects);
+            handleRemoveEffect(indexToRemove, effectName);
+          } else {
+            const effectsList = appliedEffects
+              .map((e, i) => `${i + 1}. ${e.effect || e.id || e.type}`)
+              .join("\n");
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content: `❌ Couldn't find "${effectType}" effect. Currently applied effects:\n${effectsList}\n\nTry saying "remove [effect name]" or "remove last effect".`,
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
+          return; // Don't continue to applyEffect
+        } else if (intentAction === "reset-video") {
+          // Reset to original video by removing all effects
+          const appliedEffects = videoFromStore.appliedEffects || [];
+
+          if (appliedEffects.length === 0) {
+            setChatMessages((p) => [
+              ...p,
+              {
+                type: "ai",
+                content:
+                  "✅ Your video is already in its original state with no effects applied.",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
+
+          // Remove all effects by going back to the original
+          setChatMessages((p) => [
+            ...p,
+            {
+              type: "ai",
+              content: `🔄 Resetting video to original state... Removing ${appliedEffects.length} effect(s).`,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+
+          // Remove the last effect, which will trigger recursion to remove all
+          handleRemoveEffect(
+            appliedEffects.length - 1,
+            appliedEffects[appliedEffects.length - 1].effect ||
+              appliedEffects[appliedEffects.length - 1].id
+          );
+          return; // Don't continue to applyEffect
         }
 
         applyEffect(effectConfig)
           .then((result) => {
             console.log("✅ Effect applied successfully! Result:", result);
             console.log("Updated video store:", videoFromStore);
+
+            // Track last applied effect for intensity adjustments
+            setLastAppliedEffect({
+              effect: intentAction,
+              parameters: response.intent.parameters,
+              timestamp: new Date().toISOString(),
+            });
 
             // Update current effect parameters for manual controls (brightness/contrast only)
             if (intentAction === "brightness" || intentAction === "contrast") {
@@ -1179,14 +1505,10 @@ const AIEditor = () => {
               });
             }
 
-            // Complete progress and hide after a short delay
+            // Complete progress - but keep loading screen visible
+            // It will be hidden when the new video actually loads (see useEffect above)
             clearInterval(progressInterval);
             setProcessingProgress(100);
-
-            setTimeout(() => {
-              setIsGeneratingVideo(false);
-              setProcessingProgress(0);
-            }, 500);
 
             // Show specific confirmation based on what was changed
             const params = response.intent.parameters;
@@ -1211,6 +1533,9 @@ const AIEditor = () => {
               const zoomType = params.zoomType || "Zoom In";
               const duration = params.duration || 1;
               confirmationMsg = `✅ Zoom transition applied (${zoomType}, ${duration}s)!`;
+            } else if (intentAction === "caption") {
+              const captionCount = params.captionCount || "auto-generated";
+              confirmationMsg = `✅ Captions generated and applied! (${captionCount} segments)`;
             } else {
               // Brightness/contrast
               if (params.brightness && params.brightness !== 0) {
@@ -1258,34 +1583,60 @@ const AIEditor = () => {
                 },
               ];
             } else if (intentAction === "lut-filter") {
+              const currentLut = params.lutType || params.lut || "Cinematic";
+              const currentIntensity = params.intensity || 100;
+
               // Show all LUT filter options
               quickActions = [
                 {
                   label: "🎬 Cinematic",
                   action: "lut-filter",
-                  parameters: { lut: "Cinematic", intensity: 100 },
+                  parameters: { lut: "Cinematic", intensity: currentIntensity },
                 },
                 {
                   label: "🌅 Warm",
                   action: "lut-filter",
-                  parameters: { lut: "Warm", intensity: 100 },
+                  parameters: { lut: "Warm", intensity: currentIntensity },
                 },
                 {
                   label: "❄️ Cool",
                   action: "lut-filter",
-                  parameters: { lut: "Cool", intensity: 100 },
+                  parameters: { lut: "Cool", intensity: currentIntensity },
                 },
                 {
                   label: "📷 Vintage",
                   action: "lut-filter",
-                  parameters: { lut: "Vintage", intensity: 100 },
+                  parameters: { lut: "Vintage", intensity: currentIntensity },
                 },
                 {
                   label: "⚡ Dramatic",
                   action: "lut-filter",
-                  parameters: { lut: "Dramatic", intensity: 100 },
+                  parameters: { lut: "Dramatic", intensity: currentIntensity },
                 },
               ];
+
+              // Add intensity adjustment buttons if current intensity is not 0
+              if (currentIntensity > 0) {
+                quickActions.push({
+                  label: "🔽 Lower Intensity (50%)",
+                  action: "lut-filter",
+                  parameters: { lut: currentLut, intensity: 50 },
+                });
+                quickActions.push({
+                  label: "📉 Subtle (25%)",
+                  action: "lut-filter",
+                  parameters: { lut: currentLut, intensity: 25 },
+                });
+              }
+
+              // Add "Full Strength" button if not already at 100%
+              if (currentIntensity < 100) {
+                quickActions.push({
+                  label: "🔼 Full Strength (100%)",
+                  action: "lut-filter",
+                  parameters: { lut: currentLut, intensity: 100 },
+                });
+              }
             } else if (
               intentAction === "gaussian-blur" ||
               intentAction === "motion-blur"
@@ -1390,11 +1741,225 @@ const AIEditor = () => {
       setIsGeneratingVideo(false);
     });
 
+    // Listen for auto-edit completion
+    socketService.on("video_auto_edit_complete", (data) => {
+      console.log("🎨 Auto-edit complete! Received enhanced video:", data);
+
+      const { enhancedVideo, analysis, appliedEdits, summary } = data;
+
+      // Debug: Log the received URL
+      console.log("📋 Received enhancedVideo.url:", enhancedVideo.url);
+      console.log(
+        "📋 Received enhancedVideo.streamUrl:",
+        enhancedVideo.streamUrl
+      );
+
+      // Add authentication token to the URLs
+      const token = localStorage.getItem("authToken");
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      // Check if URL is already absolute
+      let enhancedUrl = enhancedVideo.url;
+
+      // Only prepend base URL if the URL is relative (starts with /)
+      if (!enhancedUrl.startsWith("http")) {
+        enhancedUrl = `${baseUrl}${enhancedUrl}`;
+      }
+
+      // Add authentication token
+      if (token) {
+        enhancedUrl = `${enhancedUrl}${
+          enhancedUrl.includes("?") ? "&" : "?"
+        }token=${token}`;
+      }
+
+      console.log("📋 Final enhanced video URL:", enhancedUrl);
+      console.log(
+        "📋 Enhanced video filePath from backend:",
+        enhancedVideo.filePath
+      );
+
+      // Convert appliedEdits to appliedEffects format
+      // Backend sends recommendedEdits array with type, parameters, description
+      const autoEnhancementEffects = (appliedEdits || []).map(
+        (edit, index) => ({
+          id: `auto-${Date.now()}-${index}`,
+          effect: edit.type || "enhancement",
+          type: edit.type || "enhancement",
+          parameters: edit.parameters || {},
+          timestamp: new Date().toISOString(),
+          description:
+            edit.description || edit.name || edit.type || "Auto enhancement",
+          source: "auto-enhancement", // Track where this effect came from
+        })
+      );
+
+      console.log(
+        "📋 Converted auto-enhancement effects:",
+        autoEnhancementEffects
+      );
+
+      const processedEnhancedVideo = {
+        ...enhancedVideo,
+        url: enhancedUrl,
+        streamUrl: enhancedUrl,
+        // Use backend's appliedEffects if available, otherwise use our converted ones
+        appliedEffects: enhancedVideo.appliedEffects || autoEnhancementEffects,
+        aiEnhancements: [
+          {
+            type: "auto-edit-analysis",
+            analysis,
+            recommendedEdits: appliedEdits,
+          },
+          {
+            type: "auto-edited-version",
+            summary,
+            appliedEdits,
+          },
+        ],
+      };
+
+      // Hide loading screen
+      setIsWaitingForEnhancement(false);
+      setEnhancementProgress(100);
+
+      // Switch to the enhanced video
+      console.log("📽️ Switching to enhanced video:", processedEnhancedVideo);
+      console.log(
+        "📋 Enhanced video filePath:",
+        processedEnhancedVideo.filePath
+      );
+      console.log(
+        "📋 Applied auto-enhancement effects:",
+        autoEnhancementEffects
+      );
+      console.log("📋 uploadedVideo before update:", uploadedVideo);
+
+      // Save the CURRENT video as the original before applying enhancements
+      // (if not already saved)
+      if (!originalVideoBeforeEffects) {
+        console.log(
+          "💾 Saving original video before auto-enhancement:",
+          uploadedVideo
+        );
+        setOriginalVideoBeforeEffects(uploadedVideo);
+      }
+
+      setUploadedVideo(processedEnhancedVideo);
+      setCurrentVideo(processedEnhancedVideo);
+
+      console.log("✅ Video state updated with appliedEffects");
+      console.log("🔍 Verify currentVideo in store after update:");
+      setTimeout(() => {
+        const storeVideo = useVideoStore.getState().currentVideo;
+        console.log(
+          "  - Store currentVideo.appliedEffects:",
+          storeVideo?.appliedEffects
+        );
+        console.log(
+          "  - Number of effects:",
+          storeVideo?.appliedEffects?.length || 0
+        );
+      }, 100);
+
+      // Show notification in chat
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `✨ **AI Enhancement Complete!**\n\n${summary}\n\nYou're now viewing the enhanced version. You can add more effects on top, or switch back to the original using the version switcher above.`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // Force video player reload with a slight delay
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log("🔄 Forcing video reload...");
+          console.log("📋 Video element src:", videoRef.current.src);
+          videoRef.current.load();
+          console.log("✅ Video reload initiated");
+        } else {
+          console.warn("⚠️ videoRef.current is null, cannot reload video");
+        }
+      }, 150);
+    });
+
+    // Listen for video processing progress
+    socketService.on("video_processing", (data) => {
+      console.log("📊 Video processing update:", data);
+
+      const { status, progress, message, analysis, isAutoEnhancement } = data;
+
+      setIsProcessing(status === "processing");
+      setProcessingProgress(progress || 0);
+
+      // Update enhancement loading state ONLY for auto-enhancement events
+      if (isAutoEnhancement) {
+        // Clear the loading timeout since we received a socket event
+        if (window.enhancementLoadingTimeout) {
+          console.log(
+            "✅ Clearing enhancement loading timeout - socket event received"
+          );
+          clearTimeout(window.enhancementLoadingTimeout);
+          window.enhancementLoadingTimeout = null;
+        }
+
+        if (status === "processing" && progress > 0) {
+          setIsWaitingForEnhancement(true);
+          setEnhancementProgress(progress);
+          setEnhancementMessage(message || "Processing...");
+        } else if (status === "ready" || status === "failed") {
+          setIsWaitingForEnhancement(false);
+        }
+      }
+
+      // Show progress updates in chat
+      if (message && progress > 0 && progress < 100) {
+        // Update the last AI message or add new one
+        setChatMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.type === "ai" && lastMessage?.isProcessing) {
+            // Update existing processing message
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...lastMessage,
+                content: `⏳ ${message} (${Math.round(progress)}%)`,
+                timestamp: new Date().toISOString(),
+              },
+            ];
+          } else {
+            // Add new processing message
+            return [
+              ...prev,
+              {
+                type: "ai",
+                content: `⏳ ${message} (${Math.round(progress)}%)`,
+                timestamp: new Date().toISOString(),
+                isProcessing: true,
+              },
+            ];
+          }
+        });
+      }
+    });
+
     return () => {
       console.log("🔌 Cleaning up socket listeners in AIEditor");
+
+      // Clear enhancement loading timeout if it exists
+      if (window.enhancementLoadingTimeout) {
+        console.log("🧹 Clearing enhancement loading timeout on unmount");
+        clearTimeout(window.enhancementLoadingTimeout);
+        window.enhancementLoadingTimeout = null;
+      }
+
       socketService.off("ai_response", handleAIResponse);
       socketService.off("ai_typing");
       socketService.off("chat_error");
+      socketService.off("video_auto_edit_complete");
+      socketService.off("video_processing");
     };
   }, []); // Only connect once on mount, don't reconnect when video changes
 
@@ -1443,6 +2008,15 @@ const AIEditor = () => {
 
       // Update ref for next comparison
       prevStoreVideoRef.current = { id: currentId, url: currentUrl };
+
+      // Hide loading screen when new video is loaded (effect has been applied)
+      if (isGeneratingVideo) {
+        console.log("🎬 New video loaded - hiding generation loading screen");
+        setTimeout(() => {
+          setIsGeneratingVideo(false);
+          setProcessingProgress(0);
+        }, 500); // Small delay to ensure video actually loads
+      }
 
       // Force video player to reload (though key prop should handle this)
       setTimeout(() => {
@@ -1505,9 +2079,58 @@ const AIEditor = () => {
 
       setUploadedVideo(processedVideo);
 
+      // Save as the original video before any effects
+      if (!originalVideoBeforeEffects) {
+        console.log("💾 Saving original video before effects:", processedVideo);
+        setOriginalVideoBeforeEffects(processedVideo);
+      }
+
       // IMPORTANT: Also set in videoStore so effects can be applied
       setCurrentVideo(processedVideo);
       console.log("Video set in videoStore:", processedVideo);
+
+      // Show processing notification if video was just uploaded
+      if (location.state?.fromDashboard && !hasShownWelcomeMessage.current) {
+        // Show loading screen
+        setIsWaitingForEnhancement(true);
+        setEnhancementProgress(0);
+        setEnhancementMessage("Analyzing your video...");
+
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            type: "ai",
+            content:
+              "🎬 Video loaded! AI is analyzing your video in the background to create automatic enhancements. You'll see a notification when it's ready!",
+            timestamp: new Date().toISOString(),
+            isProcessing: true,
+          },
+        ]);
+        hasShownWelcomeMessage.current = true;
+
+        // Safety timeout: Hide loading screen if no socket events received within 10 seconds
+        // This prevents the UI from being stuck if processing completes before socket connection
+        // or if there's an error in the backend processing
+        const loadingTimeout = setTimeout(() => {
+          console.log("⏰ Loading screen timeout - hiding enhancement loading");
+          setIsWaitingForEnhancement(false);
+          setEnhancementProgress(0);
+
+          // Add a message to chat explaining the situation
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              type: "ai",
+              content:
+                "Your video is ready to edit! If automatic enhancements are enabled, they will appear in the chat when ready. You can start editing manually in the meantime.",
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+        }, 10000); // 10 second timeout
+
+        // Store timeout ID so we can clear it if socket events are received
+        window.enhancementLoadingTimeout = loadingTimeout;
+      }
 
       // Initialize tracks with a clip
       setTracks([
@@ -1539,7 +2162,7 @@ const AIEditor = () => {
             type: "video",
             startTime: 0,
             duration: videoMetadata.duration,
-            thumbnail: video.url,
+            thumbnail: video.thumbnailUrl || video.thumbnail || null,
             url: video.url,
             metadata: videoMetadata,
             tags: ["main-content", "uploaded"],
@@ -1619,7 +2242,7 @@ const AIEditor = () => {
               type: video.type,
               url: video.url,
             },
-            thumbnail: video.url,
+            thumbnail: video.thumbnailUrl || video.thumbnail || null,
             duration:
               Math.floor(videoMetadata.duration / 60) +
               ":" +
@@ -1773,6 +2396,812 @@ const AIEditor = () => {
   };
 
   /* -------------------------------
+     APPLIED EFFECTS HANDLERS
+  --------------------------------*/
+  // Helper function to get user-friendly effect names
+  const getEffectDisplayName = (effect) => {
+    const names = {
+      "lut-filter": "Color Grading",
+      "gaussian-blur": "Blur",
+      "motion-blur": "Motion Blur",
+      brightness: "Brightness/Contrast",
+      caption: "Captions",
+      "cross-dissolve": "Fade Transition",
+      "zoom-transition": "Zoom Effect",
+      "audio-enhancement": "Audio Enhancement",
+      trim: "Trim",
+      crop: "Crop",
+    };
+    return names[effect] || effect;
+  };
+
+  const handleRemoveEffect = async (index, effectType) => {
+    console.log("🔴 handleRemoveEffect called with:", { index, effectType });
+
+    // Get FRESH video from store (not stale closure)
+    const freshVideo = useVideoStore.getState().currentVideo;
+
+    if (!freshVideo) {
+      console.error("❌ No currentVideo found in store");
+      return;
+    }
+
+    try {
+      // Show loading animation on video preview
+      setIsGeneratingVideo(true);
+      setIsProcessing(true);
+      setProcessingProgress(10);
+
+      console.log("🗑️ Removing effect at index:", index);
+      console.log("📋 Fresh video from store:", freshVideo.id);
+      console.log("📋 Current appliedEffects:", freshVideo.appliedEffects);
+
+      const currentEffects = freshVideo.appliedEffects || [];
+      const newEffects = currentEffects.filter((_, i) => i !== index);
+
+      console.log("📋 Remaining effects after removal:", newEffects);
+
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      setProcessingProgress(30);
+
+      // Find the original video - either from our saved reference or by traversing parent chain
+      let originalVideo = originalVideoBeforeEffects;
+
+      if (!originalVideo) {
+        console.log(
+          "⚠️ originalVideoBeforeEffects not found, traversing parent chain..."
+        );
+
+        // Try to find original by following parentVideoId chain
+        originalVideo = storeCurrentVideo;
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+        while (originalVideo && originalVideo.parentVideoId) {
+          try {
+            console.log(
+              "🔍 Fetching parent video:",
+              originalVideo.parentVideoId
+            );
+            const parentResponse = await fetch(
+              `${baseUrl}/api/videos/${originalVideo.parentVideoId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (!parentResponse.ok) {
+              console.error(
+                "❌ Parent video fetch failed:",
+                parentResponse.status
+              );
+              break;
+            }
+            const parentData = await parentResponse.json();
+            console.log("📦 Parent video response:", parentData);
+
+            // Extract video from response (API returns { success: true, data: { video } })
+            const parentVideo =
+              parentData.data?.video || parentData.video || parentData;
+
+            // Construct proper URL for parent video
+            const parentVideoId = parentVideo._id || parentVideo.id;
+
+            // Check if filePath is an absolute file system path
+            let videoPath;
+            if (
+              parentVideo.filePath &&
+              (parentVideo.filePath.includes(":\\") || // Windows absolute path
+                (parentVideo.filePath.startsWith("/") &&
+                  parentVideo.filePath.includes("backend")))
+            ) {
+              // It's an absolute file path, use stream endpoint
+              videoPath = `/api/videos/${parentVideoId}/stream`;
+            } else {
+              // It's already a relative path or URL
+              videoPath =
+                parentVideo.filePath ||
+                parentVideo.path ||
+                `/api/videos/${parentVideoId}/stream`;
+            }
+
+            let videoUrl = videoPath.startsWith("http")
+              ? videoPath
+              : `${baseUrl}${videoPath}`;
+            if (token) {
+              videoUrl = `${videoUrl}${
+                videoUrl.includes("?") ? "&" : "?"
+              }token=${token}`;
+            }
+
+            originalVideo = {
+              ...parentVideo,
+              id: parentVideoId,
+              url: videoUrl,
+              streamUrl: videoUrl,
+            };
+
+            console.log("✅ Moved to parent video:", originalVideo.id);
+          } catch (err) {
+            console.error("❌ Error fetching parent video:", err);
+            break;
+          }
+        }
+
+        // Save it for future use
+        if (originalVideo && originalVideo.id !== storeCurrentVideo.id) {
+          console.log("💾 Saving found original video:", originalVideo);
+          setOriginalVideoBeforeEffects(originalVideo);
+        }
+      }
+
+      if (!originalVideo || !originalVideo.id) {
+        throw new Error(
+          "Could not find original video. Please reload the page."
+        );
+      }
+
+      console.log("✅ Using original video:", originalVideo);
+
+      // If no effects remain, load the original video
+      if (newEffects.length === 0) {
+        console.log("✅ No effects remaining - loading original video");
+
+        setProcessingProgress(80);
+
+        // Construct proper video URL
+        const token = localStorage.getItem("authToken");
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+        // Extract video ID
+        const videoId = originalVideo._id || originalVideo.id;
+
+        // Construct video URL with auth token
+        let videoPath;
+        const filePath = originalVideo.filePath || originalVideo.path;
+
+        // Check if filePath is an absolute file system path
+        if (
+          filePath &&
+          (filePath.includes(":\\") ||
+            (filePath.startsWith("/") && filePath.includes("backend")))
+        ) {
+          // Absolute path detected - use stream endpoint
+          videoPath = `/api/videos/${videoId}/stream`;
+        } else if (filePath) {
+          // Relative path - use as-is
+          videoPath = filePath;
+        } else {
+          // No path - construct default stream endpoint
+          videoPath = `/api/videos/${videoId}/stream`;
+        }
+
+        let originalUrl = videoPath.startsWith("http")
+          ? videoPath
+          : `${baseUrl}${videoPath}`;
+        if (token) {
+          originalUrl = `${originalUrl}${
+            originalUrl.includes("?") ? "&" : "?"
+          }token=${token}`;
+        }
+        originalUrl = `${originalUrl}&t=${Date.now()}`; // Cache-busting
+
+        // Load original video with cleared effects
+        const updatedOriginalVideo = {
+          ...originalVideo,
+          id: videoId,
+          _id: videoId,
+          url: originalUrl,
+          streamUrl: originalUrl,
+          appliedEffects: [],
+        };
+
+        console.log("🎥 Setting original video after removing all effects:", {
+          id: updatedOriginalVideo.id,
+          url: updatedOriginalVideo.url,
+          appliedEffects: updatedOriginalVideo.appliedEffects,
+        });
+
+        setCurrentVideo(updatedOriginalVideo);
+        setUploadedVideo(updatedOriginalVideo);
+
+        // Force video reload by clearing and resetting
+        if (videoRef.current) {
+          videoRef.current.load();
+        }
+
+        setProcessingProgress(100);
+
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            type: "ai",
+            content: `✅ Removed ${getEffectDisplayName(
+              effectType
+            )} effect. Video restored to original state.`,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+
+        // Hide loading animation
+        setTimeout(() => {
+          setIsGeneratingVideo(false);
+          setIsProcessing(false);
+          setProcessingProgress(0);
+        }, 500);
+
+        return;
+      }
+
+      // If effects remain, we need to re-apply them to the original video
+      console.log("🔄 Re-applying remaining effects to original video");
+
+      setProcessingProgress(40);
+
+      let currentVideoId = originalVideo.id;
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      // Re-apply each remaining effect in sequence
+      for (let i = 0; i < newEffects.length; i++) {
+        const effect = newEffects[i];
+        const progress = 40 + ((i + 1) / newEffects.length) * 50; // 40-90%
+        setProcessingProgress(progress);
+
+        console.log(
+          `📤 Applying effect ${i + 1}/${newEffects.length}:`,
+          effect
+        );
+
+        const response = await fetch(
+          `${baseUrl}/api/video-edit/${currentVideoId}/effect`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              effect: effect.effect || effect.type,
+              parameters: effect.parameters || {},
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to apply effect");
+        }
+
+        const result = await response.json();
+        console.log(`📦 Remove effect - Effect ${i + 1} response:`, result);
+        console.log(
+          "📦 Remove effect - Current video ID before update:",
+          currentVideoId
+        );
+
+        currentVideoId =
+          result.data?.effectVideo || result.data?.id || currentVideoId;
+
+        console.log(
+          "📦 Remove effect - Current video ID after update:",
+          currentVideoId
+        );
+      }
+
+      setProcessingProgress(90);
+
+      // Load the final video with all remaining effects
+      console.log(
+        "📦 Remove effect - Final video ID to fetch:",
+        currentVideoId
+      );
+      const finalResponse = await fetch(
+        `${baseUrl}/api/videos/${currentVideoId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const finalResponseData = await finalResponse.json();
+
+      // Extract video from API response structure
+      const finalVideo =
+        finalResponseData.data?.video ||
+        finalResponseData.video ||
+        finalResponseData;
+
+      console.log("✅ Final video loaded:", finalVideo);
+
+      // Construct video URL with auth token
+      const videoId = finalVideo._id || finalVideo.id;
+
+      // Check if filePath is an absolute file system path (not a URL path)
+      // If it's an absolute path, use the stream endpoint instead
+      let videoPath;
+      if (
+        finalVideo.filePath &&
+        (finalVideo.filePath.includes(":\\") || // Windows absolute path (C:\)
+          (finalVideo.filePath.startsWith("/") &&
+            finalVideo.filePath.includes("backend")))
+      ) {
+        // Unix absolute path
+        // It's an absolute file path, use stream endpoint
+        videoPath = `/api/videos/${videoId}/stream`;
+      } else {
+        // It's already a relative path or URL
+        videoPath =
+          finalVideo.filePath ||
+          finalVideo.path ||
+          `/api/videos/${videoId}/stream`;
+      }
+
+      let videoUrl = videoPath.startsWith("http")
+        ? videoPath
+        : `${baseUrl}${videoPath}`;
+      if (token) {
+        videoUrl = `${videoUrl}${
+          videoUrl.includes("?") ? "&" : "?"
+        }token=${token}`;
+      }
+
+      // Add cache-busting timestamp to force reload
+      videoUrl = `${videoUrl}&t=${Date.now()}`;
+
+      const updatedFinalVideo = {
+        ...finalVideo,
+        id: videoId,
+        url: videoUrl,
+        streamUrl: videoUrl,
+        appliedEffects: newEffects,
+      };
+
+      console.log("🎥 Setting final video after removing effect:", {
+        id: updatedFinalVideo.id,
+        url: updatedFinalVideo.url,
+        appliedEffects: updatedFinalVideo.appliedEffects,
+      });
+
+      setCurrentVideo(updatedFinalVideo);
+      setUploadedVideo(updatedFinalVideo);
+
+      // Force video reload by clearing and resetting
+      if (videoRef.current) {
+        videoRef.current.load();
+      }
+
+      setProcessingProgress(100);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `✅ Removed ${getEffectDisplayName(effectType)} effect. ${
+            newEffects.length
+          } effect(s) remaining.`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // Hide loading animation
+      setTimeout(() => {
+        setIsGeneratingVideo(false);
+        setIsProcessing(false);
+        setProcessingProgress(0);
+      }, 500);
+    } catch (error) {
+      console.error("Error removing effect:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `❌ Failed to remove effect: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setIsGeneratingVideo(false);
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleEditEffect = async (index, effectType, newParameters) => {
+    console.log("🔵 handleEditEffect called with:", {
+      index,
+      effectType,
+      newParameters,
+    });
+
+    if (!storeCurrentVideo) {
+      console.error("❌ No storeCurrentVideo found");
+      return;
+    }
+
+    try {
+      // Show loading animation on video preview
+      setIsGeneratingVideo(true);
+      setIsProcessing(true);
+      setProcessingProgress(10);
+
+      console.log("✏️ Editing effect at index:", index);
+      console.log("📋 New parameters:", newParameters);
+
+      const effects = storeCurrentVideo.appliedEffects || [];
+      const updatedEffects = [...effects];
+      updatedEffects[index] = {
+        ...updatedEffects[index],
+        parameters: newParameters,
+      };
+
+      console.log("📋 Updated effects:", updatedEffects);
+
+      setProcessingProgress(20);
+
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      // Find the original video - either from our saved reference or by traversing parent chain
+      let originalVideo = originalVideoBeforeEffects;
+
+      if (!originalVideo) {
+        console.log(
+          "⚠️ originalVideoBeforeEffects not found, traversing parent chain..."
+        );
+
+        // Try to find original by following parentVideoId chain
+        originalVideo = storeCurrentVideo;
+
+        while (originalVideo && originalVideo.parentVideoId) {
+          try {
+            console.log(
+              "🔍 Fetching parent video:",
+              originalVideo.parentVideoId
+            );
+            const parentResponse = await fetch(
+              `${baseUrl}/api/videos/${originalVideo.parentVideoId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (!parentResponse.ok) {
+              console.error(
+                "❌ Parent video fetch failed:",
+                parentResponse.status
+              );
+              break;
+            }
+            const parentData = await parentResponse.json();
+            console.log("📦 Parent video response:", parentData);
+
+            // Extract video from response (API returns { success: true, data: { video } })
+            const parentVideo =
+              parentData.data?.video || parentData.video || parentData;
+
+            // Construct proper URL for parent video
+            const videoPath =
+              parentVideo.filePath ||
+              parentVideo.path ||
+              `/api/videos/${parentVideo._id || parentVideo.id}/stream`;
+            let videoUrl = videoPath.startsWith("http")
+              ? videoPath
+              : `${baseUrl}${videoPath}`;
+            if (token) {
+              videoUrl = `${videoUrl}${
+                videoUrl.includes("?") ? "&" : "?"
+              }token=${token}`;
+            }
+
+            originalVideo = {
+              ...parentVideo,
+              id: parentVideo._id || parentVideo.id,
+              url: videoUrl,
+              streamUrl: videoUrl,
+            };
+
+            console.log("✅ Moved to parent video:", originalVideo.id);
+          } catch (err) {
+            console.error("❌ Error fetching parent video:", err);
+            break;
+          }
+        }
+
+        // Save it for future use
+        if (originalVideo && originalVideo.id !== storeCurrentVideo.id) {
+          console.log("💾 Saving found original video:", originalVideo);
+          setOriginalVideoBeforeEffects(originalVideo);
+        }
+      }
+
+      if (!originalVideo || !originalVideo.id) {
+      }
+
+      if (!originalVideo || !originalVideo.id) {
+        throw new Error(
+          "Could not find original video. Please reload the page."
+        );
+      }
+
+      console.log("✅ Using original video:", originalVideo);
+
+      setProcessingProgress(30);
+
+      let currentVideoId = originalVideo.id;
+
+      // Apply all effects with updated parameters
+      for (let i = 0; i < updatedEffects.length; i++) {
+        const effect = updatedEffects[i];
+        const progress = 30 + ((i + 1) / updatedEffects.length) * 50; // 30-80%
+        setProcessingProgress(progress);
+
+        console.log(
+          `📤 Applying effect ${i + 1}/${updatedEffects.length}:`,
+          effect
+        );
+
+        const response = await fetch(
+          `${baseUrl}/api/video-edit/${currentVideoId}/effect`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              effect: effect.effect || effect.type,
+              parameters: effect.parameters || {},
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to apply effect");
+        }
+
+        const result = await response.json();
+        console.log(`📦 Edit effect - Effect ${i + 1} response:`, result);
+        console.log(
+          "📦 Edit effect - Current video ID before update:",
+          currentVideoId
+        );
+
+        currentVideoId =
+          result.data?.effectVideo || result.data?.id || currentVideoId;
+
+        console.log(
+          "📦 Edit effect - Current video ID after update:",
+          currentVideoId
+        );
+      }
+
+      setProcessingProgress(85);
+
+      // Load the final video
+      console.log("📦 Edit effect - Final video ID to fetch:", currentVideoId);
+      const finalResponse = await fetch(
+        `${baseUrl}/api/videos/${currentVideoId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const finalResponseData = await finalResponse.json();
+
+      // Extract video from nested response structure
+      const finalVideo =
+        finalResponseData.data?.video ||
+        finalResponseData.video ||
+        finalResponseData;
+
+      console.log("✅ Final video loaded:", finalVideo);
+
+      // Extract video ID
+      const videoId = finalVideo._id || finalVideo.id;
+
+      // Construct video URL with auth token
+      let videoPath;
+      const filePath = finalVideo.filePath || finalVideo.path;
+
+      // Check if filePath is an absolute file system path
+      if (
+        filePath &&
+        (filePath.includes(":\\") ||
+          (filePath.startsWith("/") && filePath.includes("backend")))
+      ) {
+        // Absolute path detected - use stream endpoint
+        videoPath = `/api/videos/${videoId}/stream`;
+      } else if (filePath) {
+        // Relative path - use as-is
+        videoPath = filePath;
+      } else {
+        // No path - construct default stream endpoint
+        videoPath = `/api/videos/${videoId}/stream`;
+      }
+
+      let videoUrl = videoPath.startsWith("http")
+        ? videoPath
+        : `${baseUrl}${videoPath}`;
+      if (token) {
+        videoUrl = `${videoUrl}${
+          videoUrl.includes("?") ? "&" : "?"
+        }token=${token}`;
+      }
+
+      // Add cache-busting timestamp to force reload
+      videoUrl = `${videoUrl}&t=${Date.now()}`;
+
+      const updatedFinalVideo = {
+        ...finalVideo,
+        id: videoId,
+        _id: videoId,
+        url: videoUrl,
+        streamUrl: videoUrl,
+        appliedEffects: updatedEffects,
+      };
+
+      console.log("🎥 Setting final video after editing effect:", {
+        id: updatedFinalVideo.id,
+        url: updatedFinalVideo.url,
+        appliedEffects: updatedFinalVideo.appliedEffects,
+      });
+
+      setCurrentVideo(updatedFinalVideo);
+      setUploadedVideo(updatedFinalVideo);
+
+      setProcessingProgress(100);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `✅ Updated ${getEffectDisplayName(
+            effectType
+          )} effect successfully.`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // Hide loading animation after a brief moment
+      setTimeout(() => {
+        setIsGeneratingVideo(false);
+        setIsProcessing(false);
+        setProcessingProgress(0);
+      }, 500);
+    } catch (error) {
+      console.error("Error editing effect:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `❌ Failed to edit effect: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setIsGeneratingVideo(false);
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  const handleResetToOriginal = async () => {
+    if (!storeCurrentVideo) return;
+
+    try {
+      // Show loading animation on video preview
+      setIsGeneratingVideo(true);
+      setIsProcessing(true);
+      setProcessingProgress(20);
+
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      setProcessingProgress(50);
+
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      // Find original video by traversing parent chain
+      let originalVideo = storeCurrentVideo;
+      while (originalVideo.parentVideoId) {
+        const parentResponse = await fetch(
+          `${baseUrl}/api/videos/${originalVideo.parentVideoId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!parentResponse.ok) break;
+
+        const parentData = await parentResponse.json();
+        // Extract video from nested response structure
+        originalVideo =
+          parentData.data?.video || parentData.video || parentData;
+      }
+
+      setProcessingProgress(80);
+
+      // Extract video ID
+      const videoId = originalVideo._id || originalVideo.id;
+
+      // Construct video URL with auth token
+      let videoPath;
+      const filePath = originalVideo.filePath || originalVideo.path;
+
+      // Check if filePath is an absolute file system path
+      if (
+        filePath &&
+        (filePath.includes(":\\") ||
+          (filePath.startsWith("/") && filePath.includes("backend")))
+      ) {
+        // Absolute path detected - use stream endpoint
+        videoPath = `/api/videos/${videoId}/stream`;
+      } else if (filePath) {
+        // Relative path - use as-is
+        videoPath = filePath;
+      } else {
+        // No path - construct default stream endpoint
+        videoPath = `/api/videos/${videoId}/stream`;
+      }
+
+      let videoUrl = videoPath.startsWith("http")
+        ? videoPath
+        : `${baseUrl}${videoPath}`;
+      if (token) {
+        videoUrl = `${videoUrl}${
+          videoUrl.includes("?") ? "&" : "?"
+        }token=${token}`;
+      }
+      videoUrl = `${videoUrl}&t=${Date.now()}`; // Cache-busting
+
+      const resetVideo = {
+        ...originalVideo,
+        id: videoId,
+        _id: videoId,
+        url: videoUrl,
+        streamUrl: videoUrl,
+        appliedEffects: [], // Clear all effects
+      };
+
+      setCurrentVideo(resetVideo);
+      setUploadedVideo(resetVideo);
+
+      setProcessingProgress(100);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: "✅ Reset to original video. All effects removed.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      // Hide loading animation after a brief moment
+      setTimeout(() => {
+        setIsGeneratingVideo(false);
+        setIsProcessing(false);
+        setProcessingProgress(0);
+      }, 300);
+    } catch (error) {
+      console.error("Error resetting to original:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content: `❌ Failed to reset: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setIsGeneratingVideo(false);
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  };
+
+  /* -------------------------------
      SEND MESSAGE: now uses aiService locally,
      then optionally notifies your socket backend
   --------------------------------*/
@@ -1798,11 +3227,19 @@ const AIEditor = () => {
 
     try {
       // Use socket service to send message to backend
+      console.log("💬 Sending chat message:");
+      console.log("   Current video ID:", storeCurrentVideo?.id);
+      console.log("   Current video filePath:", storeCurrentVideo?.filePath);
+      console.log("   Last applied effect:", lastAppliedEffect);
+      console.log("   All applied effects:", storeCurrentVideo?.appliedEffects);
+
       socketService.sendChatMessage(
         newMessage,
         storeCurrentVideo?.id,
         "default-conversation",
-        storeCurrentVideo?.filePath
+        storeCurrentVideo?.filePath,
+        lastAppliedEffect, // Pass last applied effect for intensity adjustments
+        storeCurrentVideo?.appliedEffects || [] // Pass all applied effects for removal
       );
 
       // The response will come via socket event listener (set up in useEffect)
@@ -1948,6 +3385,13 @@ const AIEditor = () => {
       className="ai-editor-page bg-background text-foreground flex flex-col overflow-x-hidden"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
     >
+      {/* Enhancement Loading Screen Overlay */}
+      <EnhancementLoadingScreen
+        isVisible={isWaitingForEnhancement}
+        progress={enhancementProgress}
+        message={enhancementMessage}
+      />
+
       <style>{`
       @media (max-width: 640px) {
         .ai-editor-page input,
@@ -2116,9 +3560,26 @@ const AIEditor = () => {
                   <p className="text-sm text-muted-foreground">
                     Ask me anything about video editing
                   </p>
+                </div>
 
-                  {isProcessing && (
-                    <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                {/* Auto-Edit Status (shown when video has been auto-edited) */}
+                {uploadedVideo && (
+                  <div className="px-6 mb-4">
+                    <AutoEditStatus
+                      video={uploadedVideo}
+                      onVersionChange={(newVideoId) => {
+                        console.log("Version changed to:", newVideoId);
+                        // Optionally load the different version
+                        // This would require fetching the video data
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Processing Indicator */}
+                {isProcessing && (
+                  <div className="px-6 mb-4">
+                    <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-blue-400">
                           Processing...
@@ -2134,8 +3595,8 @@ const AIEditor = () => {
                         />
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Messages */}
                 <div
@@ -2263,7 +3724,19 @@ const AIEditor = () => {
             {/* Effects Tab */}
             {activeTab === "effects" && (
               <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 md:max-h-none max-h-[60vh]">
+                <div className="flex-1 overflow-y-auto p-4 md:max-h-none max-h-[60vh] space-y-4">
+                  {/* Applied Effects List */}
+                  {storeCurrentVideo?.appliedEffects &&
+                    storeCurrentVideo.appliedEffects.length > 0 && (
+                      <AppliedEffectsList
+                        effects={storeCurrentVideo.appliedEffects}
+                        onRemoveEffect={handleRemoveEffect}
+                        onEditEffect={handleEditEffect}
+                        onResetToOriginal={handleResetToOriginal}
+                      />
+                    )}
+
+                  {/* Effects Library */}
                   <EffectsLibrary
                     className="w-full"
                     currentEffectParams={currentEffectParams}

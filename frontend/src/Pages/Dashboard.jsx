@@ -32,9 +32,11 @@ import {
   BarChart3,
   Clock,
   Zap,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useVideoStore from "../context/videoStore";
+import apiService from "../services/apiService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -52,6 +54,141 @@ const Dashboard = () => {
   const [sortBy, setSortBy] = useState("recent"); // 'recent', 'name', 'duration'
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [isProjectsCollapsed, setIsProjectsCollapsed] = useState(false);
+
+  // Genre selection states
+  const [showGenreModal, setShowGenreModal] = useState(false);
+  const [selectedGenre, setSelectedGenre] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null);
+
+  // Video genre options
+  const videoGenres = [
+    {
+      id: "gaming",
+      name: "Gaming",
+      icon: "🎮",
+      color: "from-purple-500 to-pink-500",
+    },
+    {
+      id: "vlog",
+      name: "Vlog / Lifestyle",
+      icon: "📹",
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      id: "tutorial",
+      name: "Tutorial / Educational",
+      icon: "📚",
+      color: "from-green-500 to-emerald-500",
+    },
+    {
+      id: "comedy",
+      name: "Comedy / Entertainment",
+      icon: "😂",
+      color: "from-yellow-500 to-orange-500",
+    },
+    {
+      id: "music",
+      name: "Music / Audio",
+      icon: "🎵",
+      color: "from-pink-500 to-rose-500",
+    },
+    {
+      id: "dance",
+      name: "Dance",
+      icon: "💃",
+      color: "from-purple-500 to-fuchsia-500",
+    },
+    {
+      id: "beauty",
+      name: "Beauty / Fashion",
+      icon: "💄",
+      color: "from-pink-400 to-red-500",
+    },
+    {
+      id: "motivational",
+      name: "Motivational / Inspirational",
+      icon: "⭐",
+      color: "from-amber-500 to-yellow-500",
+    },
+    {
+      id: "tech",
+      name: "Tech / Science",
+      icon: "🔬",
+      color: "from-blue-600 to-indigo-600",
+    },
+    {
+      id: "opinion",
+      name: "Opinion / Commentary",
+      icon: "💬",
+      color: "from-gray-500 to-slate-600",
+    },
+    {
+      id: "animals",
+      name: "Animals / Pets",
+      icon: "🐾",
+      color: "from-green-400 to-teal-500",
+    },
+    {
+      id: "food",
+      name: "Food / Drink",
+      icon: "🍔",
+      color: "from-orange-500 to-red-500",
+    },
+    {
+      id: "diy",
+      name: "DIY / Creative",
+      icon: "🎨",
+      color: "from-cyan-500 to-blue-500",
+    },
+    {
+      id: "business",
+      name: "Business / Finance",
+      icon: "💼",
+      color: "from-blue-700 to-indigo-700",
+    },
+    {
+      id: "health",
+      name: "Health / Wellness",
+      icon: "🏃",
+      color: "from-green-500 to-lime-500",
+    },
+    {
+      id: "trends",
+      name: "Trends / Challenges",
+      icon: "🔥",
+      color: "from-red-500 to-orange-500",
+    },
+    {
+      id: "film",
+      name: "Film / Editing / Transitions",
+      icon: "🎬",
+      color: "from-purple-600 to-violet-600",
+    },
+    {
+      id: "travel",
+      name: "Travel / Adventure",
+      icon: "✈️",
+      color: "from-sky-500 to-blue-500",
+    },
+    {
+      id: "relationships",
+      name: "Relationships / Social",
+      icon: "❤️",
+      color: "from-rose-500 to-pink-500",
+    },
+    {
+      id: "family",
+      name: "Family / Kids",
+      icon: "👨‍👩‍👧‍👦",
+      color: "from-blue-400 to-purple-400",
+    },
+    {
+      id: "mystery",
+      name: "Mystery / Storytelling",
+      icon: "🔮",
+      color: "from-indigo-600 to-purple-700",
+    },
+  ];
 
   // Reset state when component mounts
   useEffect(() => {
@@ -305,39 +442,78 @@ const Dashboard = () => {
     const videoFiles = files.filter((file) => file.type.startsWith("video/"));
     if (videoFiles.length > 0) {
       const file = videoFiles[0]; // Take first video file
-      setIsUploading(true);
-      setUploadProgress(0);
-      setUploadComplete(false);
 
-      try {
-        // Use the video store's upload function
-        const uploadedVideo = await uploadVideo(file, (progress) => {
-          setUploadProgress(progress);
-        });
+      // Show genre selection modal instead of uploading immediately
+      setPendingFile(file);
+      setShowGenreModal(true);
+    }
+  };
 
-        setIsUploading(false);
-        setUploadComplete(true);
+  const handleGenreSelection = async (genre) => {
+    setSelectedGenre(genre);
+    setShowGenreModal(false);
 
-        // Navigate to the editor with the uploaded video
-        if (uploadedVideo && uploadedVideo.data && uploadedVideo.data.video) {
-          const video = uploadedVideo.data.video;
-          navigate("/ai-editor", {
-            state: {
-              video: {
-                ...video,
-                url: video.url || video.streamUrl, // Ensure URL is available for video player
-                videoUrl: video.url || video.streamUrl, // Additional backup for player compatibility
-              },
-              autoAnalyze: true,
-              fromDashboard: true,
+    // If no pending file, this means we're selecting genre for Start AI Editing
+    if (!pendingFile && uploadComplete && currentVideo) {
+      await handleGenreSelectedAndStartAI(genre);
+      return;
+    }
+
+    if (!pendingFile) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadComplete(false);
+
+    try {
+      // Use the video store's upload function with genre metadata
+      const uploadedVideo = await uploadVideo(pendingFile, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      setIsUploading(false);
+      setUploadComplete(true);
+
+      // Navigate to the editor with the uploaded video and genre
+      if (uploadedVideo && uploadedVideo.data && uploadedVideo.data.video) {
+        const video = uploadedVideo.data.video;
+
+        // Store genre in video metadata on backend
+        try {
+          await fetch(`http://localhost:5000/api/videos/${video.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             },
+            body: JSON.stringify({
+              genre: genre.id,
+              genreName: genre.name,
+            }),
           });
+        } catch (error) {
+          console.error("Failed to save genre:", error);
         }
-      } catch (error) {
-        console.error("Failed to upload video:", error);
-        setIsUploading(false);
-        setUploadComplete(false);
+
+        navigate("/ai-editor", {
+          state: {
+            video: {
+              ...video,
+              url: video.url || video.streamUrl,
+              videoUrl: video.url || video.streamUrl,
+              genre: genre.id,
+              genreName: genre.name,
+            },
+            autoAnalyze: true,
+            fromDashboard: true,
+          },
+        });
       }
+    } catch (error) {
+      console.error("Failed to upload video:", error);
+      setIsUploading(false);
+      setUploadComplete(false);
+      setPendingFile(null);
     }
   };
 
@@ -346,21 +522,181 @@ const Dashboard = () => {
     handleFiles(files);
   };
 
-  const startEditing = () => {
+  const startEditing = async () => {
     if (uploadComplete && currentVideo) {
-      // Pass video data to AI Editor via navigation state with analysis flag
-      navigate("/ai-editor", {
-        state: {
-          video: currentVideo,
-          autoAnalyze: true,
-          fromDashboard: true,
-        },
-      });
+      // If genre is already selected, start AI processing directly
+      if (selectedGenre) {
+        await handleGenreSelectedAndStartAI(selectedGenre);
+      } else {
+        // If no genre selected yet, show modal
+        setShowGenreModal(true);
+      }
+    }
+  };
+
+  // New function to handle starting AI after genre selection
+  const handleGenreSelectedAndStartAI = async (genre) => {
+    try {
+      console.log("Selected genre:", genre);
+      setSelectedGenre(genre);
+      setShowGenreModal(false);
+
+      // Debug: Check token before API call
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("authToken");
+      console.log("Token exists:", !!token);
+      console.log(
+        "Token preview:",
+        token ? token.substring(0, 20) + "..." : "null"
+      );
+
+      // Trigger AI processing for the video using apiService
+      console.log("Starting AI processing for video:", currentVideo.id);
+      console.log("Full currentVideo object:", currentVideo);
+      console.log("API base URL:", apiService.baseURL);
+
+      const result = await apiService.startAIProcessing(currentVideo.id);
+      console.log("AI processing started successfully:", result);
+
+      // Only navigate if API call succeeded
+      if (result && result.success) {
+        // Pass video data to AI Editor via navigation state with analysis flag
+        navigate("/ai-editor", {
+          state: {
+            video: currentVideo,
+            genre: genre,
+            autoAnalyze: true,
+            fromDashboard: true,
+          },
+        });
+      } else {
+        throw new Error("Failed to start AI processing");
+      }
+    } catch (error) {
+      console.error("Error starting AI processing:", error);
+      console.error("Full error details:", error.response || error);
+
+      // Show detailed error message to user
+      const errorMsg =
+        error.response?.data?.message || error.message || "Unknown error";
+      alert(
+        `Failed to start AI processing: ${errorMsg}\n\nPlease check the console for details.`
+      );
+
+      // Don't re-show modal - let user manually click "Start AI Editing" again
     }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Genre Selection Modal */}
+      <AnimatePresence>
+        {showGenreModal && (
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                setShowGenreModal(false);
+                setPendingFile(null);
+              }}
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div
+                className="bg-card border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="p-6 border-b border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground mb-1">
+                        Select Video Genre
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Choose the category that best describes your video
+                        content
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowGenreModal(false);
+                        setPendingFile(null);
+                      }}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Genre Grid */}
+                <div className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {videoGenres.map((genre) => (
+                      <motion.button
+                        key={genre.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleGenreSelection(genre)}
+                        className={`relative p-4 rounded-xl bg-gradient-to-br ${genre.color} hover:shadow-lg transition-all duration-200 group overflow-hidden`}
+                      >
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+
+                        {/* Content */}
+                        <div className="relative z-10 flex flex-col items-center space-y-2 text-white">
+                          <span className="text-3xl">{genre.icon}</span>
+                          <span className="text-sm font-semibold text-center leading-tight">
+                            {genre.name}
+                          </span>
+                        </div>
+
+                        {/* Hover Effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute inset-0 bg-white/10" />
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-border/50 bg-muted/30">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <p className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-purple-500" />
+                      <span>
+                        This helps our AI provide better recommendations
+                      </span>
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowGenreModal(false);
+                        setPendingFile(null);
+                      }}
+                      className="px-4 py-2 hover:bg-muted rounded-lg transition-colors text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-[1920px] mx-auto">
         {/* Enhanced Header */}
         <motion.div

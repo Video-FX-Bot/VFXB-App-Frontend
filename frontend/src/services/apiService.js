@@ -188,6 +188,13 @@ class ApiService {
     });
   }
 
+  // Start AI processing for a video
+  async startAIProcessing(videoId) {
+    return this.request(`/videos/${videoId}/start-ai-processing`, {
+      method: "POST",
+    });
+  }
+
   // Export endpoints
   async exportVideo(videoId, format, quality) {
     return this.request(`/videos/${videoId}/export`, {

@@ -2,12 +2,14 @@ import OpenAI from "openai";
 import { logger } from "../utils/logger.js";
 import { VideoProcessor } from "./videoProcessor.js";
 import { TranscriptionService } from "./transcriptionService.js";
+import CaptionService from "./captionService.js";
 
 class AIService {
   constructor() {
     this.openai = null;
     this.videoProcessor = new VideoProcessor();
     this.transcriptionService = new TranscriptionService();
+    this.captionService = new CaptionService();
   }
 
   getOpenAI() {
@@ -30,14 +32,29 @@ class AIService {
       // Generate response based on intent
       const response = await this.generateResponse(intent, context);
 
-      // For brightness/contrast effects, let the frontend handle the application
-      // Don't execute operations here to avoid conflicts
-      if (intent.action === "brightness") {
+      // Don't execute operations for unavailable features or chat
+      if (intent.action === "unavailable" || intent.action === "chat") {
+        logger.info(
+          `${
+            intent.action === "unavailable" ? "Unavailable feature" : "Chat"
+          } - no operation to execute`
+        );
+        response.operationResult = null;
+      } else if (intent.action === "brightness") {
+        // For brightness/contrast effects, let the frontend handle the application
         logger.info(
           "Brightness intent detected, letting frontend handle application"
         );
         response.operationResult = null; // Frontend will apply the effect
-      } else if (intent.action && intent.action !== "chat") {
+      } else if (intent.action === "caption") {
+        // For captions, execute the operation in the backend
+        logger.info("Caption intent detected, executing caption generation");
+        const operationResult = await this.executeVideoOperation(
+          intent,
+          context
+        );
+        response.operationResult = operationResult;
+      } else if (intent.action) {
         // Execute other video operations if needed
         const operationResult = await this.executeVideoOperation(
           intent,
@@ -56,6 +73,54 @@ class AIService {
   // Pattern-based intent analyzer (fallback when OpenAI is not available)
   analyzeIntentPattern(message, context) {
     const lowerMessage = message.toLowerCase();
+
+    // Check for intensity adjustment patterns (for filters)
+    const intensityPatterns = {
+      adjust:
+        /(?:change|adjust|set|modify|make)\s+(?:the\s+)?(?:filter\s+)?intensity/i,
+      increase:
+        /(?:increase|raise|stronger|more intense)\s+(?:filter|intensity)/i,
+      decrease:
+        /(?:decrease|lower|reduce|weaken|tone down|make.*subtle|make.*weaker)\s+(?:filter|intensity)/i,
+      percentage: /(?:intensity|filter).*?(\d+)\s*%/i,
+      toPercentage: /to\s+(\d+)\s*%/i,
+    };
+
+    const hasIntensityRequest =
+      intensityPatterns.adjust.test(lowerMessage) ||
+      intensityPatterns.increase.test(lowerMessage) ||
+      intensityPatterns.decrease.test(lowerMessage) ||
+      intensityPatterns.percentage.test(lowerMessage) ||
+      intensityPatterns.toPercentage.test(lowerMessage);
+
+    if (
+      hasIntensityRequest &&
+      context.lastAppliedEffect?.effect === "lut-filter"
+    ) {
+      // Extract percentage
+      let intensity = 100;
+      const percentMatch = lowerMessage.match(/(\d+)\s*%/);
+      if (percentMatch) {
+        intensity = parseInt(percentMatch[1]);
+      } else if (intensityPatterns.decrease.test(lowerMessage)) {
+        intensity = 50; // Default lower intensity
+      } else if (intensityPatterns.increase.test(lowerMessage)) {
+        intensity = 100;
+      }
+
+      return {
+        action: "lut-filter",
+        parameters: {
+          lut: context.lastAppliedEffect.parameters.lut || "Cinematic",
+          intensity: Math.max(0, Math.min(100, intensity)),
+        },
+        confidence: 0.9,
+        explanation: `Adjusting ${
+          context.lastAppliedEffect.parameters.lut || "filter"
+        } intensity to ${intensity}%`,
+        suggestedActions: ["lut-filter", "color", "intensity"],
+      };
+    }
 
     // Brightness patterns
     const brightnessPatterns = {
@@ -327,51 +392,121 @@ class AIService {
     const systemPrompt = `You are an AI video editor assistant. Analyze the user's message and determine their intent.
     
     Available video editing operations:
+    - brightness: Adjust brightness and contrast (parameters: brightness -100 to 100, contrast -100 to 100)
+    - gaussian-blur: Apply Gaussian blur effect (parameters: intensity 0-50)
+    - motion-blur: Apply motion blur effect (parameters: intensity 0-50)
+    - lut-filter: Apply cinematic color grading LUT filters (parameters: preset - "Warm", "Cool", "Cinematic", "Vintage", "Dramatic", intensity 0-100 for blend strength)
+    - cross-dissolve: Add fade in/out transition (parameters: duration 0.1-5 seconds)
+    - zoom-transition: Add animated zoom effect (parameters: zoomType - "Zoom In", "Zoom Out", "Zoom In-Out", duration 0.1-5 seconds, centerX/centerY 0-100)
+    - snow: Add falling snow particle effect (parameters: density 0-100, size 1-10, speed 0-100)
+    - fire: Add fire particle effect (parameters: intensity 0-100, height 10-100, color hex)
+    - sparkles: Add sparkles/glitter effect (parameters: count 10-200, size 1-20, lifetime 0.5-5)
+    - caption: Generate and add captions/subtitles from video audio transcription (parameters: style object with fontColor, fontFamily, fontSize, position: "top"/"center"/"bottom", bold: true/false, italic: true/false)
     - trim: Cut/trim video segments (parameters: startTime, endTime, duration, preserveAudio)
     - crop: Resize or crop video (parameters: x, y, width, height, aspectRatio, centerCrop)
     - filter: Apply visual filters (parameters: filterType - vintage, black_white, sepia, blur, sharpen, intensity, blend)
     - color: Color correction (parameters: brightness, contrast, saturation, hue, gamma, shadows, highlights)
     - audio: Audio enhancement, noise removal (parameters: operation - enhance, denoise, normalize, volume, fadeIn, fadeOut)
-    - text: Add text overlays, titles, subtitles (parameters: text, x, y, fontSize, color, fontFamily, startTime, duration, animation, outline)
-    - transition: Add transitions between clips (parameters: type - fade, dissolve, wipe, slide, duration, position - start/end, easing)
-    - effect: Add special effects (parameters: effectType, intensity, duration, startTime, blend, mask)
-    - background: Remove or change video background (parameters: action - remove/replace, backgroundType - solid/image/blur/gradient, backgroundImage, backgroundColor, gradientColors, blurRadius, color, similarity, blend)
+    - text: Add text overlays, titles (parameters: text, x, y, fontSize, color, fontFamily, startTime, duration, animation, outline)
+    - background: Remove or change video background (parameters: action - remove/replace, backgroundType - solid/image/blur/gradient)
+    - enhance-quality: Enhance overall video quality with AI upscaling, denoising, and sharpening (parameters: upscale - true/false for 2x resolution, denoise - true/false for noise reduction, sharpen - true/false for sharpening, targetResolution - "720p"/"1080p"/"4k")
+    - remove-effect: Remove/undo last applied effect or specific effect type (parameters: effectType - "blur", "filter", "brightness", "quality", "all", or "last")
+    - reset-video: Reset video to original state, removing all effects
     - export: Export/download video (parameters: format, quality, resolution)
     - analyze: Analyze video content
     - chat: General conversation
     
     Common user phrases and their mappings:
-    - "remove background", "green screen", "chroma key", "transparent background" → background with action: remove
-    - "change background", "replace background", "new background" → background with action: replace
-    - "solid color background", "blue background", "white background" → background with action: replace, backgroundType: solid
-    - "blur background", "blurred background", "bokeh effect" → background with action: replace, backgroundType: blur
-    - "gradient background", "color gradient" → background with action: replace, backgroundType: gradient
-    - "background image", "custom background", "photo background" → background with action: replace, backgroundType: image
-    - "make it vintage", "old film look" → filter with filterType: vintage
-    - "black and white", "monochrome" → filter with filterType: black_white
-    - "add title", "put text", "add caption" → text
-    - "fade in", "fade out", "dissolve", "crossfade" → transition with type: fade/dissolve
-    - "brighten", "darker", "more contrast", "adjust colors", "color grade" → color
-    - "cut from X to Y", "trim", "shorten", "clip", "extract segment" → trim
-    - "crop video", "resize", "change aspect ratio", "square crop", "16:9 format" → crop
-    - "louder", "quieter", "remove noise", "clean audio", "normalize volume" → audio
-    - "slow motion", "speed up", "time lapse", "fast forward" → effect with effectType: speed
-    - "zoom in", "zoom out", "pan", "ken burns effect" → effect with effectType: zoom/pan
+    - "brighten", "brighter", "lighter", "increase brightness" → brightness with positive brightness value
+    - "darken", "darker", "dim", "decrease brightness" → brightness with negative brightness value
+    - "more contrast", "higher contrast", "punchier" → brightness with positive contrast value
+    - "less contrast", "lower contrast", "softer" → brightness with negative contrast value
+    - "blur", "blur it", "make it blurry", "soft focus", "blur the video", "blur the background", "add blur" → gaussian-blur with intensity (NOT background effect)
+    - "motion blur", "speed blur", "movement blur" → motion-blur with intensity
+    - "cinematic", "movie look", "film look" → lut-filter with preset: "Cinematic", intensity: 100
+    - "warm tones", "warmer", "orange look", "sunset feel" → lut-filter with preset: "Warm", intensity: 100
+    - "cool tones", "cooler", "blue look", "cold feel" → lut-filter with preset: "Cool", intensity: 100
+    - "vintage", "retro", "old film", "nostalgic" → lut-filter with preset: "Vintage", intensity: 100
+    - "dramatic", "intense", "bold colors", "high contrast" → lut-filter with preset: "Dramatic", intensity: 100
+    - "reduce filter intensity", "lower filter to 50%", "make filter subtle", "tone down the filter" → lut-filter with same preset but lower intensity (extract percentage if mentioned)
+    - "increase filter intensity", "stronger filter", "more intense" → lut-filter with same preset but higher intensity
+    - "fade in", "fade out", "dissolve", "crossfade", "fade transition" → cross-dissolve with duration
+    - "zoom in", "zoom into video", "zoom effect", "ken burns" → zoom-transition with zoomType: "Zoom In"
+    - "zoom out", "zoom out effect" → zoom-transition with zoomType: "Zoom Out"
+    - "zoom in and out", "zoom in then out" → zoom-transition with zoomType: "Zoom In-Out"
+    - "snow effect", "add snow", "falling snow", "snow particles", "make it snow", "snowing" → snow with density 50, size 3, speed 30
+    - "fire effect", "add fire", "flames", "fire particles", "burning" → fire with intensity 70, height 50
+    - "sparkles", "glitter", "sparkle effect", "add sparkles", "twinkling", "shimmer" → sparkles with count 50, size 5
+    - "remove background", "green screen", "chroma key" → background with action: remove
+    - "enhance video quality", "improve quality", "upscale", "make it HD", "make it 4K", "increase resolution", "improve video", "enhance quality", "quality upgrade", "denoise", "reduce noise", "sharpen video", "make it sharper", "make it clearer" → enhance-quality (with appropriate parameters based on request: upscale for resolution increase, denoise for noise, sharpen for sharpness)
+    - "add captions", "add subtitles", "generate captions", "caption this", "transcribe", "subtitle this", "captions", "subtitles" → caption (NOT text - caption generates from audio)
+    
+    For caption styling, extract these parameters:
+    - Color: "red captions", "yellow subtitles", "white captions" → style.fontColor: "red", "yellow", "white" (or any color)
+    - Position: "top captions", "bottom subtitles", "center captions", "middle captions" → style.position: "top", "bottom", "center"
+    - Font: "Arial captions", "bold captions", "italic subtitles" → style.fontFamily: "Arial", style.bold: true, style.italic: true
+    - Size: "large captions", "small subtitles", "18px captions" → style.fontSize: number (12-48)
+    - Examples:
+      * "add yellow captions at the top" → caption with style: { fontColor: "yellow", position: "top" }
+      * "add bold red subtitles" → caption with style: { fontColor: "red", bold: true }
+      * "add captions at the center" → caption with style: { position: "center" }
+      * "add captions in the middle" → caption with style: { position: "center" }
+    
+    IMPORTANT: Captions are burned into the video and cannot be moved or modified after creation.
+    - "move captions", "change caption color", "reposition subtitles" → Respond with chat explaining captions must be regenerated with new styling
+    - To change captions, user must say "add [color] captions at [position]" to replace them
+    
+    - "add title", "put text", "add text", "text overlay" → text (for custom text overlays)
+    - "cut from X to Y", "trim", "shorten" → trim
+    - "crop video", "resize", "change aspect ratio" → crop
+    - "louder", "quieter", "remove noise", "clean audio" → audio
+    - "remove filter", "remove the filter", "undo filter", "remove effect", "undo effect", "remove blur", "remove enhancement", "undo", "undo last", "remove last effect", "go back", "revert" → remove-effect (with effectType based on what they mention: "blur", "filter", "brightness", "quality", "enhancement", or "last")
+    - "reset video", "start over", "remove all effects", "reset to original", "clear all effects" → reset-video
     
     Context: ${JSON.stringify(context)}
     
+    ${
+      context.appliedEffects && context.appliedEffects.length > 0
+        ? `
+    Currently Applied Effects (in order):
+    ${context.appliedEffects
+      .map(
+        (e, i) =>
+          `${i + 1}. ${e.effect || e.id || e.type} - ${JSON.stringify(
+            e.parameters || {}
+          )}`
+      )
+      .join("\n")}
+    
+    IMPORTANT for remove-effect:
+    - If user says "remove filter" or "remove the filter" and there are multiple filters, identify which one they mean based on context
+    - If ambiguous, remove the MOST RECENTLY applied filter of that type
+    - Set effectType to the EXACT effect name from the list above (e.g., "lut-filter", "gaussian-blur", "brightness")
+    - If no effects match the user's request, set effectType to "none" and confidence to 0
+    `
+        : ""
+    }
+    
+    
+    IMPORTANT: 
+    - ONLY use actions from the available list above. 
+    - If the user requests something not in the available operations, set action to "unavailable" and explain what they asked for in the explanation.
+    - Do NOT map unavailable features to similar available ones.
+    - For example: if user asks for "speed up" or "slow motion" but that's not in available operations, return action: "unavailable"
+    
     Respond with a JSON object containing:
     {
-      "action": "operation_name",
+      "action": "operation_name or unavailable",
       "parameters": {},
       "confidence": 0.95,
       "explanation": "What the user wants to do",
-      "suggestedActions": ["action1", "action2"]
+      "suggestedActions": ["action1", "action2"],
+      "requestedFeature": "name of unavailable feature if action is unavailable"
     }`;
 
     try {
       const completion = await this.getOpenAI().chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
+        model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: message },
@@ -381,7 +516,58 @@ class AIService {
       });
 
       const response = completion.choices[0].message.content;
-      return JSON.parse(response);
+      const intent = JSON.parse(response);
+
+      // Log what OpenAI returned for debugging
+      logger.info(`OpenAI intent analysis:`, {
+        action: intent.action,
+        parameters: intent.parameters,
+        confidence: intent.confidence,
+      });
+
+      // Validate that the action is in our available list
+      const availableActions = [
+        "brightness",
+        "gaussian-blur",
+        "motion-blur",
+        "lut-filter",
+        "cross-dissolve",
+        "zoom-transition",
+        "snow",
+        "fire",
+        "sparkles",
+        "trim",
+        "crop",
+        "filter",
+        "color",
+        "audio",
+        "text",
+        "caption",
+        "background",
+        "enhance-quality",
+        "remove-effect",
+        "reset-video",
+        "export",
+        "analyze",
+        "chat",
+        "unavailable",
+      ];
+
+      if (!availableActions.includes(intent.action)) {
+        logger.warn(
+          `OpenAI returned unavailable action: ${intent.action}, marking as unavailable`
+        );
+        return {
+          action: "unavailable",
+          parameters: {},
+          confidence: intent.confidence || 0.8,
+          explanation: intent.explanation,
+          suggestedActions: intent.suggestedActions || [],
+          requestedFeature: intent.action,
+        };
+      }
+
+      return intent;
     } catch (error) {
       logger.error(
         "Error analyzing intent with OpenAI, falling back to pattern matching:",
@@ -397,6 +583,10 @@ class AIService {
     let message = "";
 
     switch (intent.action) {
+      case "unavailable":
+        message = `I don't have that feature available yet. 😅 But I can help you with brightness/contrast, blur effects, color grading (warm, cool, cinematic), zoom transitions, and fade effects! Try saying "make it cinematic" or "add some blur".`;
+        break;
+
       case "brightness":
         const { brightness, contrast } = intent.parameters;
         if (brightness !== 0 && contrast !== 0) {
@@ -422,6 +612,46 @@ class AIService {
         } else {
           message = "Resetting brightness and contrast to normal levels...";
         }
+        break;
+
+      case "enhance-quality":
+        const { upscale, denoise, sharpen, targetResolution } =
+          intent.parameters;
+        let enhancements = [];
+        if (denoise) enhancements.push("noise reduction");
+        if (sharpen) enhancements.push("enhanced sharpness (+50%)");
+        enhancements.push("contrast boost (+15%)");
+        enhancements.push("color saturation (+20%)");
+        if (upscale) enhancements.push("resolution upscaling");
+        if (targetResolution)
+          enhancements.push(`targeting ${targetResolution}`);
+
+        if (enhancements.length > 0) {
+          message = `I'll significantly enhance your video quality with:\n• ${enhancements.join(
+            "\n• "
+          )}\n\nYou'll notice clearer details, better colors, and improved overall quality. This may take a moment...`;
+        } else {
+          message =
+            "I'll enhance your video quality with professional-grade improvements. Processing now...";
+        }
+        break;
+
+      case "remove-effect":
+        const effectType = intent.parameters.effectType || "last";
+        if (effectType === "all") {
+          message =
+            "I'll reset your video to the original state, removing all effects...";
+        } else if (effectType === "last") {
+          message =
+            "I'll remove the last effect that was applied to your video...";
+        } else {
+          message = `I'll remove the ${effectType} effect from your video...`;
+        }
+        break;
+
+      case "reset-video":
+        message =
+          "I'll reset your video to the original state, removing all applied effects...";
         break;
 
       case "chat":
@@ -451,26 +681,131 @@ class AIService {
       return this.generateSimpleResponse(intent, context);
     }
 
-    const systemPrompt = `You are VFXB AI, a friendly and helpful video editing assistant. You help users edit their videos through natural conversation.
+    // Handle unavailable features
+    if (intent.action === "unavailable") {
+      const unavailablePrompt = `You are VFXB AI, a friendly video editing assistant. The user asked for a feature that isn't available yet.
+      
+      User requested: ${intent.requestedFeature || intent.explanation}
+      
+      Guidelines:
+      - Politely explain that this feature isn't available yet
+      - Be empathetic and understanding
+      - Suggest 2-3 alternative features they CAN use that might achieve a similar result
+      - Keep it brief and friendly
+      
+      Available features they CAN use:
+      - Brightness/Contrast adjustments
+      - Blur effects (Gaussian, Motion)
+      - Color grading (Warm, Cool, Cinematic, Vintage, Dramatic)
+      - Fade transitions
+      - Zoom effects
+      - Crop and Trim
+      
+      Response format (MUST be valid JSON):
+      {
+        "message": "I don't have that feature yet, but here's what I can do...",
+        "actions": [
+          {"label": "Alternative Action", "command": "user-friendly command", "type": "secondary"}
+        ],
+        "tips": ["Helpful tip about available alternatives"]
+      }`;
+
+      try {
+        const completion = await this.getOpenAI().chat.completions.create({
+          model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: unavailablePrompt },
+            { role: "user", content: intent.explanation },
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        });
+
+        let response;
+        try {
+          response = JSON.parse(completion.choices[0].message.content);
+        } catch (parseError) {
+          response = {
+            message: `I don't have that feature available yet. 😅 But I can help you with color grading, blur effects, zoom transitions, and more!`,
+            actions: [
+              {
+                label: "Try Cinematic Look",
+                command: "make it cinematic",
+                type: "secondary",
+              },
+              {
+                label: "Add Blur",
+                command: "add some blur",
+                type: "secondary",
+              },
+            ],
+            tips: ["Ask me about color grading or transitions!"],
+          };
+        }
+
+        return {
+          message: response.message,
+          actions: response.actions || [],
+          tips: response.tips || [],
+          intent: intent,
+          timestamp: new Date().toISOString(),
+          type: "ai",
+        };
+      } catch (error) {
+        logger.error("Error generating unavailable feature response:", error);
+        return {
+          message: `I don't have that feature available yet. 😅 But I can help you with brightness, contrast, blur effects, color grading, zoom transitions, and fade effects!`,
+          actions: [
+            {
+              label: "Try Cinematic Look",
+              command: "make it cinematic",
+              type: "secondary",
+            },
+            {
+              label: "Brighten Video",
+              command: "make it brighter",
+              type: "secondary",
+            },
+          ],
+          tips: ["Try asking: 'make it cinematic' or 'add some blur'"],
+          intent: intent,
+          timestamp: new Date().toISOString(),
+          type: "ai",
+        };
+      }
+    }
+
+    const systemPrompt = `You are VFXB AI, a friendly and enthusiastic video editing assistant. You help users create amazing videos through natural conversation.
     
-    Current intent: ${JSON.stringify(intent)}
-    Context: ${JSON.stringify(context)}
+    Current intent action: ${intent.action}
+    Parameters: ${JSON.stringify(intent.parameters)}
+    Explanation: ${intent.explanation}
     
     Guidelines:
-    - Be conversational and encouraging
-    - Explain what you're doing in simple terms
-    - Offer helpful suggestions for next steps
-    - If processing video, mention it will take a moment
-    - For background operations, explain the process briefly
-    - Suggest related actions the user might want to try
+    - Be warm, conversational, and genuinely excited about their edits
+    - Use casual language and occasional emojis to feel more personal
+    - Explain what you're doing in simple, creative terms (e.g., "Adding that cinematic movie magic!" instead of "Applying LUT filter")
+    - Keep responses brief and engaging (1-2 sentences max)
+    - Always mention you're processing their video and it'll be ready in a moment
+    - For visual effects, describe what they'll see (e.g., "Your video will have that warm, sunset glow!")
+    - Suggest creative next steps they might enjoy
+    - IMPORTANT: For lut-filter, use the EXACT preset name from parameters (Warm, Cool, Cinematic, Vintage, or Dramatic)
     
-    Response format:
+    Effect-specific responses:
+    - Brightness/Contrast: "Adjusting the lighting to make it pop!" or "Bringing out those details!"
+    - Blur effects: "Adding that dreamy blur effect!" or "Creating some artistic motion blur!"
+    - LUT filters (lut-filter): "Adding [USE THE PRESET NAME FROM PARAMETERS] color grading!" - e.g., if preset is "Warm", say "Warm", if "Cool" say "Cool"
+    - Transitions: "Adding smooth fade transitions!" or "Creating a dynamic zoom effect!"
+    - Zoom: "Zooming [in/out] for that cinematic feel!"
+    - Captions: "Generating captions from your video's audio!" or "Transcribing and adding captions!"
+    
+    Response format (MUST be valid JSON):
     {
-      "message": "Your conversational response",
+      "message": "Your enthusiastic, brief response with what you're doing",
       "actions": [
-        {"label": "Action Name", "command": "suggested command", "type": "primary|secondary"}
+        {"label": "Suggested Action", "command": "user-friendly command", "type": "primary|secondary"}
       ],
-      "tips": ["helpful tip 1", "helpful tip 2"]
+      "tips": ["Quick creative tip related to their edit"]
     }`;
 
     try {
@@ -517,7 +852,31 @@ class AIService {
   async executeVideoOperation(intent, context) {
     try {
       const { action, parameters } = intent;
-      const { videoId, videoPath } = context;
+      let { videoId, videoPath } = context;
+
+      // If videoPath is not provided, fetch it from the database
+      if (!videoPath && videoId) {
+        const { Video } = await import("../models/Video.js");
+        const video = await Video.findById(videoId);
+        if (video) {
+          videoPath = video.filePath;
+          logger.info(`📹 Fetched video path from database: ${videoPath}`);
+        } else {
+          throw new Error(`Video not found: ${videoId}`);
+        }
+      }
+
+      if (!videoPath) {
+        throw new Error("Video path is required for this operation");
+      }
+
+      // 🔍 Debug: Log the videoPath being used
+      logger.info(`🎬 Executing video operation:`, {
+        action,
+        videoId,
+        videoPath,
+        parameters,
+      });
 
       switch (action) {
         case "trim":
@@ -546,6 +905,9 @@ class AIService {
         case "text":
           return await this.videoProcessor.addText(videoPath, parameters);
 
+        case "caption":
+          return await this.generateAndApplyCaptions(videoPath, parameters);
+
         case "transition":
           return await this.videoProcessor.addTransition(videoPath, parameters);
 
@@ -567,6 +929,73 @@ class AIService {
     } catch (error) {
       logger.error("Error executing video operation:", error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // Generate and apply captions to video
+  async generateAndApplyCaptions(videoPath, parameters = {}) {
+    try {
+      logger.info(`🎤 Generating captions for video: ${videoPath}`);
+
+      // Generate captions from video audio
+      const captionResult = await this.captionService.generateCaptions(
+        videoPath
+      );
+
+      if (!captionResult.success || !captionResult.captions) {
+        throw new Error("Failed to generate captions from video audio");
+      }
+
+      logger.info(
+        `✅ Generated ${captionResult.captions.length} caption segments`
+      );
+
+      // Default styling (can be customized via parameters)
+      const style = {
+        fontFamily: parameters.fontFamily || "Arial",
+        fontSize: parameters.fontSize || 24,
+        fontColor: parameters.fontColor || "#ffffff",
+        outlineColor: parameters.outlineColor || "#000000",
+        outlineWidth: parameters.outlineWidth || 2,
+        position: parameters.position || "bottom",
+        alignment: parameters.alignment || "center",
+        bold: parameters.bold || false,
+        italic: parameters.italic || false,
+      };
+
+      // Apply captions to video
+      logger.info(
+        `📝 Applying ${captionResult.captions.length} captions to video`
+      );
+      const result = await this.captionService.applyCaptionsToVideo(
+        videoPath,
+        captionResult.captions,
+        style
+      );
+
+      // Return in the same format as effects so frontend can handle it
+      return {
+        success: true,
+        outputPath: result.outputPath,
+        operation: "caption",
+        parameters: {
+          captionCount: captionResult.captions.length,
+          language: captionResult.language,
+          style: style,
+        },
+        metadata: {
+          processingTime: Date.now(),
+          captions: captionResult.captions,
+        },
+      };
+    } catch (error) {
+      logger.error("Error generating/applying captions:", error);
+      return {
+        success: false,
+        error: error.message,
+        message:
+          "Failed to generate or apply captions. Make sure the video has clear audio.",
+      };
     }
   }
 

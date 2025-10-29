@@ -69,6 +69,10 @@ class Video {
     this.parentVideoId = videoData.parentVideoId || null;
     this.editHistory = videoData.editHistory || [];
 
+    // Deduplication fields for hybrid workflow
+    this.sha256 = videoData.sha256 || null; // SHA256 hash for deduplication
+    this.refCount = videoData.refCount !== undefined ? videoData.refCount : 1; // Reference counter
+
     this.createdAt = videoData.createdAt || new Date().toISOString();
     this.updatedAt = videoData.updatedAt || new Date().toISOString();
   }
@@ -365,6 +369,13 @@ class Video {
       privacy: this.privacy,
       processing: this.processing,
       exports: this.exports,
+      cloudUrl: this.cloudUrl,
+      cloudPublicId: this.cloudPublicId,
+      aiEnhancements: this.aiEnhancements,
+      voiceovers: this.voiceovers,
+      appliedEffects: this.appliedEffects,
+      parentVideoId: this.parentVideoId,
+      editHistory: this.editHistory,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

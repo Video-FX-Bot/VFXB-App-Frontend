@@ -12,11 +12,14 @@ export const authenticateToken = async (req, res, next) => {
 
     // Also check for token in query parameters (for video streaming)
     if (!token && req.query.token) {
-      token = req.query.token;
+      // Ensure token is a string (could be array if multiple tokens in URL)
+      token = Array.isArray(req.query.token)
+        ? req.query.token[0]
+        : String(req.query.token);
       logger.info("Token found in query parameters for:", req.path);
     }
 
-    if (!token) {
+    if (!token || typeof token !== "string") {
       logger.warn("No authentication token provided for:", req.path);
       logger.warn("Query params:", req.query);
       logger.warn("Auth header:", authHeader);
@@ -24,6 +27,13 @@ export const authenticateToken = async (req, res, next) => {
         .status(401)
         .json({ success: false, message: "Access token required" });
     }
+
+    // Debug: Log token info
+    logger.info(
+      `Token received for ${req.path}: length=${
+        token.length
+      }, preview=${token.substring(0, 30)}...`
+    );
 
     // Dev-only demo tokens are still supported if you want
     if (

@@ -1,32 +1,39 @@
-import { v4 as uuidv4 } from 'uuid';
-import { localStorageService } from '../services/localStorageService.js';
-import { logger } from '../utils/logger.js';
+import { v4 as uuidv4 } from "uuid";
+import { localStorageService } from "../services/localStorageService.js";
+import { logger } from "../utils/logger.js";
 
 export class Project {
   constructor(data = {}) {
     this._id = data._id || null;
     this.userId = data.userId || null;
-    this.name = data.name || 'Untitled Project';
-    this.description = data.description || '';
+    this.name = data.name || "Untitled Project";
+    this.description = data.description || "";
     this.videoId = data.videoId || null;
     this.videoData = data.videoData || null; // Store video metadata
     this.thumbnail = data.thumbnail || null;
-    this.duration = data.duration || '0:00';
-    this.status = data.status || 'draft'; // draft, editing, processing, completed
+    this.duration = data.duration || "0:00";
+    this.status = data.status || "draft"; // draft, editing, processing, completed
     this.chatHistory = data.chatHistory || [];
     this.tracks = data.tracks || [];
     this.currentTime = data.currentTime || 0;
     this.settings = data.settings || {
-      quality: 'high',
-      format: 'mp4',
-      resolution: '1920x1080'
+      quality: "high",
+      format: "mp4",
+      resolution: "1920x1080",
     };
     this.metadata = data.metadata || {};
     this.favorite = data.favorite || false;
     this.tags = data.tags || [];
+
+    // Hybrid workflow fields for version control
+    this.currentVersion =
+      data.currentVersion !== undefined ? data.currentVersion : 0; // Current edit version
+    this.latestProxyKey = data.latestProxyKey || null; // Path to latest low-res proxy
+    this.latestExportKey = data.latestExportKey || null; // Path to latest high-res export
+
     this.createdAt = data.createdAt || new Date().toISOString();
     this.updatedAt = data.updatedAt || new Date().toISOString();
-    this.lastModified = data.lastModified || 'Just now';
+    this.lastModified = data.lastModified || "Just now";
     this.autoSaved = data.autoSaved || false;
     this.manualSave = data.manualSave || false;
     this.socketId = data.socketId || null;
@@ -37,29 +44,29 @@ export class Project {
     const errors = [];
 
     if (!this.userId) {
-      errors.push('User ID is required');
+      errors.push("User ID is required");
     }
 
     if (!this.name || this.name.trim().length === 0) {
-      errors.push('Project name is required');
+      errors.push("Project name is required");
     }
 
     if (this.name && this.name.length > 100) {
-      errors.push('Project name must be less than 100 characters');
+      errors.push("Project name must be less than 100 characters");
     }
 
     if (this.description && this.description.length > 500) {
-      errors.push('Project description must be less than 500 characters');
+      errors.push("Project description must be less than 500 characters");
     }
 
-    const validStatuses = ['draft', 'editing', 'processing', 'completed'];
+    const validStatuses = ["draft", "editing", "processing", "completed"];
     if (!validStatuses.includes(this.status)) {
-      errors.push('Invalid project status');
+      errors.push("Invalid project status");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -68,27 +75,32 @@ export class Project {
     try {
       const validation = this.validate();
       if (!validation.isValid) {
-        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
       }
 
       this.updatedAt = new Date().toISOString();
-      this.lastModified = 'Just now';
+      this.lastModified = "Just now";
 
       if (this._id) {
         // Update existing project
-        const updatedProject = await localStorageService.updateProject(this._id, this.toObject());
+        const updatedProject = await localStorageService.updateProject(
+          this._id,
+          this.toObject()
+        );
         Object.assign(this, updatedProject);
         logger.info(`Project updated: ${this._id}`);
       } else {
         // Create new project
-        const savedProject = await localStorageService.createProject(this.toObject());
+        const savedProject = await localStorageService.createProject(
+          this.toObject()
+        );
         Object.assign(this, savedProject);
         logger.info(`Project created: ${this._id}`);
       }
 
       return this;
     } catch (error) {
-      logger.error('Error saving project:', error);
+      logger.error("Error saving project:", error);
       throw error;
     }
   }
@@ -96,14 +108,14 @@ export class Project {
   async delete() {
     try {
       if (!this._id) {
-        throw new Error('Cannot delete project without ID');
+        throw new Error("Cannot delete project without ID");
       }
 
       await localStorageService.deleteProject(this._id);
       logger.info(`Project deleted: ${this._id}`);
       return true;
     } catch (error) {
-      logger.error('Error deleting project:', error);
+      logger.error("Error deleting project:", error);
       throw error;
     }
   }
@@ -132,7 +144,7 @@ export class Project {
       lastModified: this.lastModified,
       autoSaved: this.autoSaved,
       manualSave: this.manualSave,
-      socketId: this.socketId
+      socketId: this.socketId,
     };
   }
 
@@ -143,13 +155,13 @@ export class Project {
 
   // Update project status
   updateStatus(newStatus) {
-    const validStatuses = ['draft', 'editing', 'processing', 'completed'];
+    const validStatuses = ["draft", "editing", "processing", "completed"];
     if (validStatuses.includes(newStatus)) {
       this.status = newStatus;
       this.updatedAt = new Date().toISOString();
-      this.lastModified = 'Just now';
+      this.lastModified = "Just now";
     } else {
-      throw new Error('Invalid status');
+      throw new Error("Invalid status");
     }
     return this;
   }
@@ -158,10 +170,10 @@ export class Project {
   addChatMessage(message) {
     this.chatHistory.push({
       ...message,
-      timestamp: message.timestamp || new Date().toISOString()
+      timestamp: message.timestamp || new Date().toISOString(),
     });
     this.updatedAt = new Date().toISOString();
-    this.lastModified = 'Just now';
+    this.lastModified = "Just now";
     return this;
   }
 
@@ -169,7 +181,7 @@ export class Project {
   updateSettings(newSettings) {
     this.settings = { ...this.settings, ...newSettings };
     this.updatedAt = new Date().toISOString();
-    this.lastModified = 'Just now';
+    this.lastModified = "Just now";
     return this;
   }
 
@@ -177,7 +189,7 @@ export class Project {
   toggleFavorite() {
     this.favorite = !this.favorite;
     this.updatedAt = new Date().toISOString();
-    this.lastModified = 'Just now';
+    this.lastModified = "Just now";
     return this;
   }
 
@@ -186,18 +198,18 @@ export class Project {
     try {
       // Validate required fields
       if (!projectData.userId) {
-        throw new Error('User ID is required');
+        throw new Error("User ID is required");
       }
 
       if (!projectData.name) {
-        throw new Error('Project name is required');
+        throw new Error("Project name is required");
       }
 
       // Save to local storage
       const savedProject = await localStorageService.createProject(projectData);
       return new Project(savedProject);
     } catch (error) {
-      logger.error('Error creating project:', error);
+      logger.error("Error creating project:", error);
       throw error;
     }
   }
@@ -207,17 +219,20 @@ export class Project {
       const projectData = await localStorageService.getProject(projectId);
       return projectData ? new Project(projectData) : null;
     } catch (error) {
-      logger.error('Error finding project by ID:', error);
+      logger.error("Error finding project by ID:", error);
       throw error;
     }
   }
 
   static async findByUserId(userId, options = {}) {
     try {
-      const projects = await localStorageService.getProjectsByUserId(userId, options);
-      return projects.map(project => new Project(project));
+      const projects = await localStorageService.getProjectsByUserId(
+        userId,
+        options
+      );
+      return projects.map((project) => new Project(project));
     } catch (error) {
-      logger.error('Error finding projects by user ID:', error);
+      logger.error("Error finding projects by user ID:", error);
       throw error;
     }
   }
@@ -225,9 +240,9 @@ export class Project {
   static async findAll(options = {}) {
     try {
       const projects = await localStorageService.getAllProjects(options);
-      return projects.map(project => new Project(project));
+      return projects.map((project) => new Project(project));
     } catch (error) {
-      logger.error('Error finding all projects:', error);
+      logger.error("Error finding all projects:", error);
       throw error;
     }
   }
@@ -235,12 +250,15 @@ export class Project {
   static async updateById(projectId, updateData) {
     try {
       updateData.updatedAt = new Date().toISOString();
-      updateData.lastModified = 'Just now';
-      
-      const updatedProject = await localStorageService.updateProject(projectId, updateData);
+      updateData.lastModified = "Just now";
+
+      const updatedProject = await localStorageService.updateProject(
+        projectId,
+        updateData
+      );
       return updatedProject ? new Project(updatedProject) : null;
     } catch (error) {
-      logger.error('Error updating project:', error);
+      logger.error("Error updating project:", error);
       throw error;
     }
   }
@@ -250,7 +268,7 @@ export class Project {
       await localStorageService.deleteProject(projectId);
       return true;
     } catch (error) {
-      logger.error('Error deleting project:', error);
+      logger.error("Error deleting project:", error);
       throw error;
     }
   }
@@ -259,11 +277,11 @@ export class Project {
     try {
       const projects = await localStorageService.getProjectsByUserId(userId, {
         sort: { updatedAt: -1 },
-        limit
+        limit,
       });
-      return projects.map(project => new Project(project));
+      return projects.map((project) => new Project(project));
     } catch (error) {
-      logger.error('Error getting recent projects:', error);
+      logger.error("Error getting recent projects:", error);
       throw error;
     }
   }
@@ -272,21 +290,25 @@ export class Project {
     try {
       const projects = await localStorageService.getProjectsByUserId(userId, {
         filter: { favorite: true },
-        sort: { updatedAt: -1 }
+        sort: { updatedAt: -1 },
       });
-      return projects.map(project => new Project(project));
+      return projects.map((project) => new Project(project));
     } catch (error) {
-      logger.error('Error getting favorite projects:', error);
+      logger.error("Error getting favorite projects:", error);
       throw error;
     }
   }
 
   static async searchProjects(userId, searchTerm, options = {}) {
     try {
-      const projects = await localStorageService.searchProjects(userId, searchTerm, options);
-      return projects.map(project => new Project(project));
+      const projects = await localStorageService.searchProjects(
+        userId,
+        searchTerm,
+        options
+      );
+      return projects.map((project) => new Project(project));
     } catch (error) {
-      logger.error('Error searching projects:', error);
+      logger.error("Error searching projects:", error);
       throw error;
     }
   }
@@ -294,19 +316,19 @@ export class Project {
   static async getProjectStats(userId) {
     try {
       const projects = await localStorageService.getProjectsByUserId(userId);
-      
+
       const stats = {
         total: projects.length,
-        draft: projects.filter(p => p.status === 'draft').length,
-        editing: projects.filter(p => p.status === 'editing').length,
-        processing: projects.filter(p => p.status === 'processing').length,
-        completed: projects.filter(p => p.status === 'completed').length,
-        favorites: projects.filter(p => p.favorite).length
+        draft: projects.filter((p) => p.status === "draft").length,
+        editing: projects.filter((p) => p.status === "editing").length,
+        processing: projects.filter((p) => p.status === "processing").length,
+        completed: projects.filter((p) => p.status === "completed").length,
+        favorites: projects.filter((p) => p.favorite).length,
       };
 
       return stats;
     } catch (error) {
-      logger.error('Error getting project stats:', error);
+      logger.error("Error getting project stats:", error);
       throw error;
     }
   }

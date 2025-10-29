@@ -11,7 +11,12 @@ class AuthService {
   // ---------- storage ----------
   getToken() {
     try {
-      return localStorage.getItem(this.tokenKey);
+      let token = localStorage.getItem(this.tokenKey);
+      // Strip quotes if token is wrapped in them
+      if (token && typeof token === "string") {
+        token = token.replace(/^["']|["']$/g, "");
+      }
+      return token;
     } catch {
       return null;
     }
@@ -19,8 +24,14 @@ class AuthService {
 
   setToken(token) {
     try {
-      if (token) localStorage.setItem(this.tokenKey, token);
-      else localStorage.removeItem(this.tokenKey);
+      if (token) {
+        // Strip quotes if token is wrapped in them before saving
+        const cleanToken =
+          typeof token === "string" ? token.replace(/^["']|["']$/g, "") : token;
+        localStorage.setItem(this.tokenKey, cleanToken);
+      } else {
+        localStorage.removeItem(this.tokenKey);
+      }
     } catch {}
   }
 

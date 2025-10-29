@@ -11,6 +11,8 @@ class LocalStorageService {
       chatMessages: "chatMessages.json",
       sessions: "sessions.json",
       projects: "projects.json",
+      editOperations: "editOperations.json",
+      exportVersions: "exportVersions.json",
     };
     this.init();
   }
@@ -499,6 +501,210 @@ class LocalStorageService {
     } catch (error) {
       console.error("Error searching projects:", error);
       return [];
+    }
+  }
+
+  // EditOperation operations
+  async createEditOperation(data) {
+    try {
+      const operations = await this.readCollection("editOperations");
+      const newOp = {
+        _id: data._id || uuidv4(),
+        ...data,
+        createdAt: data.createdAt || new Date().toISOString(),
+      };
+
+      operations.push(newOp);
+      await this.writeCollection("editOperations", operations);
+      return newOp;
+    } catch (error) {
+      console.error("Error creating edit operation:", error);
+      throw error;
+    }
+  }
+
+  async findEditOperationById(id) {
+    try {
+      const operations = await this.readCollection("editOperations");
+      return operations.find((op) => op._id === id) || null;
+    } catch (error) {
+      console.error("Error finding edit operation:", error);
+      return null;
+    }
+  }
+
+  async findEditOperationsByProject(projectId) {
+    try {
+      const operations = await this.readCollection("editOperations");
+      return operations
+        .filter((op) => op.projectId === projectId)
+        .sort((a, b) => a.version - b.version);
+    } catch (error) {
+      console.error("Error finding edit operations by project:", error);
+      return [];
+    }
+  }
+
+  async findEditOperationByProjectVersion(projectId, version) {
+    try {
+      const operations = await this.readCollection("editOperations");
+      return (
+        operations.find(
+          (op) => op.projectId === projectId && op.version === version
+        ) || null
+      );
+    } catch (error) {
+      console.error("Error finding edit operation by version:", error);
+      return null;
+    }
+  }
+
+  // ExportVersion operations
+  async createExportVersion(data) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      const newExport = {
+        _id: data._id || uuidv4(),
+        ...data,
+        createdAt: data.createdAt || new Date().toISOString(),
+      };
+
+      exports.push(newExport);
+      await this.writeCollection("exportVersions", exports);
+      return newExport;
+    } catch (error) {
+      console.error("Error creating export version:", error);
+      throw error;
+    }
+  }
+
+  async updateExportVersion(id, updateData) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      const exportIndex = exports.findIndex((exp) => exp._id === id);
+
+      if (exportIndex === -1) {
+        throw new Error("Export version not found");
+      }
+
+      exports[exportIndex] = {
+        ...exports[exportIndex],
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.writeCollection("exportVersions", exports);
+      return exports[exportIndex];
+    } catch (error) {
+      console.error("Error updating export version:", error);
+      throw error;
+    }
+  }
+
+  async findExportVersionById(id) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      return exports.find((exp) => exp._id === id) || null;
+    } catch (error) {
+      console.error("Error finding export version:", error);
+      return null;
+    }
+  }
+
+  async findExportVersionsByProject(projectId) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      return exports
+        .filter((exp) => exp.projectId === projectId)
+        .sort((a, b) => b.version - a.version);
+    } catch (error) {
+      console.error("Error finding export versions by project:", error);
+      return [];
+    }
+  }
+
+  async findExportVersionByProjectVersion(projectId, version) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      return (
+        exports.find(
+          (exp) => exp.projectId === projectId && exp.version === version
+        ) || null
+      );
+    } catch (error) {
+      console.error("Error finding export version:", error);
+      return null;
+    }
+  }
+
+  async deleteExportVersion(id) {
+    try {
+      const exports = await this.readCollection("exportVersions");
+      const filteredExports = exports.filter((exp) => exp._id !== id);
+
+      if (exports.length === filteredExports.length) {
+        throw new Error("Export version not found");
+      }
+
+      await this.writeCollection("exportVersions", filteredExports);
+      return true;
+    } catch (error) {
+      console.error("Error deleting export version:", error);
+      throw error;
+    }
+  }
+
+  // Video SHA256 deduplication helpers
+  async findVideoByHash(sha256) {
+    try {
+      const videos = await this.readCollection("videos");
+      return videos.find((video) => video.sha256 === sha256) || null;
+    } catch (error) {
+      console.error("Error finding video by hash:", error);
+      return null;
+    }
+  }
+
+  async incrementVideoRefCount(id) {
+    try {
+      const videos = await this.readCollection("videos");
+      const videoIndex = videos.findIndex((video) => video._id === id);
+
+      if (videoIndex === -1) {
+        throw new Error("Video not found");
+      }
+
+      videos[videoIndex].refCount = (videos[videoIndex].refCount || 1) + 1;
+      videos[videoIndex].updatedAt = new Date().toISOString();
+
+      await this.writeCollection("videos", videos);
+      return videos[videoIndex];
+    } catch (error) {
+      console.error("Error incrementing video ref count:", error);
+      throw error;
+    }
+  }
+
+  async decrementVideoRefCount(id) {
+    try {
+      const videos = await this.readCollection("videos");
+      const videoIndex = videos.findIndex((video) => video._id === id);
+
+      if (videoIndex === -1) {
+        throw new Error("Video not found");
+      }
+
+      videos[videoIndex].refCount = Math.max(
+        0,
+        (videos[videoIndex].refCount || 1) - 1
+      );
+      videos[videoIndex].updatedAt = new Date().toISOString();
+
+      await this.writeCollection("videos", videos);
+      return videos[videoIndex];
+    } catch (error) {
+      console.error("Error decrementing video ref count:", error);
+      throw error;
     }
   }
 }

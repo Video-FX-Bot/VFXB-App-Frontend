@@ -1,11 +1,11 @@
-import OpenAI from 'openai';
-import { AssemblyAI } from 'assemblyai';
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../utils/logger.js';
+import OpenAI from "openai";
+import { AssemblyAI } from "assemblyai";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
+import { promises as fs } from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
+import { logger } from "../utils/logger.js";
 
 // Set FFmpeg path
 ffmpeg.setFfmpegPath(ffmpegStatic);
@@ -14,14 +14,14 @@ export class TranscriptionService {
   constructor() {
     this.openai = null;
     this.assemblyai = null;
-    this.tempDir = path.join(process.env.UPLOAD_PATH || './uploads', 'temp');
+    this.tempDir = path.join(process.env.UPLOAD_PATH || "./uploads", "temp");
     this.ensureDirectories();
   }
 
   getOpenAI() {
     if (!this.openai) {
       this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
+        apiKey: process.env.OPENAI_API_KEY,
       });
     }
     return this.openai;
@@ -30,7 +30,7 @@ export class TranscriptionService {
   getAssemblyAI() {
     if (!this.assemblyai) {
       this.assemblyai = new AssemblyAI({
-        apiKey: process.env.ASSEMBLYAI_API_KEY
+        apiKey: process.env.ASSEMBLYAI_API_KEY,
       });
     }
     return this.assemblyai;
@@ -40,7 +40,7 @@ export class TranscriptionService {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      logger.error('Error creating temp directory:', error);
+      logger.error("Error creating temp directory:", error);
     }
   }
 
@@ -48,26 +48,26 @@ export class TranscriptionService {
   async extractAudio(videoPath) {
     try {
       const audioPath = path.join(this.tempDir, `audio_${uuidv4()}.wav`);
-      
+
       return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
           .output(audioPath)
-          .audioCodec('pcm_s16le')
+          .audioCodec("pcm_s16le")
           .audioChannels(1)
           .audioFrequency(16000)
           .noVideo()
-          .on('end', () => {
-            logger.info('Audio extraction completed:', audioPath);
+          .on("end", () => {
+            logger.info("Audio extraction completed:", audioPath);
             resolve(audioPath);
           })
-          .on('error', (err) => {
-            logger.error('Error extracting audio:', err);
+          .on("error", (err) => {
+            logger.error("Error extracting audio:", err);
             reject(err);
           })
           .run();
       });
     } catch (error) {
-      logger.error('Error in extractAudio:', error);
+      logger.error("Error in extractAudio:", error);
       throw error;
     }
   }
@@ -76,32 +76,45 @@ export class TranscriptionService {
   async transcribeWithWhisper(audioPath, options = {}) {
     try {
       const {
-        language = 'auto',
-        model = 'whisper-1',
-        response_format = 'verbose_json',
-        timestamp_granularities = ['word']
+        language = "auto",
+        model = "whisper-1",
+        response_format = "verbose_json",
+        timestamp_granularities = ["word"],
       } = options;
 
       const audioFile = await fs.readFile(audioPath);
-      
+
       const transcription = await this.getOpenAI().audio.transcriptions.create({
-        file: new File([audioFile], path.basename(audioPath), { type: 'audio/wav' }),
+        file: new File([audioFile], path.basename(audioPath), {
+          type: "audio/wav",
+        }),
         model,
-        language: language === 'auto' ? undefined : language,
+        language: language === "auto" ? undefined : language,
         response_format,
-        timestamp_granularities
+        timestamp_granularities,
       });
 
+      logger.info(
+        "Whisper transcription response:",
+        JSON.stringify(transcription, null, 2)
+      );
+
+      // Convert words to segments (group words into sentences)
+      const segments = this.groupWordsIntoSegments(
+        transcription.words || [],
+        transcription.text
+      );
+
       return {
-        provider: 'openai',
+        provider: "openai",
         text: transcription.text,
-        segments: transcription.words || transcription.segments || [],
+        segments: segments,
         language: transcription.language,
         duration: transcription.duration,
-        confidence: this.calculateAverageConfidence(transcription.words || [])
+        confidence: this.calculateAverageConfidence(transcription.words || []),
       };
     } catch (error) {
-      logger.error('Error transcribing with Whisper:', error);
+      logger.error("Error transcribing with Whisper:", error);
       throw error;
     }
   }
@@ -116,13 +129,13 @@ export class TranscriptionService {
         sentiment_analysis = true,
         entity_detection = true,
         content_safety = true,
-        language_detection = true
+        language_detection = true,
       } = options;
 
       // Upload audio file
       const audioFile = await fs.readFile(audioPath);
       const uploadResponse = await this.getAssemblyAI().files.upload(audioFile);
-      
+
       // Create transcription job
       const transcript = await this.getAssemblyAI().transcripts.transcribe({
         audio_url: uploadResponse.upload_url,
@@ -132,27 +145,28 @@ export class TranscriptionService {
         sentiment_analysis,
         entity_detection,
         content_safety_labels: content_safety,
-        language_detection
+        language_detection,
       });
 
       // Wait for completion
-      const completedTranscript = await this.getAssemblyAI().transcripts.get(transcript.id);
-      
+      const completedTranscript = await this.getAssemblyAI().transcripts.get(
+        transcript.id
+      );
+
       return {
-        provider: 'assemblyai',
+        provider: "assemblyai",
         text: completedTranscript.text,
         segments: completedTranscript.utterances || [],
-        words: completedTranscript.words || [],
         language: completedTranscript.language_code,
         confidence: completedTranscript.confidence,
         speakers: this.extractSpeakers(completedTranscript.utterances || []),
         highlights: completedTranscript.auto_highlights_result?.results || [],
         sentiment: completedTranscript.sentiment_analysis_results || [],
         entities: completedTranscript.entities || [],
-        contentSafety: completedTranscript.content_safety_labels?.results || []
+        contentSafety: completedTranscript.content_safety_labels?.results || [],
       };
     } catch (error) {
-      logger.error('Error transcribing with AssemblyAI:', error);
+      logger.error("Error transcribing with AssemblyAI:", error);
       throw error;
     }
   }
@@ -160,36 +174,48 @@ export class TranscriptionService {
   // Main transcription method with fallback
   async transcribeVideo(videoPath, options = {}) {
     try {
-      const { provider = 'auto', ...transcriptionOptions } = options;
-      
+      const { provider = "auto", ...transcriptionOptions } = options;
+
       // Extract audio from video
       const audioPath = await this.extractAudio(videoPath);
-      
+
       let result;
-      
-      if (provider === 'openai' || provider === 'auto') {
+
+      if (provider === "openai" || provider === "auto") {
         try {
-          result = await this.transcribeWithWhisper(audioPath, transcriptionOptions);
+          result = await this.transcribeWithWhisper(
+            audioPath,
+            transcriptionOptions
+          );
         } catch (error) {
-          if (provider === 'auto' && process.env.ASSEMBLYAI_API_KEY) {
-            logger.warn('OpenAI transcription failed, falling back to AssemblyAI:', error.message);
-            result = await this.transcribeWithAssemblyAI(audioPath, transcriptionOptions);
+          if (provider === "auto" && process.env.ASSEMBLYAI_API_KEY) {
+            logger.warn(
+              "OpenAI transcription failed, falling back to AssemblyAI:",
+              error.message
+            );
+            result = await this.transcribeWithAssemblyAI(
+              audioPath,
+              transcriptionOptions
+            );
           } else {
             throw error;
           }
         }
-      } else if (provider === 'assemblyai') {
-        result = await this.transcribeWithAssemblyAI(audioPath, transcriptionOptions);
+      } else if (provider === "assemblyai") {
+        result = await this.transcribeWithAssemblyAI(
+          audioPath,
+          transcriptionOptions
+        );
       } else {
         throw new Error(`Unsupported transcription provider: ${provider}`);
       }
-      
+
       // Clean up temporary audio file
       await this.cleanupFile(audioPath);
-      
+
       return result;
     } catch (error) {
-      logger.error('Error in transcribeVideo:', error);
+      logger.error("Error in transcribeVideo:", error);
       throw error;
     }
   }
@@ -197,40 +223,48 @@ export class TranscriptionService {
   // Generate subtitles in SRT format
   async generateSubtitles(transcriptionResult, options = {}) {
     try {
-      const { format = 'srt', maxLineLength = 40, maxDuration = 5 } = options;
-      
-      if (format !== 'srt') {
+      const { format = "srt", maxLineLength = 40, maxDuration = 5 } = options;
+
+      if (format !== "srt") {
         throw new Error(`Unsupported subtitle format: ${format}`);
       }
-      
-      const segments = transcriptionResult.segments || transcriptionResult.words || [];
-      
+
+      const segments =
+        transcriptionResult.segments || transcriptionResult.words || [];
+
       if (!segments.length) {
-        throw new Error('No segments available for subtitle generation');
+        throw new Error("No segments available for subtitle generation");
       }
-      
-      let srtContent = '';
+
+      let srtContent = "";
       let segmentIndex = 1;
-      
+
       for (const segment of segments) {
-        const startTime = this.formatSRTTime(segment.start || segment.start_time || 0);
-        const endTime = this.formatSRTTime(segment.end || segment.end_time || segment.start + maxDuration);
-        const text = this.formatSubtitleText(segment.text || segment.words?.map(w => w.text).join(' ') || '', maxLineLength);
-        
+        const startTime = this.formatSRTTime(
+          segment.start || segment.start_time || 0
+        );
+        const endTime = this.formatSRTTime(
+          segment.end || segment.end_time || segment.start + maxDuration
+        );
+        const text = this.formatSubtitleText(
+          segment.text || segment.words?.map((w) => w.text).join(" ") || "",
+          maxLineLength
+        );
+
         srtContent += `${segmentIndex}\n`;
         srtContent += `${startTime} --> ${endTime}\n`;
         srtContent += `${text}\n\n`;
-        
+
         segmentIndex++;
       }
-      
+
       return {
-        format: 'srt',
+        format: "srt",
         content: srtContent,
-        segmentCount: segmentIndex - 1
+        segmentCount: segmentIndex - 1,
       };
     } catch (error) {
-      logger.error('Error generating subtitles:', error);
+      logger.error("Error generating subtitles:", error);
       throw error;
     }
   }
@@ -239,35 +273,37 @@ export class TranscriptionService {
   async analyzeAudioContent(transcriptionResult) {
     try {
       const text = transcriptionResult.text;
-      
+
       if (!text || text.trim().length === 0) {
         return {
           wordCount: 0,
           speakingRate: 0,
           topics: [],
-          sentiment: 'neutral',
-          keyPhrases: []
+          sentiment: "neutral",
+          keyPhrases: [],
         };
       }
-      
+
       // Basic analysis
-      const words = text.split(/\s+/).filter(word => word.length > 0);
-      const duration = transcriptionResult.duration || this.calculateDuration(transcriptionResult.segments);
+      const words = text.split(/\s+/).filter((word) => word.length > 0);
+      const duration =
+        transcriptionResult.duration ||
+        this.calculateDuration(transcriptionResult.segments);
       const speakingRate = duration > 0 ? (words.length / duration) * 60 : 0; // words per minute
-      
+
       // Extract key phrases using simple frequency analysis
       const keyPhrases = this.extractKeyPhrases(text);
-      
+
       // Use AI for deeper analysis if available
       let aiAnalysis = {};
       if (process.env.OPENAI_API_KEY) {
         try {
           aiAnalysis = await this.analyzeWithAI(text);
         } catch (error) {
-          logger.warn('AI analysis failed:', error.message);
+          logger.warn("AI analysis failed:", error.message);
         }
       }
-      
+
       return {
         wordCount: words.length,
         speakingRate: Math.round(speakingRate),
@@ -275,13 +311,14 @@ export class TranscriptionService {
         keyPhrases,
         ...aiAnalysis,
         // Include provider-specific analysis if available
-        sentiment: transcriptionResult.sentiment || aiAnalysis.sentiment || 'neutral',
+        sentiment:
+          transcriptionResult.sentiment || aiAnalysis.sentiment || "neutral",
         topics: aiAnalysis.topics || [],
         entities: transcriptionResult.entities || [],
-        highlights: transcriptionResult.highlights || []
+        highlights: transcriptionResult.highlights || [],
       };
     } catch (error) {
-      logger.error('Error analyzing audio content:', error);
+      logger.error("Error analyzing audio content:", error);
       throw error;
     }
   }
@@ -289,13 +326,16 @@ export class TranscriptionService {
   // Helper methods
   calculateAverageConfidence(words) {
     if (!words || words.length === 0) return 0;
-    const totalConfidence = words.reduce((sum, word) => sum + (word.confidence || 0), 0);
+    const totalConfidence = words.reduce(
+      (sum, word) => sum + (word.confidence || 0),
+      0
+    );
     return totalConfidence / words.length;
   }
 
   extractSpeakers(utterances) {
     const speakers = new Set();
-    utterances.forEach(utterance => {
+    utterances.forEach((utterance) => {
       if (utterance.speaker) {
         speakers.add(utterance.speaker);
       }
@@ -314,50 +354,91 @@ export class TranscriptionService {
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
     const milliseconds = Math.floor((seconds % 1) * 1000);
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")},${milliseconds
+      .toString()
+      .padStart(3, "0")}`;
   }
 
   formatSubtitleText(text, maxLineLength) {
-    const words = text.split(' ');
+    const words = text.split(" ");
     const lines = [];
-    let currentLine = '';
-    
+    let currentLine = "";
+
     for (const word of words) {
       if (currentLine.length + word.length + 1 <= maxLineLength) {
-        currentLine += (currentLine ? ' ' : '') + word;
+        currentLine += (currentLine ? " " : "") + word;
       } else {
         if (currentLine) lines.push(currentLine);
         currentLine = word;
       }
     }
-    
+
     if (currentLine) lines.push(currentLine);
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   extractKeyPhrases(text, limit = 10) {
     // Simple frequency-based key phrase extraction
-    const words = text.toLowerCase().split(/\s+/).filter(word => 
-      word.length > 3 && !this.isStopWord(word)
-    );
-    
+    const words = text
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word.length > 3 && !this.isStopWord(word));
+
     const frequency = {};
-    words.forEach(word => {
+    words.forEach((word) => {
       frequency[word] = (frequency[word] || 0) + 1;
     });
-    
+
     return Object.entries(frequency)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([word, count]) => ({ phrase: word, frequency: count }));
   }
 
   isStopWord(word) {
     const stopWords = new Set([
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-      'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those'
+      "the",
+      "a",
+      "an",
+      "and",
+      "or",
+      "but",
+      "in",
+      "on",
+      "at",
+      "to",
+      "for",
+      "of",
+      "with",
+      "by",
+      "is",
+      "are",
+      "was",
+      "were",
+      "be",
+      "been",
+      "being",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "might",
+      "must",
+      "can",
+      "this",
+      "that",
+      "these",
+      "those",
     ]);
     return stopWords.has(word);
   }
@@ -365,22 +446,26 @@ export class TranscriptionService {
   async analyzeWithAI(text) {
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{
-          role: 'system',
-          content: 'Analyze the following text and provide insights in JSON format with keys: sentiment (positive/negative/neutral), topics (array of main topics), summary (brief summary).'
-        }, {
-          role: 'user',
-          content: text
-        }],
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Analyze the following text and provide insights in JSON format with keys: sentiment (positive/negative/neutral), topics (array of main topics), summary (brief summary).",
+          },
+          {
+            role: "user",
+            content: text,
+          },
+        ],
         max_tokens: 500,
-        temperature: 0.3
+        temperature: 0.3,
       });
-      
+
       const analysis = JSON.parse(response.choices[0].message.content);
       return analysis;
     } catch (error) {
-      logger.error('Error in AI analysis:', error);
+      logger.error("Error in AI analysis:", error);
       return {};
     }
   }
@@ -388,9 +473,68 @@ export class TranscriptionService {
   async cleanupFile(filePath) {
     try {
       await fs.unlink(filePath);
-      logger.info('Cleaned up file:', filePath);
+      logger.info("Cleaned up file:", filePath);
     } catch (error) {
-      logger.warn('Error cleaning up file:', error.message);
+      logger.warn("Error cleaning up file:", error.message);
     }
+  }
+
+  // Group words into sentence segments for captions
+  groupWordsIntoSegments(words, fullText) {
+    if (!words || words.length === 0) {
+      // Fallback: if no word-level timestamps, create one segment for the whole text
+      return [
+        {
+          start: 0,
+          end: 10,
+          text: fullText || "",
+        },
+      ];
+    }
+
+    const segments = [];
+    let currentSegment = {
+      start: words[0].start,
+      end: words[0].end,
+      text: words[0].word,
+    };
+
+    const maxSegmentDuration = 5; // Max 5 seconds per caption
+    const maxWordsPerSegment = 10; // Max 10 words per caption
+    let wordCount = 1;
+
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const duration = word.start - currentSegment.start;
+
+      // Check if we should start a new segment
+      const shouldBreak =
+        duration > maxSegmentDuration ||
+        wordCount >= maxWordsPerSegment ||
+        word.word.match(/[.!?]$/); // End of sentence
+
+      if (shouldBreak) {
+        currentSegment.end = words[i - 1].end;
+        segments.push(currentSegment);
+
+        currentSegment = {
+          start: word.start,
+          end: word.end,
+          text: word.word,
+        };
+        wordCount = 1;
+      } else {
+        currentSegment.text += " " + word.word;
+        currentSegment.end = word.end;
+        wordCount++;
+      }
+    }
+
+    // Add the last segment
+    if (currentSegment.text) {
+      segments.push(currentSegment);
+    }
+
+    return segments;
   }
 }
