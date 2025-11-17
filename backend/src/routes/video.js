@@ -1593,7 +1593,15 @@ router.get("/:id/stream", authenticateToken, async (req, res) => {
     // Get absolute path and ensure it exists
     let videoPath;
     try {
-      videoPath = resolveUploadPath(video.filename);
+      // Use filePath if available (for videos with custom paths like temp/),
+      // otherwise use resolveUploadPath for regular uploads
+      if (video.filePath && path.isAbsolute(video.filePath)) {
+        videoPath = video.filePath;
+      } else if (video.filePath) {
+        videoPath = path.resolve(process.cwd(), video.filePath);
+      } else {
+        videoPath = resolveUploadPath(video.filename);
+      }
       logger.info(`Attempting to stream video from: ${videoPath}`);
     } catch (error) {
       logger.error(`Error resolving video path: ${error.message}`);

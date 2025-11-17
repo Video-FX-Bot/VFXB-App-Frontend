@@ -28,12 +28,19 @@ export const authenticateToken = async (req, res, next) => {
         .json({ success: false, message: "Access token required" });
     }
 
-    // Debug: Log token info
-    logger.info(
-      `Token received for ${req.path}: length=${
-        token.length
-      }, preview=${token.substring(0, 30)}...`
+    // Debug: Log token info (skip noisy polling endpoints)
+    const noisyEndpoints = ["/recent", "/stream", "/health", "/status"];
+    const isNoisyEndpoint = noisyEndpoints.some((endpoint) =>
+      req.path.includes(endpoint)
     );
+
+    if (!isNoisyEndpoint) {
+      logger.info(
+        `Token received for ${req.path}: length=${
+          token.length
+        }, preview=${token.substring(0, 30)}...`
+      );
+    }
 
     // Dev-only demo tokens are still supported if you want
     if (

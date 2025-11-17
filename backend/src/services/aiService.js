@@ -24,13 +24,18 @@ class AIService {
   // Main chat interface for video editing
   async processChatMessage(message, context = {}) {
     try {
-      logger.info("Processing chat message:", { message, context });
+      // Separate socket from context (it has circular references and can't be stringified)
+      const { socket, ...cleanContext } = context;
+      logger.info("Processing chat message:", {
+        message,
+        context: cleanContext,
+      });
 
-      // Analyze user intent
-      const intent = await this.analyzeIntent(message, context);
+      // Analyze user intent (pass cleanContext without socket)
+      const intent = await this.analyzeIntent(message, cleanContext);
 
-      // Generate response based on intent
-      const response = await this.generateResponse(intent, context);
+      // Generate response based on intent (pass cleanContext)
+      const response = await this.generateResponse(intent, cleanContext);
 
       // Don't execute operations for unavailable features or chat
       if (intent.action === "unavailable" || intent.action === "chat") {
@@ -49,17 +54,19 @@ class AIService {
       } else if (intent.action === "caption") {
         // For captions, execute the operation in the backend
         logger.info("Caption intent detected, executing caption generation");
-        const operationResult = await this.executeVideoOperation(
-          intent,
-          context
-        );
+        // Pass full context with socket for execution
+        const operationResult = await this.executeVideoOperation(intent, {
+          ...cleanContext,
+          socket,
+        });
         response.operationResult = operationResult;
       } else if (intent.action) {
         // Execute other video operations if needed
-        const operationResult = await this.executeVideoOperation(
-          intent,
-          context
-        );
+        // Pass full context with socket for execution
+        const operationResult = await this.executeVideoOperation(intent, {
+          ...cleanContext,
+          socket,
+        });
         response.operationResult = operationResult;
       }
 
@@ -371,6 +378,48 @@ class AIService {
       };
     }
 
+    // Auto trim silence patterns
+    if (
+      /\b(remove|cut|trim|delete)\s+(silence|dead\s*space|pauses?|quiet\s*parts|gaps?|dead\s*air|filler|awkward\s*silence)\b/i.test(
+        message
+      ) ||
+      /\b(auto\s*trim|silence\s*removal|remove\s*silence)\b/i.test(message)
+    ) {
+      return {
+        action: "auto-trim-silence",
+        parameters: {
+          silenceThreshold: -30,
+          minSilenceDuration: 0.5,
+          padding: 0.1,
+        },
+        confidence: 0.95,
+        explanation: "Removing silence and dead space from video",
+        suggestedActions: ["trim", "audio"],
+      };
+    }
+
+    // Auto text-to-video patterns
+    if (
+      /\b(auto|automatically)\s+(generate|create|add)\s+(text[\s-]?to[\s-]?video|clips?|video\s*clips?)\b/i.test(
+        message
+      ) ||
+      /\b(generate\s+multiple|add\s+clips\s+throughout)\b/i.test(message)
+    ) {
+      const clipCountMatch = message.match(/(\d+)\s+clips?/i);
+      const clipCount = clipCountMatch ? parseInt(clipCountMatch[1]) : 3;
+
+      return {
+        action: "auto-text-to-video",
+        parameters: {
+          clipCount: Math.max(2, Math.min(5, clipCount)),
+          clipDuration: 3,
+        },
+        confidence: 0.95,
+        explanation: `Automatically generating ${clipCount} text-to-video clips`,
+        suggestedActions: ["text-to-video", "generate-video"],
+      };
+    }
+
     // Fallback to chat
     return {
       action: "chat",
@@ -401,6 +450,10 @@ class AIService {
     - snow: Add falling snow particle effect (parameters: density 0-100, size 1-10, speed 0-100)
     - fire: Add fire particle effect (parameters: intensity 0-100, height 10-100, color hex)
     - sparkles: Add sparkles/glitter effect (parameters: count 10-200, size 1-20, lifetime 0.5-5)
+    - lens-flare: Add cinematic lens flare effect (parameters: intensity 0-100, x 0-100, y 0-100, color hex)
+    - text-to-video: Generate a video clip from text description and insert it into the current video (parameters: prompt - text description of what to generate, position - "beginning"/"end"/"timestamp:X" where X is seconds, duration - clip length in seconds 1-5)
+    - auto-text-to-video: Automatically generate and insert multiple AI video clips throughout the entire video based on extracted keywords (parameters: clipCount - number of clips to generate 2-5, clipDuration - length of each clip 2-5 seconds)
+    - auto-trim-silence: Automatically detect and remove silence, dead space, and pauses from video to make it more engaging (parameters: silenceThreshold - volume threshold in dB default -30, minSilenceDuration - minimum silence duration to remove in seconds default 0.5, padding - time to keep around speech in seconds default 0.1)
     - caption: Generate and add captions/subtitles from video audio transcription (parameters: style object with fontColor, fontFamily, fontSize, position: "top"/"center"/"bottom", bold: true/false, italic: true/false)
     - trim: Cut/trim video segments (parameters: startTime, endTime, duration, preserveAudio)
     - crop: Resize or crop video (parameters: x, y, width, height, aspectRatio, centerCrop)
@@ -437,6 +490,13 @@ class AIService {
     - "snow effect", "add snow", "falling snow", "snow particles", "make it snow", "snowing" → snow with density 50, size 3, speed 30
     - "fire effect", "add fire", "flames", "fire particles", "burning" → fire with intensity 70, height 50
     - "sparkles", "glitter", "sparkle effect", "add sparkles", "twinkling", "shimmer" → sparkles with count 50, size 5
+    - "lens flare", "add lens flare", "light flare", "sun flare", "flare effect", "cinematic flare", "light leak", "add flare" → lens-flare with intensity 50, x 50, y 50
+    - "generate video", "create video", "add a flying cat", "add a dragon", "add a [subject]", "generate a clip of", "create a clip with", "insert a video of" → text-to-video with prompt (extracted subject), position (beginning/end/timestamp)
+    - "add [subject] at the beginning", "add [subject] at the start" → text-to-video with position: "beginning"
+    - "add [subject] at the end", "append [subject]" → text-to-video with position: "end"
+    - "add [subject] at 5 seconds", "insert [subject] at 10s" → text-to-video with position: "timestamp:X"
+    - "automatically generate text to video", "auto generate clips", "generate multiple clips", "add text to video effects throughout", "auto text to video", "generate clips throughout video" → auto-text-to-video with clipCount (default 3), clipDuration (default 3)
+    - "remove silence", "cut silence", "trim silence", "remove dead space", "remove pauses", "cut out silence", "auto trim", "remove quiet parts", "remove gaps", "cut dead air", "trim dead space", "remove filler", "cut pauses", "remove awkward silence" → auto-trim-silence with silenceThreshold (default -30), minSilenceDuration (default 0.5), padding (default 0.1)
     - "remove background", "green screen", "chroma key" → background with action: remove
     - "enhance video quality", "improve quality", "upscale", "make it HD", "make it 4K", "increase resolution", "improve video", "enhance quality", "quality upgrade", "denoise", "reduce noise", "sharpen video", "make it sharper", "make it clearer" → enhance-quality (with appropriate parameters based on request: upscale for resolution increase, denoise for noise, sharpen for sharpness)
     - "add captions", "add subtitles", "generate captions", "caption this", "transcribe", "subtitle this", "captions", "subtitles" → caption (NOT text - caption generates from audio)
@@ -536,6 +596,14 @@ class AIService {
         "snow",
         "fire",
         "sparkles",
+        "lens-flare",
+        "text-to-video",
+        "generate-video",
+        "add-generated-clip",
+        "auto-text-to-video",
+        "auto-trim-silence",
+        "remove-silence",
+        "trim-silence",
         "trim",
         "crop",
         "filter",
@@ -584,7 +652,7 @@ class AIService {
 
     switch (intent.action) {
       case "unavailable":
-        message = `I don't have that feature available yet. 😅 But I can help you with brightness/contrast, blur effects, color grading (warm, cool, cinematic), zoom transitions, and fade effects! Try saying "make it cinematic" or "add some blur".`;
+        message = `I don't have that feature available yet. 😅 But I can help you with brightness/contrast, blur effects, color grading (warm, cool, cinematic), zoom transitions, fade effects, auto text-to-video generation, silence removal, and captions! Try saying "make it cinematic", "remove silence", or "add captions".`;
         break;
 
       case "brightness":
@@ -652,6 +720,13 @@ class AIService {
       case "reset-video":
         message =
           "I'll reset your video to the original state, removing all applied effects...";
+        break;
+
+      case "auto-trim-silence":
+      case "remove-silence":
+      case "trim-silence":
+        message =
+          "I'll analyze your video and automatically remove all silence, dead space, and pauses to make it more engaging and fast-paced. This might take a moment...";
         break;
 
       case "chat":
@@ -726,7 +801,7 @@ class AIService {
           response = JSON.parse(completion.choices[0].message.content);
         } catch (parseError) {
           response = {
-            message: `I don't have that feature available yet. 😅 But I can help you with color grading, blur effects, zoom transitions, and more!`,
+            message: `I don't have that feature available yet. 😅 But I can help you with color grading, blur effects, zoom transitions, auto text-to-video, silence removal, captions, and more!`,
             actions: [
               {
                 label: "Try Cinematic Look",
@@ -754,7 +829,7 @@ class AIService {
       } catch (error) {
         logger.error("Error generating unavailable feature response:", error);
         return {
-          message: `I don't have that feature available yet. 😅 But I can help you with brightness, contrast, blur effects, color grading, zoom transitions, and fade effects!`,
+          message: `I don't have that feature available yet. 😅 But I can help you with brightness, contrast, blur effects, color grading, zoom transitions, fade effects, auto text-to-video, silence removal, and captions!`,
           actions: [
             {
               label: "Try Cinematic Look",
@@ -762,12 +837,14 @@ class AIService {
               type: "secondary",
             },
             {
-              label: "Brighten Video",
-              command: "make it brighter",
+              label: "Remove Silence",
+              command: "remove silence from my video",
               type: "secondary",
             },
           ],
-          tips: ["Try asking: 'make it cinematic' or 'add some blur'"],
+          tips: [
+            "Try asking: 'make it cinematic', 'remove silence', or 'add captions'",
+          ],
           intent: intent,
           timestamp: new Date().toISOString(),
           type: "ai",
@@ -908,6 +985,42 @@ class AIService {
         case "caption":
           return await this.generateAndApplyCaptions(videoPath, parameters);
 
+        case "text-to-video":
+        case "generate-video":
+        case "add-generated-clip":
+          return await this.generateAndInsertVideoClip(
+            videoPath,
+            videoId,
+            parameters,
+            context.socket // Pass socket for progress updates
+          );
+
+        case "auto-text-to-video":
+          return await this.autoGenerateTextToVideoClips(
+            videoPath,
+            videoId,
+            parameters,
+            context.socket // Pass socket for progress updates
+          );
+
+        case "auto-trim-silence":
+        case "remove-silence":
+        case "trim-silence":
+          return await this.autoTrimSilence(
+            videoPath,
+            videoId,
+            parameters,
+            context.socket // Pass socket for progress updates
+          );
+
+        case "enhance-quality":
+          return await this.enhanceVideoQuality(
+            videoPath,
+            videoId,
+            parameters,
+            context.socket // Pass socket for progress updates
+          );
+
         case "transition":
           return await this.videoProcessor.addTransition(videoPath, parameters);
 
@@ -997,6 +1110,1277 @@ class AIService {
           "Failed to generate or apply captions. Make sure the video has clear audio.",
       };
     }
+  }
+
+  // Generate video clip from text and insert into existing video
+  async generateAndInsertVideoClip(
+    videoPath,
+    videoId,
+    parameters = {},
+    socket = null
+  ) {
+    try {
+      logger.info(`🎬 Generating and inserting video clip from text`);
+      logger.info(`Parameters:`, parameters);
+
+      // Emit progress: Starting
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 10,
+          message: "Starting text-to-video generation...",
+          operation: "text-to-video",
+        });
+      }
+
+      // Import HuggingFace service
+      const huggingFaceService = (await import("./huggingFaceService.js"))
+        .default;
+
+      // Parse parameters
+      const prompt =
+        parameters.prompt || parameters.subject || "cinematic scene";
+      const position = parameters.position || "beginning";
+      const duration = parameters.duration || 3;
+
+      logger.info(`🎨 Prompt: "${prompt}"`);
+      logger.info(`📍 Position: ${position}`);
+      logger.info(`⏱️ Duration: ${duration}s`);
+
+      // Emit progress: Generating image
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 20,
+          message: `Generating image from: "${prompt}"`,
+          operation: "text-to-video",
+        });
+      }
+
+      // Generate video clip from text
+      logger.info(`🤖 Generating video from prompt...`);
+      const generatedVideoPath = await huggingFaceService.textToVideo(prompt, {
+        duration,
+        fps: 24,
+      });
+
+      logger.info(`✅ Generated video: ${generatedVideoPath}`);
+
+      // Emit progress: Converting to video
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 50,
+          message: "Converting image to video clip...",
+          operation: "text-to-video",
+        });
+      }
+
+      // Emit progress: Inserting into video
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 60,
+          message: "Inserting clip into your video...",
+          operation: "text-to-video",
+        });
+      }
+
+      // Insert the generated clip into the user's video
+      logger.info(`🔗 Inserting generated clip at position: ${position}`);
+      const combinedVideoPath = await this.videoProcessor.insertVideoClip(
+        videoPath,
+        generatedVideoPath,
+        position
+      );
+
+      logger.info(`✅ Combined video created: ${combinedVideoPath}`);
+
+      // Emit progress: Finalizing
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 90,
+          message: "Finalizing video...",
+          operation: "text-to-video",
+        });
+      }
+
+      // Update video record in database
+      if (videoId) {
+        const { Video } = await import("../models/Video.js");
+        const path = await import("path");
+
+        // Get the original video to get userId and existing effects
+        const originalVideo = await Video.findById(videoId);
+
+        // Get metadata of new video
+        const metadata = await this.videoProcessor.getVideoMetadata(
+          combinedVideoPath
+        );
+
+        // Copy all existing effects from the original video
+        const previousEffects = originalVideo.appliedEffects || [];
+
+        // Add the new text-to-video effect
+        const allEffects = [
+          ...previousEffects,
+          {
+            effect: "text-to-video",
+            parameters: { prompt, position, duration },
+            appliedAt: new Date(),
+          },
+        ];
+
+        logger.info(
+          `📋 Preserving ${previousEffects.length} previous effects + adding text-to-video`
+        );
+
+        // Create new video record
+        const newVideo = await Video.create({
+          title: `${originalVideo.title || "Video"} (with generated ${prompt})`,
+          userId: originalVideo.userId,
+          filename: path.basename(combinedVideoPath),
+          originalFilename: path.basename(combinedVideoPath),
+          filePath: combinedVideoPath,
+          parentVideoId: videoId,
+          duration: metadata.duration,
+          fileSize: metadata.size,
+          resolution: {
+            width: metadata.video?.width || 1280,
+            height: metadata.video?.height || 720,
+          },
+          frameRate: metadata.video?.fps || 24,
+          appliedEffects: allEffects,
+        });
+
+        logger.info(`✅ New video record created: ${newVideo._id}`);
+        logger.info(
+          `📋 Returning ${allEffects.length} applied effects to frontend`
+        );
+
+        // Emit completion
+        if (socket) {
+          socket.emit("video_processing", {
+            status: "ready",
+            progress: 100,
+            message: "Text-to-video generation complete!",
+            operation: "text-to-video",
+          });
+        }
+
+        return {
+          success: true,
+          outputPath: combinedVideoPath,
+          videoId: newVideo._id,
+          operation: "text-to-video",
+          parameters: { prompt, position, duration },
+          appliedEffects: allEffects, // Send all effects to frontend
+          message: `Generated and inserted video clip: "${prompt}"`,
+        };
+      }
+
+      return {
+        success: true,
+        outputPath: combinedVideoPath,
+        operation: "text-to-video",
+        parameters: { prompt, position, duration },
+        message: `Generated and inserted video clip: "${prompt}"`,
+      };
+    } catch (error) {
+      logger.error("Error generating/inserting video clip:", error);
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to generate video clip: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Automatically generate and insert multiple text-to-video clips throughout the video
+   * Uses AI to extract keywords from video content and generate relevant clips
+   * @param {string} videoPath - Path to the video file
+   * @param {string} videoId - Video ID from database
+   * @param {object} parameters - Configuration parameters
+   * @param {object} socket - Socket.io connection for progress updates
+   * @returns {Promise<object>} - Result with all generated clips
+   */
+  async autoGenerateTextToVideoClips(
+    videoPath,
+    videoId,
+    parameters = {},
+    socket = null
+  ) {
+    try {
+      logger.info(`🤖 Auto-generating text-to-video clips throughout video`);
+
+      // Emit initial progress
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 5,
+          message: "Analyzing video to extract keywords...",
+          operation: "auto-text-to-video",
+        });
+      }
+
+      // Get video metadata to determine duration
+      const metadata = await this.videoProcessor.getVideoMetadata(videoPath);
+      const videoDuration = metadata.duration;
+
+      logger.info(`📹 Video duration: ${videoDuration}s`);
+
+      // Extract keywords using AI
+      const clipCount = parameters.clipCount || 3; // Default to 3 clips
+      const clipDuration = parameters.clipDuration || 3; // Each clip 3s
+
+      logger.info(`🎯 Generating ${clipCount} clips of ${clipDuration}s each`);
+
+      // Emit progress
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 10,
+          message: "Extracting keywords from video...",
+          operation: "auto-text-to-video",
+        });
+      }
+
+      // Get keywords WITH TIMESTAMPS from transcript analysis
+      const keywordObjects = await this.extractKeywordsForVideo(
+        videoId,
+        clipCount
+      );
+
+      logger.info(`🔑 Extracted keywords with timestamps:`, keywordObjects);
+
+      // Emit progress
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 20,
+          message: `Found ${keywordObjects.length} keywords. Generating clips...`,
+          operation: "auto-text-to-video",
+        });
+      }
+
+      // Import HuggingFace service
+      const huggingFaceService = (await import("./huggingFaceService.js"))
+        .default;
+
+      let currentVideoPath = videoPath;
+      let currentVideoId = videoId;
+      const generatedClips = [];
+
+      // Validate and sanitize timestamps before processing
+      for (let i = 0; i < keywordObjects.length; i++) {
+        if (
+          !keywordObjects[i].timestamp ||
+          isNaN(keywordObjects[i].timestamp)
+        ) {
+          const fallbackTimestamp = Math.floor(
+            (videoDuration / (keywordObjects.length + 1)) * (i + 1)
+          );
+          logger.warn(
+            `⚠️ Invalid timestamp for "${keywordObjects[i].keyword}": ${keywordObjects[i].timestamp}, using fallback ${fallbackTimestamp}s`
+          );
+          keywordObjects[i].timestamp = fallbackTimestamp;
+        }
+      }
+
+      // Generate and insert each clip using transcript-aligned timestamps
+      for (let i = 0; i < keywordObjects.length; i++) {
+        const { keyword, timestamp } = keywordObjects[i];
+        const progressPercent =
+          20 + Math.floor((i / keywordObjects.length) * 70);
+
+        logger.info(
+          `\n🎬 [${i + 1}/${
+            keywordObjects.length
+          }] Generating clip: "${keyword}" at ${timestamp}s (aligned with speech)`
+        );
+
+        // Emit progress
+        if (socket) {
+          socket.emit("video_processing", {
+            status: "processing",
+            progress: progressPercent,
+            message: `Generating clip ${i + 1}/${
+              keywordObjects.length
+            }: "${keyword}" at ${timestamp}s`,
+            operation: "auto-text-to-video",
+          });
+        }
+
+        // Generate the video clip
+        const generatedClipPath = await huggingFaceService.textToVideo(
+          keyword,
+          {
+            duration: clipDuration,
+            fps: 24,
+          }
+        );
+
+        logger.info(`✅ Generated clip: ${generatedClipPath}`);
+
+        // Replace segment at calculated timestamp (overlay mode - maintains video length)
+        const combinedVideoPath = await this.videoProcessor.replaceAtTimestamp(
+          currentVideoPath,
+          generatedClipPath,
+          timestamp
+        );
+
+        logger.info(
+          `✅ Replaced segment at ${timestamp}s: ${combinedVideoPath}`
+        );
+
+        // Update for next iteration
+        currentVideoPath = combinedVideoPath;
+
+        generatedClips.push({
+          keyword,
+          timestamp,
+          clipPath: generatedClipPath,
+        });
+      }
+
+      // Emit progress: Finalizing
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 95,
+          message: "Finalizing video with all clips...",
+          operation: "auto-text-to-video",
+        });
+      }
+
+      // Update video record in database
+      if (videoId) {
+        const { Video } = await import("../models/Video.js");
+        const path = await import("path");
+
+        // Get the original video
+        const originalVideo = await Video.findById(videoId);
+
+        // Get metadata of new video
+        const newMetadata = await this.videoProcessor.getVideoMetadata(
+          currentVideoPath
+        );
+
+        // Copy all existing effects
+        const previousEffects = originalVideo.appliedEffects || [];
+
+        // Add the auto text-to-video effect
+        const allEffects = [
+          ...previousEffects,
+          {
+            effect: "auto-text-to-video",
+            parameters: {
+              clipCount: keywordObjects.length,
+              clipDuration,
+              keywordObjects, // Store the keyword + timestamp pairs
+            },
+            appliedAt: new Date(),
+          },
+        ];
+
+        logger.info(
+          `📋 Creating video with ${allEffects.length} total effects`
+        );
+
+        // Create new video record
+        const newVideo = await Video.create({
+          title: `${originalVideo.title || "Video"} (Auto Text-to-Video)`,
+          userId: originalVideo.userId,
+          filename: path.basename(currentVideoPath),
+          originalFilename: path.basename(currentVideoPath),
+          filePath: currentVideoPath,
+          parentVideoId: videoId,
+          duration: newMetadata.duration,
+          fileSize: newMetadata.size,
+          resolution: {
+            width: newMetadata.video?.width || 1280,
+            height: newMetadata.video?.height || 720,
+          },
+          frameRate: newMetadata.video?.fps || 24,
+          appliedEffects: allEffects,
+        });
+
+        logger.info(`✅ New video created: ${newVideo._id}`);
+
+        // Emit completion
+        if (socket) {
+          socket.emit("video_processing", {
+            status: "ready",
+            progress: 100,
+            message: `Successfully generated ${keywordObjects.length} text-to-video clips aligned with speech!`,
+            operation: "auto-text-to-video",
+          });
+        }
+
+        return {
+          success: true,
+          outputPath: currentVideoPath,
+          videoId: newVideo._id,
+          operation: "auto-text-to-video",
+          generatedClips,
+          keywordObjects, // Return keyword + timestamp pairs
+          appliedEffects: allEffects,
+          message: `Generated ${keywordObjects.length} text-to-video clips aligned with transcript`,
+        };
+      }
+
+      return {
+        success: true,
+        outputPath: currentVideoPath,
+        operation: "auto-text-to-video",
+        generatedClips,
+        keywordObjects, // Return keyword + timestamp pairs
+        message: `Generated ${keywordObjects.length} text-to-video clips`,
+      };
+    } catch (error) {
+      logger.error("Error auto-generating text-to-video clips:", error);
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "error",
+          progress: 0,
+          message: `Failed: ${error.message}`,
+          operation: "auto-text-to-video",
+        });
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to auto-generate clips: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Generate and burn subtitles into video from transcription
+   * @param {string} videoPath - Path to input video
+   * @param {string} videoId - Video ID from database
+   * @param {object} parameters - Subtitle parameters (transcription, style, etc)
+   * @param {object} socket - Socket.io connection for progress updates
+   * @returns {Promise<object>} - Result with subtitled video path
+   */
+  async generateSubtitles(videoPath, videoId, parameters = {}, socket = null) {
+    try {
+      logger.info("📝 Generating subtitles for video");
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 5,
+          message: "Preparing subtitle generation...",
+          operation: "auto-subtitles",
+        });
+      }
+
+      const { transcription, style = {} } = parameters;
+
+      if (!transcription || !transcription.text) {
+        throw new Error("No transcription data available for subtitles");
+      }
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 20,
+          message: "Creating subtitle file...",
+          operation: "auto-subtitles",
+        });
+      }
+
+      // Generate subtitles using videoProcessor
+      const result = await this.videoProcessor.generateSubtitles(
+        videoPath,
+        transcription,
+        style
+      );
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 80,
+          message: "Burning subtitles into video...",
+          operation: "auto-subtitles",
+        });
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || "Subtitle generation failed");
+      }
+
+      // Update video in database
+      const { Video } = await import("../models/Video.js");
+      const video = await Video.findById(videoId);
+
+      if (video && result.outputPath !== videoPath) {
+        const metadata = await this.videoProcessor.getVideoMetadata(
+          result.outputPath
+        );
+
+        const existingEffects = video.appliedEffects || [];
+        const newEffect = {
+          effect: "auto-subtitles",
+          parameters: {
+            style: style,
+            transcriptionLength: transcription.text.length,
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        video.filePath = result.outputPath;
+        video.duration = metadata.duration;
+        video.fileSize = metadata.format?.size || video.fileSize;
+        video.appliedEffects = [...existingEffects, newEffect];
+        await video.save();
+
+        logger.info("✅ Updated video with subtitles");
+
+        if (socket) {
+          socket.emit("video_updated", {
+            videoId: videoId,
+            filePath: result.outputPath,
+            duration: metadata.duration,
+            operation: "auto-subtitles",
+            appliedEffects: video.appliedEffects,
+            timestamp: Date.now(),
+          });
+        }
+      }
+
+      if (socket) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        socket.emit("video_processing", {
+          status: "completed",
+          progress: 100,
+          message: "Subtitles added successfully!",
+          operation: "auto-subtitles",
+          videoId: videoId,
+          newPath: result.outputPath,
+          isUpdate: true,
+          timestamp: Date.now(),
+        });
+      }
+
+      return {
+        success: true,
+        outputPath: result.outputPath,
+        videoId: videoId,
+        isUpdate: true,
+        operation: "auto-subtitles",
+        message: "Subtitles generated and added to video",
+      };
+    } catch (error) {
+      logger.error("❌ Error generating subtitles:", error);
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "error",
+          progress: 0,
+          message: `Subtitle generation failed: ${error.message}`,
+          operation: "auto-subtitles",
+        });
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to generate subtitles: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Enhance video quality using AI upscaling and enhancement
+   * @param {string} videoPath - Path to input video
+   * @param {string} videoId - Video ID from database
+   * @param {object} parameters - Enhancement parameters
+   * @param {object} socket - Socket.io connection for progress updates
+   * @returns {Promise<object>} - Result with enhanced video path
+   */
+  async enhanceVideoQuality(
+    videoPath,
+    videoId,
+    parameters = {},
+    socket = null
+  ) {
+    try {
+      logger.info("🎨 AI-enhancing video quality");
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 5,
+          message: "Preparing AI video enhancement...",
+          operation: "enhance-quality",
+        });
+      }
+
+      const {
+        upscale = true,
+        denoise = true,
+        sharpen = true,
+        targetResolution = null,
+      } = parameters;
+
+      // Determine upscale factor based on target resolution
+      let upscaleFactor = 2;
+      if (targetResolution === "4k" || targetResolution === "2160p") {
+        upscaleFactor = 4;
+      } else if (targetResolution === "1080p") {
+        upscaleFactor = 2;
+      }
+
+      logger.info(
+        `🎚️ Enhancement settings: upscale=${upscaleFactor}x, denoise=${denoise}, sharpen=${sharpen}`
+      );
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 10,
+          message: "Extracting video frames for AI processing...",
+          operation: "enhance-quality",
+        });
+      }
+
+      // Perform AI enhancement using Hugging Face
+      const huggingFaceService = await import("./huggingFaceService.js");
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 30,
+          message:
+            "Enhancing frames with AI models (this may take a few minutes)...",
+          operation: "enhance-quality",
+        });
+      }
+
+      const enhancedVideoPath =
+        await huggingFaceService.default.enhanceVideoQuality(videoPath, {
+          upscaleFactor: upscale ? upscaleFactor : 1,
+          denoise,
+          sharpen,
+        });
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 80,
+          message: "Finalizing enhanced video...",
+          operation: "enhance-quality",
+        });
+      }
+
+      // Update video in database
+      const { Video } = await import("../models/Video.js");
+      const video = await Video.findById(videoId);
+
+      if (video && enhancedVideoPath !== videoPath) {
+        const metadata = await this.videoProcessor.getVideoMetadata(
+          enhancedVideoPath
+        );
+
+        const existingEffects = video.appliedEffects || [];
+        const newEffect = {
+          effect: "enhance-quality",
+          parameters: {
+            upscaleFactor: upscale ? upscaleFactor : 1,
+            denoise,
+            sharpen,
+            targetResolution,
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        video.filePath = enhancedVideoPath;
+        video.duration = metadata.duration;
+        video.fileSize = metadata.format?.size || video.fileSize;
+        video.width = metadata.width;
+        video.height = metadata.height;
+        video.appliedEffects = [...existingEffects, newEffect];
+        await video.save();
+
+        logger.info("✅ Updated video with AI enhancement");
+
+        if (socket) {
+          socket.emit("video_updated", {
+            videoId: videoId,
+            filePath: enhancedVideoPath,
+            duration: metadata.duration,
+            width: metadata.width,
+            height: metadata.height,
+            operation: "enhance-quality",
+            appliedEffects: video.appliedEffects,
+            timestamp: Date.now(),
+          });
+        }
+      }
+
+      if (socket) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        socket.emit("video_processing", {
+          status: "completed",
+          progress: 100,
+          message: `Video quality enhanced with AI! Resolution: ${upscaleFactor}x upscaling`,
+          operation: "enhance-quality",
+          videoId: videoId,
+          newPath: enhancedVideoPath,
+          isUpdate: true,
+          timestamp: Date.now(),
+        });
+      }
+
+      return {
+        success: true,
+        outputPath: enhancedVideoPath,
+        videoId: videoId,
+        isUpdate: true,
+        operation: "enhance-quality",
+        upscaleFactor,
+        message: `Video quality enhanced with ${upscaleFactor}x AI upscaling`,
+      };
+    } catch (error) {
+      logger.error("❌ Error enhancing video quality:", error);
+      logger.error("❌ Error stack:", error.stack);
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "error",
+          progress: 0,
+          message: `Enhancement failed: ${error.message}`,
+          operation: "enhance-quality",
+        });
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to enhance video: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Automatically trim silence and dead space from video
+   * @param {string} videoPath - Path to input video
+   * @param {string} videoId - Video ID from database
+   * @param {object} parameters - Trimming parameters
+   * @param {object} socket - Socket.io connection for progress updates
+   * @returns {Promise<object>} - Result with trimmed video path
+   */
+  async autoTrimSilence(videoPath, videoId, parameters = {}, socket = null) {
+    try {
+      logger.info(`🤖 Auto-trimming silence from video`);
+
+      // Emit initial progress
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 5,
+          message: "Analyzing audio to detect silence...",
+          operation: "auto-trim-silence",
+        });
+      }
+
+      // Extract parameters with defaults
+      const silenceThreshold = parameters.silenceThreshold || -30; // dB
+      const minSilenceDuration = parameters.minSilenceDuration || 0.5; // seconds
+      const padding = parameters.padding || 0.1; // seconds
+
+      logger.info(
+        `🎚️ Silence detection settings: threshold=${silenceThreshold}dB, minDuration=${minSilenceDuration}s, padding=${padding}s`
+      );
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 20,
+          message: "Analyzing audio with advanced detection...",
+          operation: "auto-trim-silence",
+        });
+      }
+
+      // Perform auto-trim silence using advanced audio analysis
+      const huggingFaceService = await import("./huggingFaceService.js");
+      const trimmedVideoPath =
+        await huggingFaceService.default.autoTrimSilenceWithAI(videoPath, {
+          silenceThreshold,
+          minSilenceDuration,
+          padding,
+        });
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 80,
+          message: "Finalizing trimmed video...",
+          operation: "auto-trim-silence",
+        });
+      }
+
+      logger.info(`📊 Getting metadata for original video: ${videoPath}`);
+
+      // Calculate time saved
+      const originalMetadata = await this.videoProcessor.getVideoMetadata(
+        videoPath
+      );
+
+      logger.info(`📊 Original video duration: ${originalMetadata.duration}s`);
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "processing",
+          progress: 90,
+          message: "Calculating time saved...",
+          operation: "auto-trim-silence",
+        });
+      }
+
+      logger.info(`📊 Getting metadata for trimmed video: ${trimmedVideoPath}`);
+
+      const trimmedMetadata = await this.videoProcessor.getVideoMetadata(
+        trimmedVideoPath
+      );
+
+      logger.info(`📊 Trimmed video duration: ${trimmedMetadata.duration}s`);
+
+      const timeSaved = originalMetadata.duration - trimmedMetadata.duration;
+
+      logger.info(`⏱️ Time saved: ${timeSaved.toFixed(2)}s`);
+
+      // Update video in database if it changed
+      if (trimmedVideoPath !== videoPath) {
+        const { Video } = await import("../models/Video.js");
+        const video = await Video.findById(videoId);
+
+        if (video) {
+          // Preserve existing applied effects and add new one
+          const existingEffects = video.appliedEffects || [];
+          const newEffect = {
+            effect: "auto-trim-silence",
+            parameters: {
+              silenceThreshold,
+              minSilenceDuration,
+              padding,
+              timeSaved: timeSaved,
+            },
+            timestamp: new Date().toISOString(),
+          };
+
+          logger.info(`📊 Existing effects: ${existingEffects.length}`);
+          logger.info(`➕ Adding new effect: auto-trim-silence`);
+
+          // Update video record with new path, metadata, and effects
+          video.filePath = trimmedVideoPath;
+          video.duration = trimmedMetadata.duration;
+          video.fileSize = trimmedMetadata.format.size;
+          video.appliedEffects = [...existingEffects, newEffect];
+          await video.save();
+
+          logger.info(`✅ Updated video record with trimmed version`);
+          logger.info(`✅ Total effects now: ${video.appliedEffects.length}`);
+
+          // Emit video update event so frontend can reload the video
+          if (socket) {
+            socket.emit("video_updated", {
+              videoId: videoId,
+              filePath: trimmedVideoPath,
+              duration: trimmedMetadata.duration,
+              fileSize: trimmedMetadata.format.size,
+              operation: "auto-trim-silence",
+              timeSaved: timeSaved,
+              appliedEffects: video.appliedEffects, // Send updated effects list
+              timestamp: Date.now(), // Cache buster
+            });
+          }
+        }
+      } else {
+        logger.info(
+          `ℹ️ Video unchanged - original and trimmed paths are the same`
+        );
+      }
+
+      logger.info(`🎉 Preparing completion event...`);
+
+      // Get updated video with all effects
+      const { Video } = await import("../models/Video.js");
+      const updatedVideo = await Video.findById(videoId);
+      const appliedEffects = updatedVideo?.appliedEffects || [];
+
+      logger.info(`📊 Final applied effects count: ${appliedEffects.length}`);
+
+      if (socket) {
+        // Small delay to ensure frontend is ready to receive completion
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        logger.info(`📡 Emitting completion event to frontend...`);
+        socket.emit("video_processing", {
+          status: "completed",
+          progress: 100,
+          message: `Silence removed successfully! Saved ${timeSaved.toFixed(
+            1
+          )}s`,
+          operation: "auto-trim-silence",
+          videoId: videoId,
+          newPath: trimmedVideoPath,
+          isUpdate: true, // This updates existing video, doesn't create new one
+          appliedEffects: appliedEffects, // Include all effects
+          timestamp: Date.now(), // Cache buster for video reload
+        });
+        logger.info(`✅ Completion event emitted successfully`);
+      } else {
+        logger.warn(`⚠️ No socket available to emit completion event`);
+      }
+
+      return {
+        success: true,
+        outputPath: trimmedVideoPath,
+        videoId: videoId, // Same video ID - this is an update, not a new video
+        isUpdate: true, // Flag to indicate this updates the existing video
+        operation: "auto-trim-silence",
+        originalDuration: originalMetadata.duration,
+        trimmedDuration: trimmedMetadata.duration,
+        timeSaved: timeSaved,
+        appliedEffects: appliedEffects, // Include all effects in response
+        message: `Removed ${timeSaved.toFixed(1)}s of silence (${(
+          (timeSaved / originalMetadata.duration) *
+          100
+        ).toFixed(1)}% reduction)`,
+      };
+    } catch (error) {
+      logger.error("❌ Error auto-trimming silence:", error);
+      logger.error("❌ Error stack:", error.stack);
+
+      if (socket) {
+        socket.emit("video_processing", {
+          status: "error",
+          progress: 0,
+          message: `Failed: ${error.message}`,
+          operation: "auto-trim-silence",
+        });
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to trim silence: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Extract keywords from video using AI analysis of transcript WITH TIMESTAMPS
+   * @param {string} videoId - Video ID to analyze
+   * @param {number} count - Number of keywords to extract
+   * @returns {Promise<Array<{keyword: string, timestamp: number}>>} - Array of keywords with timestamps
+   */
+  async extractKeywordsForVideo(videoId, count = 3) {
+    try {
+      const { Video } = await import("../models/Video.js");
+      const video = await Video.findById(videoId);
+
+      if (!video) {
+        logger.warn("Video not found, using default keywords");
+        return this.getDefaultKeywordsWithTimestamps(
+          count,
+          video?.duration || 30
+        );
+      }
+
+      // Use OpenAI to extract relevant keywords
+      if (!process.env.OPENAI_API_KEY) {
+        logger.warn("No OpenAI key, using default keywords");
+        return this.getDefaultKeywordsWithTimestamps(count, video.duration);
+      }
+
+      logger.info(`🎙️ Transcribing video with word-level timestamps...`);
+
+      // Transcribe the video to get actual spoken content WITH WORD TIMESTAMPS
+      let transcriptResult = null;
+      let transcription = null;
+      let words = [];
+
+      try {
+        transcriptResult = await this.transcriptionService.transcribeVideo(
+          video.filePath
+        );
+        transcription = transcriptResult?.text || null;
+
+        logger.info(`🔍 Transcript result structure:`, {
+          hasText: !!transcription,
+          textLength: transcription?.length || 0,
+          hasSegments: !!transcriptResult?.segments,
+          segmentsCount: transcriptResult?.segments?.length || 0,
+          provider: transcriptResult?.provider,
+        });
+
+        // Get word-level data - Whisper returns words directly in segments
+        if (transcriptResult?.segments) {
+          for (const segment of transcriptResult.segments) {
+            // Check if segment itself has word data
+            if (segment.words && Array.isArray(segment.words)) {
+              words.push(...segment.words);
+            } else if (segment.word) {
+              // Single word in segment
+              words.push(segment);
+            }
+          }
+        }
+
+        logger.info(
+          `✅ Transcription complete: ${transcription?.length || 0} characters`
+        );
+        logger.info(`📝 Extracted ${words.length} words with timestamps`);
+
+        if (words.length > 0) {
+          logger.info(`📋 Sample words:`, words.slice(0, 5));
+        }
+
+        if (!transcription) {
+          logger.warn("No transcription text available");
+          return this.getDefaultKeywordsWithTimestamps(count, video.duration);
+        }
+
+        if (words.length === 0) {
+          logger.warn(
+            "No word timestamps available, using transcript text only"
+          );
+          // Fallback: Use transcript without timestamps
+        }
+      } catch (transcriptionError) {
+        logger.error(`⚠️ Transcription failed:`, transcriptionError);
+        return this.getDefaultKeywordsWithTimestamps(count, video.duration);
+      }
+
+      logger.info(
+        `🔍 Analyzing transcript to find ${count} keywords with timestamps...`
+      );
+
+      // Create a transcript with word indices for reference
+      const wordTexts = words.map((w) => w.word || w.text).join(" ");
+
+      const prompt = `Analyze the following video transcript and extract ${count} concrete, visually interesting subjects or objects mentioned that would make great AI-generated video overlays.
+
+TRANSCRIPT WITH WORDS:
+"${transcription}"
+
+AVAILABLE WORDS (for timestamp matching):
+${words
+  .slice(0, 100)
+  .map((w, i) => `[${i}] "${w.word || w.text}"`)
+  .join(", ")}${words.length > 100 ? "..." : ""}
+
+REQUIREMENTS:
+- Extract ${count} specific nouns or subjects from the transcript
+- Each keyword must be a CONCRETE visual object (e.g., "money", "laptop", "car", "building")
+- NOT abstract concepts (e.g., NOT "success", "motivation", "mindset")
+- Should be actual words or phrases spoken in the transcript
+- Return the EXACT word(s) as they appear in the transcript
+- Each keyword should be 1-3 words maximum
+
+GOOD EXAMPLES: "money", "laptop", "business", "car", "house", "phone"
+BAD EXAMPLES: "motivation", "success mindset", "personal growth", "achieving goals"
+
+Return a JSON array of objects with the keyword and the approximate word it relates to:
+[
+  {"keyword": "money", "searchWord": "money"},
+  {"keyword": "laptop computer", "searchWord": "laptop"},
+  {"keyword": "luxury car", "searchWord": "car"}
+]`;
+
+      const completion = await this.getOpenAI().chat.completions.create({
+        model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 300,
+      });
+
+      const response = completion.choices[0].message.content.trim();
+      logger.info(`AI response: ${response}`);
+
+      // Parse JSON response
+      const keywordObjects = JSON.parse(response);
+
+      if (!Array.isArray(keywordObjects) || keywordObjects.length === 0) {
+        logger.warn("Invalid AI response, using default keywords");
+        return this.getDefaultKeywordsWithTimestamps(count, video.duration);
+      }
+
+      // Match each keyword to its timestamp in the transcript
+      const keywordsWithTimestamps = [];
+
+      // If we have word timestamps, try to match
+      if (words.length > 0) {
+        logger.info(
+          `🔍 Matching keywords to ${words.length} word timestamps...`
+        );
+
+        for (const item of keywordObjects.slice(0, count)) {
+          const keyword = item.keyword;
+          const searchWord = item.searchWord || keyword;
+
+          // Find the word in the transcript
+          const matchingWord = words.find((w) =>
+            (w.word || w.text)?.toLowerCase().includes(searchWord.toLowerCase())
+          );
+
+          if (matchingWord) {
+            // Get timestamp from word, ensuring it's a valid number
+            let timestamp =
+              matchingWord.start ||
+              matchingWord.timestamp ||
+              matchingWord.start_time ||
+              0;
+
+            // Ensure timestamp is a number
+            if (typeof timestamp !== "number" || isNaN(timestamp)) {
+              logger.warn(
+                `⚠️ Invalid timestamp value for word "${
+                  matchingWord.word || matchingWord.text
+                }": ${timestamp}`
+              );
+              timestamp = 0;
+            }
+
+            keywordsWithTimestamps.push({
+              keyword,
+              timestamp: Math.floor(timestamp),
+            });
+            logger.info(
+              `✅ Matched "${keyword}" to timestamp ${timestamp}s (word: "${
+                matchingWord.word || matchingWord.text
+              }")`
+            );
+          } else {
+            // If not found in words, use evenly spaced fallback
+            const validDuration =
+              video.duration && !isNaN(video.duration) ? video.duration : 30;
+            const fallbackTimestamp = Math.floor(
+              (validDuration / (count + 1)) *
+                (keywordsWithTimestamps.length + 1)
+            );
+            keywordsWithTimestamps.push({
+              keyword,
+              timestamp: fallbackTimestamp,
+            });
+            logger.warn(
+              `⚠️ Could not find "${keyword}" in word list, using fallback timestamp ${fallbackTimestamp}s`
+            );
+          }
+        }
+      } else {
+        // No word timestamps available - use evenly spaced timestamps with transcript-based keywords
+        logger.warn(
+          `⚠️ No word timestamps available, using evenly spaced distribution for transcript keywords`
+        );
+
+        // Ensure video duration is valid
+        const validDuration =
+          video.duration && !isNaN(video.duration) ? video.duration : 30;
+        const spacing = validDuration / (count + 1);
+
+        for (let i = 0; i < keywordObjects.slice(0, count).length; i++) {
+          const keyword = keywordObjects[i].keyword;
+          const timestamp = Math.floor(spacing * (i + 1));
+          keywordsWithTimestamps.push({
+            keyword,
+            timestamp,
+          });
+          logger.info(
+            `📍 Keyword "${keyword}" from transcript assigned to ${timestamp}s (evenly spaced)`
+          );
+        }
+      }
+
+      logger.info(
+        `✅ Final result: ${keywordsWithTimestamps.length} keywords with timestamps`
+      );
+      logger.info(`📋 Keywords:`, keywordsWithTimestamps);
+      return keywordsWithTimestamps;
+    } catch (error) {
+      logger.error("Error extracting keywords:", error);
+      return this.getDefaultKeywordsWithTimestamps(count, 30);
+    }
+  }
+
+  /**
+   * Get default keywords WITH TIMESTAMPS if AI extraction fails
+   * @param {number} count - Number of keywords
+   * @param {number} videoDuration - Video duration in seconds
+   * @returns {Array<{keyword: string, timestamp: number}>} - Default keywords with timestamps
+   */
+  getDefaultKeywordsWithTimestamps(count = 3, videoDuration = 30) {
+    const defaults = [
+      "colorful particles",
+      "glowing orb",
+      "sparkles effect",
+      "light rays",
+      "abstract shapes",
+      "flowing energy",
+      "cosmic nebula",
+      "digital grid",
+    ];
+
+    const keywords = defaults.slice(0, count);
+    const spacing = videoDuration / (count + 1);
+
+    return keywords.map((keyword, index) => ({
+      keyword,
+      timestamp: Math.floor(spacing * (index + 1)),
+    }));
+  }
+
+  /**
+   * Get default keywords (legacy - without timestamps)
+   * @param {number} count - Number of keywords
+   * @returns {string[]} - Default keywords
+   */
+  getDefaultKeywords(count = 3) {
+    const defaults = [
+      "colorful particles",
+      "glowing orb",
+      "sparkles effect",
+      "light rays",
+      "abstract shapes",
+      "flowing energy",
+      "cosmic nebula",
+      "digital grid",
+    ];
+
+    return defaults.slice(0, count);
+  }
+
+  /**
+   * Calculate evenly spaced timestamps for clip insertion
+   * @param {number} videoDuration - Total video duration in seconds
+   * @param {number} clipCount - Number of clips to insert
+   * @param {number} clipDuration - Duration of each clip
+   * @returns {number[]} - Array of timestamps
+   */
+  calculateEvenTimestamps(videoDuration, clipCount, clipDuration) {
+    const timestamps = [];
+
+    // Calculate spacing to distribute clips evenly
+    const effectiveVideoDuration = videoDuration;
+    const spacing = effectiveVideoDuration / (clipCount + 1);
+
+    for (let i = 1; i <= clipCount; i++) {
+      const timestamp = Math.floor(spacing * i);
+      timestamps.push(timestamp);
+    }
+
+    logger.info(`📍 Calculated ${clipCount} evenly spaced timestamps`);
+    return timestamps;
   }
 
   // Analyze video content

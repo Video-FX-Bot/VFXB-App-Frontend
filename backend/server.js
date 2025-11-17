@@ -19,7 +19,6 @@ import authRoutes from "./src/routes/auth.js";
 import videoRoutes from "./src/routes/video.js";
 import aiRoutes from "./src/routes/ai.js";
 import userRoutes from "./src/routes/user.js";
-import testRoutes from "./src/routes/test.js";
 import projectRoutes from "./src/routes/project.js";
 import videoEditRoutes from "./src/routes/videoEdit.js";
 import classificationRoutes from "./src/routes/classification.js";
@@ -27,8 +26,6 @@ import editOperationsRoutes from "./src/routes/editOperations.js";
 import gcRoutes from "./src/routes/admin/gc.js";
 
 // Import middleware
-import { errorHandler } from "./src/middleware/errorHandler.js";
-import { rateLimiter } from "./src/middleware/rateLimiter.js";
 import { logger } from "./src/utils/logger.js";
 
 // Import socket handlers
@@ -61,9 +58,6 @@ app.use(
   })
 );
 
-// Rate limiting
-app.use(rateLimiter);
-
 // Body parsing middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -79,7 +73,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/video-edit", videoEditRoutes);
 app.use("/api/classification", classificationRoutes);
-app.use("/api/test", testRoutes);
 
 // Hybrid workflow routes
 app.use("/api/projects", editOperationsRoutes);
@@ -101,9 +94,6 @@ app.post("/api/test/echo", (req, res) => {
 
 // Setup Socket.IO for real-time chat
 setupSocketHandlers(io);
-
-// Error handling middleware
-app.use(errorHandler);
 
 // 404 handler
 app.use("*", (req, res) => {

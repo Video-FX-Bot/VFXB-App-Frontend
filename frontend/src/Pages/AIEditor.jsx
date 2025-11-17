@@ -494,6 +494,23 @@ const AIEditor = () => {
         return;
       }
 
+      // If action has a 'command' property, treat it as a user message to be processed
+      if (action.command && !action.kind && !action.action) {
+        console.log(
+          "🎯 Action is a command button, sending as message:",
+          action.command
+        );
+        setIsProcessing(false);
+
+        // Set the message and trigger send
+        setNewMessage(action.command);
+        // Use setTimeout to ensure state is updated before sending
+        setTimeout(() => {
+          handleSendMessage();
+        }, 0);
+        return;
+      }
+
       // Check both action.kind (old format) and action.action (new format)
       const actionType = action.kind || action.action;
       console.log("🎯 actionType resolved to:", actionType);
@@ -1187,7 +1204,8 @@ Your video has been upgraded with the following improvements:
         response.intent?.action === "reset-video" ||
         response.intent?.action === "snow" ||
         response.intent?.action === "fire" ||
-        response.intent?.action === "sparkles";
+        response.intent?.action === "sparkles" ||
+        response.intent?.action === "lens-flare";
 
       if (!isAutoApplyIntent) {
         setChatMessages((prev) => [
@@ -1235,7 +1253,8 @@ Your video has been upgraded with the following improvements:
           intentAction === "reset-video" ||
           intentAction === "snow" ||
           intentAction === "fire" ||
-          intentAction === "sparkles") &&
+          intentAction === "sparkles" ||
+          intentAction === "lens-flare") &&
         videoFromStore?.id
       ) {
         const effectName =
@@ -1265,6 +1284,8 @@ Your video has been upgraded with the following improvements:
             ? "Fire Effect"
             : intentAction === "sparkles"
             ? "Sparkles Effect"
+            : intentAction === "lens-flare"
+            ? "Lens Flare"
             : "Captions";
         console.log(
           `✅ ${effectName} intent detected! Auto-applying effect...`
@@ -1343,6 +1364,10 @@ Your video has been upgraded with the following improvements:
           effectConfig.id = "sparkles";
           effectConfig.name = "Sparkles Effect";
           effectConfig.type = "particle";
+        } else if (intentAction === "lens-flare") {
+          effectConfig.id = "lens-flare";
+          effectConfig.name = "Lens Flare";
+          effectConfig.type = "lighting";
         } else if (intentAction === "remove-effect") {
           // Handle remove effect request
           const effectType = response.intent.parameters?.effectType || "last";
@@ -1885,6 +1910,85 @@ Your video has been upgraded with the following improvements:
       }, 150);
     });
 
+    // Listen for video operation completion (for text-to-video and other operations)
+    socketService.on("video_operation_complete", async (data) => {
+      console.log("🎬 Video operation complete:", data);
+      console.log("🎬 Operation result:", data.result);
+      console.log("🎬 Is update operation:", data.result?.isUpdate);
+
+      const { operation, result, videoId } = data;
+
+      if (result?.success && result?.outputPath) {
+        // Update the video with the new processed version
+        const token = localStorage.getItem("authToken");
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+        // Check if this is an update to existing video or a new video
+        const isUpdateOperation = result.isUpdate === true;
+        const targetVideoId = isUpdateOperation
+          ? uploadedVideo?.id || result.videoId || videoId // Keep current video ID for updates
+          : result.videoId || videoId; // Use new video ID for new videos
+
+        console.log(
+          "🎬 Target video ID:",
+          targetVideoId,
+          isUpdateOperation ? "(update)" : "(new)"
+        );
+
+        // Create the video URL with cache buster for updates
+        let videoUrl = `${baseUrl}/api/videos/${targetVideoId}/stream`;
+        if (token) {
+          videoUrl = `${videoUrl}?token=${token}`;
+        }
+
+        // Add cache buster for update operations to force reload
+        if (isUpdateOperation) {
+          videoUrl = `${videoUrl}&t=${Date.now()}`;
+        }
+
+        console.log("🎬 Video URL:", videoUrl);
+
+        // Use appliedEffects from the result (backend already includes all old + new effects)
+        const appliedEffects = result.appliedEffects || [
+          ...(uploadedVideo?.appliedEffects || []),
+          {
+            effect: operation,
+            parameters: result.parameters || {},
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        console.log("🎬 Applied effects count:", appliedEffects.length);
+
+        // Update the video
+        const updatedVideo = {
+          ...uploadedVideo,
+          id: targetVideoId,
+          url: videoUrl,
+          streamUrl: videoUrl,
+          filePath: result.outputPath,
+          appliedEffects: appliedEffects,
+          duration: result.trimmedDuration || uploadedVideo?.duration,
+        };
+
+        console.log("🎬 Updated video object:", updatedVideo);
+
+        setUploadedVideo(updatedVideo);
+        setCurrentVideo(updatedVideo);
+
+        // Reload video player with slight delay
+        setTimeout(() => {
+          if (videoRef.current) {
+            console.log("🔄 Reloading video after operation...");
+            console.log("🔄 Video src:", videoRef.current.src);
+            videoRef.current.load();
+          } else {
+            console.warn("⚠️ videoRef.current is null!");
+          }
+        }, 150);
+      }
+    });
+
     // Listen for video processing progress
     socketService.on("video_processing", (data) => {
       console.log("📊 Video processing update:", data);
@@ -1893,6 +1997,13 @@ Your video has been upgraded with the following improvements:
 
       setIsProcessing(status === "processing");
       setProcessingProgress(progress || 0);
+
+      // Show the "Applying Effect" modal for all video operations
+      if (status === "processing") {
+        setIsGeneratingVideo(true);
+      } else if (status === "ready" || status === "failed") {
+        setIsGeneratingVideo(false);
+      }
 
       // Update enhancement loading state ONLY for auto-enhancement events
       if (isAutoEnhancement) {
@@ -1958,6 +2069,7 @@ Your video has been upgraded with the following improvements:
       socketService.off("ai_response", handleAIResponse);
       socketService.off("ai_typing");
       socketService.off("chat_error");
+      socketService.off("video_operation_complete");
       socketService.off("video_auto_edit_complete");
       socketService.off("video_processing");
     };

@@ -49,18 +49,11 @@ import {
   Focus,
   Wind,
   Layers,
-  Scissors,
   Scale,
   Snowflake,
   Flame,
   Sparkles,
-  Volume2,
-  Sliders,
-  Music,
-  Pipette,
-  Move,
   Zap,
-  Type,
   Wand2,
 } from "lucide-react";
 
@@ -71,12 +64,7 @@ const EFFECT_CATEGORIES = {
   TRANSITION: "Transitions",
   PARTICLE: "Particles",
   LIGHTING: "Lighting",
-  AUDIO: "Audio Effects",
-  MOTION: "Motion Graphics",
-  TECHNICAL: "Technical",
-  AI_ENHANCED: "AI Enhanced Effects",
-  STYLE_TRANSFER: "Style Transfer",
-  SMART_FILTERS: "Smart Filters",
+  AI: "AI Generation",
 };
 
 const EFFECTS_DATA = [
@@ -106,58 +94,6 @@ const EFFECTS_DATA = [
       { name: "saturation", type: "slider", min: -100, max: 100, default: 0 },
       { name: "vibrance", type: "slider", min: -100, max: 100, default: 0 },
     ],
-  },
-  {
-    id: "ai-cinematic",
-    name: "AI Cinematic Enhancement",
-    category: EFFECT_CATEGORIES.AI_ENHANCED,
-    icon: Wand2,
-    description: "AI-powered cinematic look enhancement",
-    premium: true,
-    parameters: [
-      { name: "intensity", type: "slider", min: 0, max: 100, default: 50 },
-      { name: "contrast", type: "slider", min: -100, max: 100, default: 0 },
-      { name: "film_grain", type: "slider", min: 0, max: 100, default: 20 },
-    ],
-    aiTriggers: [
-      "make it cinematic",
-      "enhance quality",
-      "make it look professional",
-    ],
-  },
-  {
-    id: "smart-color-grade",
-    name: "Smart Color Grading",
-    category: EFFECT_CATEGORIES.AI_ENHANCED,
-    icon: Sparkles,
-    description: "AI-powered intelligent color grading",
-    premium: true,
-    parameters: [
-      {
-        name: "style",
-        type: "select",
-        options: ["Movie", "Commercial", "Documentary", "Music Video"],
-      },
-      { name: "intensity", type: "slider", min: 0, max: 100, default: 50 },
-    ],
-    aiTriggers: ["enhance colors", "make colors pop", "grade like a movie"],
-  },
-  {
-    id: "style-transfer",
-    name: "AI Style Transfer",
-    category: EFFECT_CATEGORIES.STYLE_TRANSFER,
-    icon: Palette,
-    description: "Transform video style using AI",
-    premium: true,
-    parameters: [
-      {
-        name: "style",
-        type: "select",
-        options: ["Cinematic", "Vintage", "Noir", "Summer", "Winter"],
-      },
-      { name: "strength", type: "slider", min: 0, max: 100, default: 75 },
-    ],
-    aiTriggers: ["make it look like", "apply style", "transform style"],
   },
   {
     id: "lut-filter",
@@ -291,124 +227,116 @@ const EFFECTS_DATA = [
     applyGlobally: true,
   },
 
-  // Audio
+  // AI Generation
   {
-    id: "reverb",
-    name: "Reverb",
-    category: EFFECT_CATEGORIES.AUDIO,
-    icon: Volume2,
-    description: "Add spatial reverb.",
-    premium: false,
-    parameters: [
-      { name: "roomSize", type: "slider", min: 0, max: 100, default: 50 },
-      { name: "damping", type: "slider", min: 0, max: 100, default: 50 },
-      { name: "wetLevel", type: "slider", min: 0, max: 100, default: 30 },
-    ],
-  },
-  {
-    id: "echo",
-    name: "Echo",
-    category: EFFECT_CATEGORIES.AUDIO,
-    icon: Volume2,
-    description: "Echo delay.",
-    premium: false,
-    parameters: [
-      { name: "delay", type: "slider", min: 0, max: 2000, default: 500 },
-      { name: "feedback", type: "slider", min: 0, max: 95, default: 30 },
-      { name: "mix", type: "slider", min: 0, max: 100, default: 25 },
-    ],
-  },
-  {
-    id: "equalizer",
-    name: "Equalizer",
-    category: EFFECT_CATEGORIES.AUDIO,
-    icon: Sliders,
-    description: "Professional EQ.",
-    premium: false,
-    parameters: [
-      { name: "bass", type: "slider", min: -20, max: 20, default: 0 },
-      { name: "mid", type: "slider", min: -20, max: 20, default: 0 },
-      { name: "treble", type: "slider", min: -20, max: 20, default: 0 },
-    ],
-  },
-  {
-    id: "noise-reduction",
-    name: "Noise Reduction",
-    category: EFFECT_CATEGORIES.AUDIO,
-    icon: Volume2,
-    description: "AI powered noise cleanup.",
+    id: "auto-text-to-video",
+    name: "Auto Text-to-Video",
+    category: EFFECT_CATEGORIES.AI,
+    icon: Wand2,
+    description:
+      "AI generates and inserts multiple video clips throughout your video based on intelligent keyword extraction.",
     premium: true,
     parameters: [
-      { name: "strength", type: "slider", min: 0, max: 100, default: 50 },
-      { name: "preserveVoice", type: "toggle", default: true },
+      {
+        name: "clipCount",
+        type: "slider",
+        min: 2,
+        max: 5,
+        default: 3,
+        label: "Number of Clips",
+      },
+      {
+        name: "clipDuration",
+        type: "slider",
+        min: 2,
+        max: 5,
+        default: 3,
+        label: "Clip Duration (seconds)",
+      },
     ],
+    applyGlobally: true,
+    requiresChat: true, // This effect uses the chat API
   },
-
-  // Motion & Technical
   {
-    id: "speed-ramp",
-    name: "Speed Ramping",
-    category: EFFECT_CATEGORIES.MOTION,
+    id: "auto-trim-silence",
+    name: "Auto Trim Silence",
+    category: EFFECT_CATEGORIES.AI,
     icon: Zap,
-    description: "Dynamic speed changes.",
+    description:
+      "Automatically detect and remove silence, dead space, and pauses to make your video more engaging.",
     premium: true,
     parameters: [
-      { name: "startSpeed", type: "slider", min: 0.1, max: 5, default: 1 },
-      { name: "endSpeed", type: "slider", min: 0.1, max: 5, default: 1 },
       {
-        name: "curve",
-        type: "select",
-        options: ["Linear", "Ease In", "Ease Out", "Ease In/Out"],
-        default: "Ease In/Out",
+        name: "silenceThreshold",
+        type: "slider",
+        min: -50,
+        max: -10,
+        default: -30,
+        label: "Silence Threshold (dB)",
+      },
+      {
+        name: "minSilenceDuration",
+        type: "slider",
+        min: 0.1,
+        max: 2.0,
+        step: 0.1,
+        default: 0.5,
+        label: "Min Silence Duration (s)",
+      },
+      {
+        name: "padding",
+        type: "slider",
+        min: 0,
+        max: 0.5,
+        step: 0.05,
+        default: 0.1,
+        label: "Padding (s)",
       },
     ],
+    applyGlobally: true,
+    requiresChat: true, // This effect uses the chat API
   },
   {
-    id: "text-animation",
-    name: "Text Animation",
-    category: EFFECT_CATEGORIES.MOTION,
-    icon: Type,
-    description: "Animated text presets.",
-    premium: false,
-    parameters: [
-      {
-        name: "animation",
-        type: "select",
-        options: ["Fade In", "Slide In", "Typewriter", "Bounce"],
-        default: "Fade In",
-      },
-      { name: "duration", type: "slider", min: 0.5, max: 5, default: 1 },
-    ],
-  },
-  {
-    id: "chroma-key",
-    name: "Chroma Key",
-    category: EFFECT_CATEGORIES.TECHNICAL,
-    icon: Pipette,
-    description: "Green screen removal.",
-    premium: false,
-    parameters: [
-      { name: "keyColor", type: "color", default: "#00ff00" },
-      { name: "tolerance", type: "slider", min: 0, max: 100, default: 20 },
-      { name: "softness", type: "slider", min: 0, max: 100, default: 10 },
-    ],
-  },
-  {
-    id: "stabilization",
-    name: "Video Stabilization",
-    category: EFFECT_CATEGORIES.TECHNICAL,
-    icon: Move,
-    description: "Reduce camera shake.",
+    id: "enhance-quality",
+    name: "AI Enhance Quality",
+    category: EFFECT_CATEGORIES.AI,
+    icon: Sparkles,
+    description:
+      "AI-powered video enhancement with upscaling, denoising, sharpening, and color enhancement for professional quality.",
     premium: true,
     parameters: [
-      { name: "strength", type: "slider", min: 0, max: 100, default: 50 },
       {
-        name: "cropMode",
+        name: "upscale",
+        type: "toggle",
+        default: true,
+        label: "Upscale Resolution (2x)",
+      },
+      {
+        name: "denoise",
+        type: "toggle",
+        default: true,
+        label: "Remove Noise",
+      },
+      {
+        name: "sharpen",
+        type: "toggle",
+        default: true,
+        label: "Enhance Sharpness",
+      },
+      {
+        name: "targetResolution",
         type: "select",
-        options: ["Auto", "Manual"],
-        default: "Auto",
+        options: [
+          { value: "720p", label: "HD (720p)" },
+          { value: "1080p", label: "Full HD (1080p)" },
+          { value: "4k", label: "4K Ultra HD" },
+        ],
+        default: "1080p",
+        label: "Target Resolution",
       },
     ],
+    applyGlobally: true,
+    requiresChat: true, // This effect uses the chat API
   },
 ];
 
@@ -497,6 +425,58 @@ const EffectsLibrary = ({
     setApplying(true);
 
     try {
+      // If effect requires chat API (like auto-text-to-video or auto-trim-silence), use that instead
+      if (selectedEffect.requiresChat) {
+        const { default: socketService } = await import(
+          "../../services/socketService"
+        );
+
+        // Build a natural language message for the AI based on effect type
+        let message;
+
+        if (selectedEffect.id === "auto-text-to-video") {
+          message = `automatically generate ${
+            params.clipCount || 3
+          } text to video clips throughout the video with ${
+            params.clipDuration || 3
+          } second duration each`;
+        } else if (selectedEffect.id === "auto-trim-silence") {
+          message = `remove silence from my video with threshold ${
+            params.silenceThreshold || -30
+          }dB, minimum duration ${
+            params.minSilenceDuration || 0.5
+          }s, and padding ${params.padding || 0.1}s`;
+        } else if (selectedEffect.id === "enhance-quality") {
+          const enhancements = [];
+          if (params.upscale) enhancements.push("upscale");
+          if (params.denoise) enhancements.push("denoise");
+          if (params.sharpen) enhancements.push("sharpen");
+
+          message = `enhance video quality${
+            enhancements.length > 0 ? " with " + enhancements.join(", ") : ""
+          }${
+            params.targetResolution
+              ? ` targeting ${params.targetResolution}`
+              : ""
+          }`;
+        } else {
+          // Generic fallback
+          message = `apply ${selectedEffect.name} effect`;
+        }
+
+        // Send via chat API
+        await socketService.sendChatMessage(
+          message,
+          currentVideo.id,
+          null // conversationId
+        );
+
+        // Close panel immediately since progress will be shown via socket events
+        setSelectedEffect(null);
+        setApplying(false);
+        return;
+      }
+
       await applyEffect(selectedEffect, params);
       // Save the current parameters for this effect
       setSavedParams((prev) => ({
@@ -573,8 +553,8 @@ const EffectsLibrary = ({
             className="w-full bg-card border border-border rounded px-2 py-1 text-sm"
           >
             {def.options.map((opt) => (
-              <option key={opt} value={opt} className="text-black">
-                {opt}
+              <option key={opt.value} value={opt.value} className="text-black">
+                {opt.label}
               </option>
             ))}
           </select>

@@ -32,7 +32,14 @@ export const setupSocketHandlers = (io) => {
     // Handle chat messages
     socket.on("chat_message", async (data) => {
       try {
-        const { message, videoId, conversationId } = data;
+        let { message, videoId, conversationId } = data;
+
+        // Generate conversationId if not provided
+        if (!conversationId) {
+          const { v4: uuidv4 } = await import("uuid");
+          conversationId = `conv_${Date.now()}_${uuidv4()}`;
+          logger.info(`🆕 Generated new conversationId: ${conversationId}`);
+        }
 
         logger.info("📨 Received chat message:", {
           userId: socket.userId,
@@ -54,12 +61,13 @@ export const setupSocketHandlers = (io) => {
           timestamp: new Date(),
         });
 
-        // Emit user message to client
+        // Emit user message to client (include conversationId for future messages)
         socket.emit("message_received", {
           id: userMessage._id,
           message,
           type: "user",
           timestamp: userMessage.timestamp,
+          conversationId, // Send back to client so they can use it
         });
 
         // Show typing indicator
@@ -73,6 +81,7 @@ export const setupSocketHandlers = (io) => {
           videoPath: data.videoPath || null,
           lastAppliedEffect: data.lastAppliedEffect || null,
           appliedEffects: data.appliedEffects || [],
+          socket: socket, // Pass socket for progress updates
         };
 
         const aiResponse = await aiService.processChatMessage(message, context);
@@ -99,6 +108,7 @@ export const setupSocketHandlers = (io) => {
           type: "ai",
           intent: aiResponse.intent,
           operationResult: aiResponse.operationResult,
+          conversationId, // Include conversationId for context
           actions: aiResponse.actions || [],
           tips: aiResponse.tips || [],
           timestamp: aiMessage.timestamp,

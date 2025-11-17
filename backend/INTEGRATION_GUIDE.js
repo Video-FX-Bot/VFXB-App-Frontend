@@ -163,7 +163,7 @@ Add these scripts to your package.json:
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "test": "mocha src/tests/**/*.test.js",
+    "test": "mocha src/tests/**.test.js",
     "backfill": "node scripts/backfill.js",
     "backfill:dry-run": "node scripts/backfill.js --dry-run",
     "gc:calculate": "node scripts/gc-calculate.js",

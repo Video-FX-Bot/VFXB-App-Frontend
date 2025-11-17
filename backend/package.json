@@ -10,8 +10,8 @@
     "test": "jest",
     "lint": "eslint ."
   },
-
   "dependencies": {
+    "@huggingface/inference": "^4.13.0",
     "assemblyai": "^4.15.0",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
