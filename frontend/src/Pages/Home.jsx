@@ -1,16 +1,20 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload } from "lucide-react";
+import { useVideo } from "../hooks/useVideo";
 
 export default function HomePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [videoFile, setVideoFile] = useState(null);
+  const [uploadedVideo, setUploadedVideo] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { uploadVideo } = useVideo();
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
     if (
       ![
@@ -27,18 +31,29 @@ export default function HomePage() {
     setIsUploading(true);
     setVideoFile(file);
     setProgress(0);
+    setError(null);
 
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 10;
-      setProgress(currentProgress);
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setIsUploading(false);
-        }, 200);
+    try {
+      // Upload video to backend
+      const response = await uploadVideo(file, (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        setProgress(percentCompleted);
+      });
+
+      if (response && response.video) {
+        setUploadedVideo(response.video);
+        setProgress(100);
       }
-    }, 150);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError(err.message || "Failed to upload video");
+      setVideoFile(null);
+      setProgress(0);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDrag = (e) => {
@@ -68,13 +83,14 @@ export default function HomePage() {
   };
 
   const startEditing = () => {
-    if (videoFile && selectedCategory) {
-      navigate(`/dashboard?id=1&category=${encodeURIComponent(selectedCategory)}`);
+    if (uploadedVideo && selectedCategory) {
+      // Navigate to AI editor with the uploaded video
+      navigate(`/ai-editor?videoId=${uploadedVideo._id || uploadedVideo.id}`);
     }
   };
 
   const goToProjects = () => {
-    navigate('/projects');
+    navigate("/projects");
   };
 
   return (
@@ -126,9 +142,19 @@ export default function HomePage() {
               </div>
             </div>
           ) : videoFile ? (
-            <div className="flex flex-col items-center justify-center text-green-400">
+            <div className="flex flex-col items-center justify-center text-green-400 w-full">
               <div className="text-4xl mb-2">✅</div>
-              <p className="font-semibold">Uploaded: {videoFile.name}</p>
+              <p className="font-semibold mb-2">Uploaded: {videoFile.name}</p>
+              {uploadedVideo && uploadedVideo.url && (
+                <div className="mt-3 w-full max-w-md">
+                  <video
+                    src={uploadedVideo.url}
+                    controls
+                    className="w-full rounded-lg shadow-lg"
+                    style={{ maxHeight: "200px" }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -143,6 +169,14 @@ export default function HomePage() {
           )}
         </label>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-200 text-sm max-w-2xl">
+          <p className="font-semibold">Upload Error:</p>
+          <p>{error}</p>
+        </div>
+      )}
 
       {/* Video Category Section */}
       <h2 className="text-lg sm:text-xl font-semibold mt-6 sm:mt-8 lg:mt-10 mb-3 sm:mb-4 text-center gradient-text">
@@ -171,7 +205,9 @@ export default function HomePage() {
             }`}
           >
             <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{item.icon}</div>
-            <span className="font-medium text-xs sm:text-sm lg:text-base">{item.label}</span>
+            <span className="font-medium text-xs sm:text-sm lg:text-base">
+              {item.label}
+            </span>
           </button>
         ))}
       </div>
@@ -181,10 +217,11 @@ export default function HomePage() {
         <button
           onClick={startEditing}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base ${
-            !videoFile || !selectedCategory || isUploading
+            !uploadedVideo || !selectedCategory || isUploading
               ? "bg-gray-500 text-gray-300 cursor-not-allowed"
               : "bg-pink-600 text-white hover:bg-pink-700"
           }`}
+          disabled={!uploadedVideo || !selectedCategory || isUploading}
         >
           Start Editing
         </button>
