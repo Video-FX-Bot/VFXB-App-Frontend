@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import useVideoStore from "../context/videoStore";
 import apiService from "../services/apiService";
 import { validateVideoFile, formatTime } from "../utils";
-import { UPLOAD_CONFIG, VIDEO_PROCESSING } from "../constants";
 
 // Custom hook for video management
 export const useVideo = () => {

@@ -68,49 +68,225 @@ class AutoEditService {
   determineAutoEdits(analysis, metadata) {
     const edits = [];
     const videoAnalysis = analysis.analysis || {};
+    const transcription = analysis.transcription;
+    const hasSpeech =
+      transcription && transcription.text && transcription.text.length > 0;
 
-    // 1. Color grading based on mood
+    logger.info("🤖 Analyzing video for smart auto-edits:", {
+      hasSpeech,
+      hasAudio: metadata.hasAudio,
+      contentType: videoAnalysis.content_type,
+      mood: videoAnalysis.mood,
+      duration: metadata.duration,
+    });
+
+    // PRIORITY 1: Speech-related edits (if video contains talking/speech)
+    if (hasSpeech && metadata.hasAudio) {
+      logger.info("🗣️ Speech detected - applying speech-optimized edits");
+
+      // 1a. Auto-trim silence for speech content (makes talking videos more engaging)
+      edits.push({
+        type: "auto-trim-silence",
+        parameters: {
+          silenceThreshold: -40, // More aggressive - catches quieter pauses
+          minSilenceDuration: 0.3, // Remove pauses longer than 0.3s (catches natural speech pauses)
+          padding: 0.08, // Minimal padding to keep natural flow
+        },
+        reason:
+          "Remove dead air and speech pauses to make content more engaging and fast-paced",
+        priority: "high",
+      });
+
+      // 1b. Generate subtitles for speech content
+      edits.push({
+        type: "auto-subtitles",
+        parameters: {
+          transcription: transcription,
+          style: this.getSubtitleStyleForContent(videoAnalysis.content_type),
+        },
+        reason: "Add subtitles for accessibility and engagement",
+        priority: "high",
+      });
+
+      // 1c. Audio enhancement specifically for speech clarity
+      edits.push({
+        type: "audio-enhancement",
+        parameters: {
+          normalize: true,
+          denoise: true,
+          compressor: true, // Add compression for consistent volume
+          highpass: 80, // Remove low rumble below speech range
+        },
+        reason: "Optimize audio for clear speech intelligibility",
+        priority: "high",
+      });
+    } else if (metadata.hasAudio && !hasSpeech) {
+      // Music/ambient audio without speech
+      logger.info(
+        "🎵 No speech detected - applying music/ambient optimizations"
+      );
+
+      edits.push({
+        type: "audio-enhancement",
+        parameters: {
+          normalize: true,
+          denoise: false, // Don't denoise music too aggressively
+          bassBoost: 5, // Slight bass enhancement for music
+        },
+        reason: "Enhance audio quality while preserving music character",
+        priority: "medium",
+      });
+    }
+
+    // PRIORITY 2: Content-type specific enhancements
+    const contentType = videoAnalysis.content_type?.toLowerCase() || "";
+
+    if (
+      contentType.includes("tutorial") ||
+      contentType.includes("educational")
+    ) {
+      logger.info("📚 Tutorial/educational content detected");
+
+      // Tutorials need clarity
+      edits.push({
+        type: "brightness",
+        parameters: {
+          brightness: 10,
+          contrast: 15,
+          sharpness: 10, // Extra sharpness for screen recordings
+        },
+        reason: "Tutorials benefit from clear, bright, sharp visuals",
+        priority: "medium",
+      });
+
+      // Add zoom for emphasis if it's screen content
+      if (contentType.includes("screen") || contentType.includes("demo")) {
+        edits.push({
+          type: "auto-zoom",
+          parameters: {
+            detectFocus: true,
+            zoomLevel: 1.2,
+          },
+          reason: "Zoom on important areas for screen recordings",
+          priority: "low",
+        });
+      }
+    } else if (
+      contentType.includes("vlog") ||
+      contentType.includes("talking")
+    ) {
+      logger.info("🎥 Vlog/talking head content detected");
+
+      // Natural look for vlogs
+      edits.push({
+        type: "brightness",
+        parameters: {
+          brightness: 5,
+          contrast: 8,
+          saturation: 5, // Slightly boost saturation for vibrant look
+        },
+        reason: "Vlogs look natural with subtle enhancements",
+        priority: "medium",
+      });
+    } else if (
+      contentType.includes("cinematic") ||
+      contentType.includes("film")
+    ) {
+      logger.info("🎬 Cinematic content detected");
+
+      // Cinematic look
+      edits.push({
+        type: "brightness",
+        parameters: {
+          brightness: -3,
+          contrast: 20,
+        },
+        reason: "Cinematic content benefits from higher contrast",
+        priority: "medium",
+      });
+    }
+
+    // PRIORITY 3: Color grading based on mood
     const colorGrading = this.getMoodBasedColorGrading(videoAnalysis.mood);
     if (colorGrading) {
+      colorGrading.priority = "low";
       edits.push(colorGrading);
     }
 
-    // 2. Brightness/Contrast adjustments based on content type
-    const exposure = this.getContentTypeExposure(videoAnalysis.content_type);
-    if (exposure) {
-      edits.push(exposure);
-    }
-
-    // 3. Stabilization if video seems shaky (based on pacing)
-    if (videoAnalysis.pacing === "fast" && metadata.fps > 30) {
+    // PRIORITY 4: Technical improvements
+    // Stabilization for shaky footage
+    if (
+      videoAnalysis.pacing === "fast" ||
+      videoAnalysis.camera_work === "handheld"
+    ) {
       edits.push({
         type: "stabilization",
         parameters: {
           shakiness: 5,
           smoothing: 10,
         },
-        reason: "Fast-paced content benefits from stabilization",
+        reason: "Stabilize shaky footage for smoother viewing",
+        priority: "medium",
       });
     }
 
-    // 4. Audio enhancements if transcription succeeded
-    if (analysis.transcription && metadata.hasAudio) {
-      edits.push({
-        type: "audio-enhancement",
-        parameters: {
-          normalize: true,
-          denoise: true,
-        },
-        reason: "Improve audio clarity based on speech detection",
-      });
-    }
+    // Sort edits by priority
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    edits.sort((a, b) => {
+      const aPriority = priorityOrder[a.priority] || 2;
+      const bPriority = priorityOrder[b.priority] || 2;
+      return aPriority - bPriority;
+    });
 
-    logger.info("📋 Determined auto-edits:", {
+    logger.info("📋 Determined smart auto-edits:", {
       editCount: edits.length,
       types: edits.map((e) => e.type),
+      priorities: edits.map((e) => e.priority),
     });
 
     return edits;
+  }
+
+  /**
+   * Get subtitle style based on content type
+   * @param {string} contentType - Type of content
+   * @returns {object} - Subtitle style parameters
+   */
+  getSubtitleStyleForContent(contentType) {
+    const type = (contentType || "").toLowerCase();
+
+    if (type.includes("tutorial") || type.includes("educational")) {
+      return {
+        fontSize: 24,
+        fontFamily: "Arial",
+        fontColor: "white",
+        backgroundColor: "black",
+        backgroundOpacity: 0.7,
+        position: "bottom",
+        maxCharsPerLine: 50,
+      };
+    } else if (type.includes("social") || type.includes("short")) {
+      return {
+        fontSize: 28,
+        fontFamily: "Impact",
+        fontColor: "yellow",
+        stroke: "black",
+        strokeWidth: 2,
+        position: "center",
+        maxCharsPerLine: 30,
+      };
+    }
+
+    // Default style
+    return {
+      fontSize: 22,
+      fontFamily: "Arial",
+      fontColor: "white",
+      backgroundColor: "black",
+      backgroundOpacity: 0.6,
+      position: "bottom",
+      maxCharsPerLine: 45,
+    };
   }
 
   /**
@@ -240,9 +416,10 @@ class AutoEditService {
    * @param {object} video - Video model instance
    * @param {array} edits - Array of edit operations
    * @param {string} userId - User ID
+   * @param {object} socket - Socket for progress updates
    * @returns {object} - Result with edited video
    */
-  async applyAutoEdits(video, edits, userId) {
+  async applyAutoEdits(video, edits, userId, socket = null) {
     try {
       logger.info("🎬 Applying auto-edits:", {
         videoId: video._id,
@@ -258,41 +435,124 @@ class AutoEditService {
         };
       }
 
-      // Convert edits to effects format
-      const effects = edits.map((edit) => ({
-        effect: edit.type,
-        parameters: edit.parameters,
-      }));
+      let currentVideoPath = video.filePath;
+      const appliedEdits = [];
 
-      // Apply effects using videoProcessor
-      const result = await this.videoProcessor.applyMultipleEffects(
-        video.filePath,
-        effects,
-        {
-          userId,
-          videoId: video._id,
+      // Apply edits sequentially (some need special handling)
+      for (let i = 0; i < edits.length; i++) {
+        const edit = edits[i];
+        logger.info(`🔄 Applying edit ${i + 1}/${edits.length}: ${edit.type}`);
+
+        try {
+          // Route special operations through AIService
+          if (edit.type === "auto-trim-silence") {
+            logger.info("✂️ Applying auto-trim-silence via AIService");
+            const result = await this.aiService.autoTrimSilence(
+              currentVideoPath,
+              video._id,
+              edit.parameters,
+              socket
+            );
+
+            if (result.success && result.outputPath) {
+              currentVideoPath = result.outputPath;
+              appliedEdits.push(edit);
+              logger.info("✅ Auto-trim-silence applied successfully");
+            } else {
+              logger.warn(
+                "⚠️ Auto-trim-silence failed, continuing with other edits"
+              );
+            }
+          } else if (edit.type === "auto-subtitles") {
+            logger.info("📝 Applying auto-subtitles via AIService");
+
+            // Generate subtitles using the transcription
+            const result = await this.aiService.generateSubtitles(
+              currentVideoPath,
+              video._id,
+              edit.parameters,
+              socket
+            );
+
+            if (result.success && result.outputPath) {
+              currentVideoPath = result.outputPath;
+              appliedEdits.push(edit);
+              logger.info("✅ Auto-subtitles applied successfully");
+            } else {
+              logger.warn(
+                "⚠️ Auto-subtitles failed, continuing with other edits"
+              );
+            }
+          } else {
+            // Standard video effects - apply through videoProcessor
+            logger.info(`🎨 Applying ${edit.type} via videoProcessor`);
+
+            const result = await this.videoProcessor.applyEffect(
+              currentVideoPath,
+              edit.type,
+              edit.parameters,
+              {
+                userId,
+                videoId: video._id,
+              }
+            );
+
+            if (result.success && result.outputPath) {
+              currentVideoPath = result.outputPath;
+              appliedEdits.push(edit);
+              logger.info(`✅ ${edit.type} applied successfully`);
+            } else {
+              logger.warn(
+                `⚠️ ${edit.type} failed, continuing with other edits`
+              );
+            }
+          }
+        } catch (editError) {
+          logger.error(`❌ Error applying ${edit.type}:`, editError);
+          // Continue with other edits even if one fails
         }
-      );
-
-      if (!result.success) {
-        logger.error("❌ Failed to apply auto-edits:", result.error);
-        return {
-          success: false,
-          error: result.error,
-          video: video,
-        };
       }
 
-      logger.info("✅ Auto-edits applied successfully:", {
-        outputPath: result.outputPath,
-        edits: edits.map((e) => e.type),
+      // Update video in database with new path and applied effects
+      if (currentVideoPath !== video.filePath) {
+        const { Video } = await import("../models/Video.js");
+        const videoDoc = await Video.findById(video._id);
+
+        if (videoDoc) {
+          // Get metadata for updated video
+          const metadata = await this.videoProcessor.getVideoMetadata(
+            currentVideoPath
+          );
+
+          // Preserve existing effects and add new ones
+          const existingEffects = videoDoc.appliedEffects || [];
+          const newEffects = appliedEdits.map((edit) => ({
+            effect: edit.type,
+            parameters: edit.parameters,
+            timestamp: new Date().toISOString(),
+          }));
+
+          videoDoc.filePath = currentVideoPath;
+          videoDoc.duration = metadata.duration;
+          videoDoc.fileSize = metadata.format?.size || videoDoc.fileSize;
+          videoDoc.appliedEffects = [...existingEffects, ...newEffects];
+          await videoDoc.save();
+
+          logger.info("✅ Video database record updated with auto-edits");
+        }
+      }
+
+      logger.info("✅ All auto-edits applied successfully:", {
+        outputPath: currentVideoPath,
+        appliedCount: appliedEdits.length,
+        edits: appliedEdits.map((e) => e.type),
       });
 
       return {
         success: true,
         message: "Automatic edits applied",
-        outputPath: result.outputPath,
-        appliedEdits: edits,
+        outputPath: currentVideoPath,
+        appliedEdits: appliedEdits,
         video: video,
       };
     } catch (error) {

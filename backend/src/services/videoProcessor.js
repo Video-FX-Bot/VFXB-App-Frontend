@@ -1393,6 +1393,38 @@ export class VideoProcessor {
               break;
             }
 
+            case "lens-flare": {
+              // Lens flare effect - small localized bright spot
+              const intensity =
+                Math.max(0, Math.min(100, parameters.intensity || 50)) / 100;
+              const xPercent = Math.max(0, Math.min(100, parameters.x || 50));
+              const yPercent = Math.max(0, Math.min(100, parameters.y || 50));
+
+              // Handle color parameter - default to white if not a valid hex color
+              let color = parameters.color || "#ffffff";
+              if (!color.startsWith("#") || color.length < 7) {
+                color = "#ffffff";
+              }
+
+              // Remove the # from hex color for FFmpeg
+              const hexColor = color.replace("#", "");
+
+              // Create a small, subtle lens flare
+              // Smaller size: 30-80 pixels radius (much smaller than before)
+              // Lower brightness: 40-80 brightness boost (was 150)
+              const flareSize = Math.floor(30 + intensity * 50);
+              const brightness = intensity * 80;
+
+              // Create lens flare with geq filter for localized bright spot
+              // Format: geq=lum='expression':cb='expression':cr='expression'
+              // We create a radial gradient centered at x,y position
+              filters.push(
+                `geq=lum='p(X,Y) + ${brightness} * exp(-((X-W*${xPercent}/100)^2 + (Y-H*${yPercent}/100)^2)/${flareSize}^2)':` +
+                  `cb='p(X,Y)':cr='p(X,Y)'`
+              );
+              break;
+            }
+
             default:
               logger.warn(`Unsupported effect in multi-effect: ${effectId}`);
           }
@@ -1498,5 +1530,1133 @@ export class VideoProcessor {
       logger.error("Error in extractFrameAsBase64:", error);
       throw error;
     }
+  }
+
+  /**
+   * Concatenate multiple videos together
+   * @param {Array<string>} videoPaths - Array of video file paths to concatenate
+   * @param {string} outputPath - Output file path
+   * @returns {Promise<string>} - Path to concatenated video
+   */
+  async concatenateVideos(videoPaths, outputPath = null) {
+    if (!videoPaths || videoPaths.length === 0) {
+      throw new Error("No videos provided for concatenation");
+    }
+
+    if (videoPaths.length === 1) {
+      // If only one video, just return it
+      return videoPaths[0];
+    }
+
+    try {
+      const outputFilename = outputPath || `concat_${uuidv4()}.mp4`;
+      const finalOutput = path.isAbsolute(outputFilename)
+        ? outputFilename
+        : path.join(this.tempDir, outputFilename);
+
+      logger.info(`🔗 Concatenating ${videoPaths.length} videos...`);
+
+      // Create a temporary file list for FFmpeg concat demuxer
+      const fileListPath = path.join(
+        this.tempDir,
+        `concat_list_${uuidv4()}.txt`
+      );
+      const fileListContent = videoPaths
+        .map((p) => `file '${path.resolve(p)}'`)
+        .join("\n");
+
+      await fs.writeFile(fileListPath, fileListContent);
+
+      return new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(fileListPath)
+          .inputOptions(["-f concat", "-safe 0"])
+          .videoCodec("libx264")
+          .audioCodec("aac")
+          .outputOptions(["-pix_fmt yuv420p", "-preset fast", "-crf 23"])
+          .output(finalOutput)
+          .on("start", (cmd) => {
+            logger.info(`FFmpeg concat command: ${cmd}`);
+          })
+          .on("progress", (progress) => {
+            if (progress.percent) {
+              logger.info(`Concat progress: ${Math.round(progress.percent)}%`);
+            }
+          })
+          .on("end", async () => {
+            // Clean up temp file list
+            try {
+              await fs.unlink(fileListPath);
+            } catch (e) {
+              logger.warn("Could not delete temp file list:", e);
+            }
+
+            logger.info(`✅ Videos concatenated: ${finalOutput}`);
+            resolve(finalOutput);
+          })
+          .on("error", async (err) => {
+            // Clean up on error
+            try {
+              await fs.unlink(fileListPath);
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+
+            logger.error("Error concatenating videos:", err);
+            reject(err);
+          })
+          .run();
+      });
+    } catch (error) {
+      logger.error("Concatenation error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Insert a video clip at a specific position in another video
+   * REPLACES that portion of the video (doesn't just prepend/append)
+   * @param {string} mainVideoPath - Path to the main video
+   * @param {string} insertVideoPath - Path to the video clip to insert
+   * @param {string} position - Position: "beginning", "end", or "timestamp:5" (seconds)
+   * @returns {Promise<string>} - Path to the new combined video
+   */
+  async insertVideoClip(
+    mainVideoPath,
+    insertVideoPath,
+    position = "beginning"
+  ) {
+    try {
+      logger.info(`📽️ Inserting clip at position: ${position}`);
+
+      if (position === "beginning") {
+        // Replace the beginning: add audio from main video to insert clip,
+        // then trim main video to start after insert duration
+        return await this.replaceBeginning(mainVideoPath, insertVideoPath);
+      } else if (position === "end") {
+        // Replace the end: add audio from main video to insert clip,
+        // then trim main video to end before insert duration
+        return await this.replaceEnd(mainVideoPath, insertVideoPath);
+      } else if (position === "center" || position === "middle") {
+        // Insert at the center/middle of the video
+        const metadata = await this.getVideoMetadata(mainVideoPath);
+        const insertMetadata = await this.getVideoMetadata(insertVideoPath);
+        const centerTimestamp =
+          (metadata.duration - insertMetadata.duration) / 2;
+        logger.info(`🎯 Inserting at center: ${centerTimestamp}s`);
+        return await this.insertAtTimestamp(
+          mainVideoPath,
+          insertVideoPath,
+          centerTimestamp
+        );
+      } else if (position.startsWith("timestamp:")) {
+        // Insert at specific timestamp
+        const timestamp = parseFloat(position.split(":")[1]);
+        return await this.insertAtTimestamp(
+          mainVideoPath,
+          insertVideoPath,
+          timestamp
+        );
+      } else {
+        throw new Error(`Invalid position: ${position}`);
+      }
+    } catch (error) {
+      logger.error("Error inserting video clip:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Insert a clip at a specific timestamp (split main video and insert in between)
+   * @param {string} mainVideoPath - Path to the main video
+   * @param {string} insertVideoPath - Path to video to insert
+   * @param {number} timestamp - Timestamp in seconds where to insert
+   * @returns {Promise<string>} - Path to combined video
+   */
+  async insertAtTimestamp(mainVideoPath, insertVideoPath, timestamp) {
+    try {
+      logger.info(`⏱️ Inserting clip at ${timestamp} seconds`);
+
+      // Get main video duration
+      const metadata = await this.getVideoMetadata(mainVideoPath);
+
+      if (timestamp > metadata.duration) {
+        logger.warn(
+          `Timestamp ${timestamp}s exceeds video duration ${metadata.duration}s, appending to end`
+        );
+        return await this.concatenateVideos([mainVideoPath, insertVideoPath]);
+      }
+
+      if (timestamp <= 0) {
+        logger.warn(`Timestamp ${timestamp}s is at start, prepending`);
+        return await this.concatenateVideos([insertVideoPath, mainVideoPath]);
+      }
+
+      // Split main video into two parts: before and after insertion point
+      const part1Path = path.resolve(this.tempDir, `part1_${uuidv4()}.mp4`);
+      const part2Path = path.resolve(this.tempDir, `part2_${uuidv4()}.mp4`);
+
+      // Extract part 1 (0 to timestamp)
+      await this.trimVideo(mainVideoPath, 0, timestamp, part1Path);
+
+      // Extract part 2 (timestamp to end)
+      await this.trimVideo(
+        mainVideoPath,
+        timestamp,
+        metadata.duration - timestamp,
+        part2Path
+      );
+
+      // Concatenate all three parts
+      const result = await this.concatenateVideos([
+        part1Path,
+        insertVideoPath,
+        part2Path,
+      ]);
+
+      // Clean up temp files
+      try {
+        await fs.unlink(part1Path);
+        await fs.unlink(part2Path);
+      } catch (e) {
+        logger.warn("Could not delete temp video parts:", e);
+      }
+
+      return result;
+    } catch (error) {
+      logger.error("Error inserting at timestamp:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace a segment of video at a specific timestamp (overlay mode)
+   * Extracts audio from the replaced segment and mixes it with the insert clip
+   * @param {string} mainVideoPath - Path to the main video
+   * @param {string} insertVideoPath - Path to video to insert
+   * @param {number} timestamp - Timestamp in seconds where to replace
+   * @returns {Promise<string>} - Path to combined video
+   */
+  async replaceAtTimestamp(mainVideoPath, insertVideoPath, timestamp) {
+    try {
+      logger.info(
+        `🔄 Replacing segment at ${timestamp} seconds (overlay mode)`
+      );
+
+      // Get durations
+      const mainMetadata = await this.getVideoMetadata(mainVideoPath);
+      const insertMetadata = await this.getVideoMetadata(insertVideoPath);
+      const insertDuration = insertMetadata.duration;
+
+      // Calculate the end point of replacement
+      const replacementEnd = timestamp + insertDuration;
+
+      logger.info(
+        `📐 Replacing ${timestamp}s to ${replacementEnd}s with generated clip (${insertDuration}s)`
+      );
+
+      if (timestamp < 0 || timestamp >= mainMetadata.duration) {
+        logger.warn("Invalid timestamp, using insertAtTimestamp instead");
+        return await this.insertAtTimestamp(
+          mainVideoPath,
+          insertVideoPath,
+          timestamp
+        );
+      }
+
+      // Step 1: Extract audio from the segment being replaced
+      const segmentAudioPath = path.resolve(
+        this.tempDir,
+        `segment_audio_${uuidv4()}.aac`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(mainVideoPath)
+          .setStartTime(timestamp)
+          .setDuration(insertDuration)
+          .outputOptions(["-vn", "-acodec aac"]) // Audio only
+          .output(segmentAudioPath)
+          .on("start", (cmd) => {
+            logger.info(`🎵 Extracting audio from segment: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(`✅ Segment audio extracted: ${segmentAudioPath}`);
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error extracting segment audio:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 2: Mix the extracted audio with the insert clip
+      const insertWithAudioPath = path.resolve(
+        this.tempDir,
+        `insert_with_segment_audio_${uuidv4()}.mp4`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(insertVideoPath) // Video from generated clip
+          .input(segmentAudioPath) // Audio from replaced segment
+          .outputOptions([
+            "-map 0:v", // Video from insert
+            "-map 1:a", // Audio from segment
+            "-c:v copy",
+            "-c:a aac",
+            "-shortest", // Match shortest stream
+          ])
+          .output(insertWithAudioPath)
+          .on("start", (cmd) => {
+            logger.info(`🎵 Mixing audio with insert clip: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(`✅ Insert with audio: ${insertWithAudioPath}`);
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error mixing audio:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 3: Create three parts
+      const part1Path = path.resolve(this.tempDir, `part1_${uuidv4()}.mp4`);
+      const part3Path = path.resolve(this.tempDir, `part3_${uuidv4()}.mp4`);
+
+      // Part 1: Before replacement (0 to timestamp)
+      if (timestamp > 0) {
+        await this.trimVideo(mainVideoPath, 0, timestamp, part1Path);
+      }
+
+      // Part 3: After replacement (replacementEnd to end)
+      if (replacementEnd < mainMetadata.duration) {
+        await this.trimVideo(
+          mainVideoPath,
+          replacementEnd,
+          mainMetadata.duration - replacementEnd,
+          part3Path
+        );
+      }
+
+      // Step 4: Concatenate the parts
+      const parts = [];
+      if (timestamp > 0) parts.push(part1Path);
+      parts.push(insertWithAudioPath);
+      if (replacementEnd < mainMetadata.duration) parts.push(part3Path);
+
+      logger.info(`🔗 Concatenating ${parts.length} parts for overlay...`);
+      const result = await this.concatenateVideos(parts);
+
+      // Clean up temp files
+      try {
+        await fs.unlink(segmentAudioPath);
+        await fs.unlink(insertWithAudioPath);
+        if (timestamp > 0) await fs.unlink(part1Path);
+        if (replacementEnd < mainMetadata.duration) await fs.unlink(part3Path);
+      } catch (e) {
+        logger.warn("Could not delete temp files:", e);
+      }
+
+      logger.info(`✅ Successfully replaced segment at ${timestamp}s`);
+      return result;
+    } catch (error) {
+      logger.error("Error replacing at timestamp:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace the beginning of a video with a generated clip
+   * Extracts audio from the original video and overlays it on the generated clip
+   * Then trims the original video to start after the generated clip duration
+   * @param {string} mainVideoPath - Path to the main video
+   * @param {string} insertVideoPath - Path to the generated video clip (usually no audio)
+   * @returns {Promise<string>} - Path to the combined video
+   */
+  async replaceBeginning(mainVideoPath, insertVideoPath) {
+    try {
+      logger.info(`🔄 Replacing beginning of video with generated clip`);
+
+      // Get duration of the insert clip
+      const insertMetadata = await this.getVideoMetadata(insertVideoPath);
+      const insertDuration = insertMetadata.duration;
+
+      logger.info(`📐 Insert clip duration: ${insertDuration}s`);
+
+      // Step 1: Add audio from main video to insert clip
+      const insertWithAudioPath = path.join(
+        this.tempDir,
+        `insert_with_audio_${uuidv4()}.mp4`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(insertVideoPath) // Video from generated clip (no audio)
+          .input(mainVideoPath) // Audio from original video
+          .outputOptions([
+            "-map 0:v", // Take video from first input (generated clip)
+            "-map 1:a", // Take audio from second input (original video)
+            "-c:v copy", // Copy video without re-encoding
+            "-c:a aac", // Encode audio as AAC
+            `-t ${insertDuration}`, // Limit to insert clip duration
+          ])
+          .output(insertWithAudioPath)
+          .on("start", (cmd) => {
+            logger.info(`🎵 Adding audio to generated clip: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(`✅ Generated clip with audio: ${insertWithAudioPath}`);
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error adding audio to insert clip:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 2: Trim the main video to start after insert duration
+      const trimmedMainPath = path.join(
+        this.tempDir,
+        `trimmed_main_${uuidv4()}.mp4`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(mainVideoPath)
+          .setStartTime(insertDuration) // Skip the first X seconds
+          .outputOptions([
+            "-c:v libx264",
+            "-c:a aac",
+            "-preset fast",
+            "-crf 23",
+          ])
+          .output(trimmedMainPath)
+          .on("start", (cmd) => {
+            logger.info(`✂️ Trimming main video: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(`✅ Trimmed main video: ${trimmedMainPath}`);
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error trimming main video:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 3: Concatenate [insert_with_audio, trimmed_main]
+      logger.info(`🔗 Concatenating clip with audio + trimmed main video`);
+      const result = await this.concatenateVideos([
+        insertWithAudioPath,
+        trimmedMainPath,
+      ]);
+
+      // Clean up temp files
+      try {
+        await fs.unlink(insertWithAudioPath);
+        await fs.unlink(trimmedMainPath);
+      } catch (e) {
+        logger.warn("Could not delete temp files:", e);
+      }
+
+      logger.info(`✅ Successfully replaced beginning of video`);
+      return result;
+    } catch (error) {
+      logger.error("Error replacing beginning:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace the end of a video with a generated clip
+   * Extracts audio from the end of the original video and overlays it on the generated clip
+   * Then trims the original video to end before the generated clip duration
+   * @param {string} mainVideoPath - Path to the main video
+   * @param {string} insertVideoPath - Path to the generated video clip (usually no audio)
+   * @returns {Promise<string>} - Path to the combined video
+   */
+  async replaceEnd(mainVideoPath, insertVideoPath) {
+    try {
+      logger.info(`🔄 Replacing end of video with generated clip`);
+
+      // Get durations
+      const mainMetadata = await this.getVideoMetadata(mainVideoPath);
+      const mainDuration = mainMetadata.duration;
+      const insertMetadata = await this.getVideoMetadata(insertVideoPath);
+      const insertDuration = insertMetadata.duration;
+      const trimPoint = mainDuration - insertDuration;
+
+      logger.info(
+        `📐 Main: ${mainDuration}s, Insert: ${insertDuration}s, Trim at: ${trimPoint}s`
+      );
+
+      // Step 1: Extract audio from the last X seconds of main video and mix with insert clip
+      const insertWithAudioPath = path.join(
+        this.tempDir,
+        `insert_end_audio_${uuidv4()}.mp4`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(insertVideoPath) // Video from generated clip (no audio)
+          .input(mainVideoPath) // Audio from original video
+          .inputOptions([`-ss ${trimPoint}`]) // Start audio at trim point
+          .outputOptions([
+            "-map 0:v", // Take video from first input (generated clip)
+            "-map 1:a", // Take audio from second input (original video, starting at trimPoint)
+            "-c:v copy", // Copy video without re-encoding
+            "-c:a aac", // Encode audio as AAC
+            `-t ${insertDuration}`, // Limit to insert clip duration
+          ])
+          .output(insertWithAudioPath)
+          .on("start", (cmd) => {
+            logger.info(`🎵 Adding end audio to generated clip: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(
+              `✅ Generated clip with end audio: ${insertWithAudioPath}`
+            );
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error adding end audio to insert clip:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 2: Trim the main video to end before insert
+      const trimmedMainPath = path.join(
+        this.tempDir,
+        `trimmed_end_${uuidv4()}.mp4`
+      );
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(mainVideoPath)
+          .setDuration(trimPoint) // End the video at trim point
+          .outputOptions([
+            "-c:v libx264",
+            "-c:a aac",
+            "-preset fast",
+            "-crf 23",
+          ])
+          .output(trimmedMainPath)
+          .on("start", (cmd) => {
+            logger.info(`✂️ Trimming main video to end: ${cmd}`);
+          })
+          .on("end", () => {
+            logger.info(`✅ Trimmed main video: ${trimmedMainPath}`);
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("Error trimming main video:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Step 3: Concatenate [trimmed_main, insert_with_audio]
+      logger.info(`🔗 Concatenating trimmed main + clip with end audio`);
+      const result = await this.concatenateVideos([
+        trimmedMainPath,
+        insertWithAudioPath,
+      ]);
+
+      // Clean up temp files
+      try {
+        await fs.unlink(insertWithAudioPath);
+        await fs.unlink(trimmedMainPath);
+      } catch (e) {
+        logger.warn("Could not delete temp files:", e);
+      }
+
+      logger.info(`✅ Successfully replaced end of video`);
+      return result;
+    } catch (error) {
+      logger.error("Error replacing end:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Trim/cut a video to a specific duration
+   * @param {string} inputPath - Input video path
+   * @param {number} startTime - Start time in seconds
+   * @param {number} duration - Duration in seconds
+   * @param {string} outputPath - Output path
+   * @returns {Promise<string>} - Path to trimmed video
+   */
+  async trimVideo(inputPath, startTime, duration, outputPath = null) {
+    const outputFilename = outputPath || `trimmed_${uuidv4()}.mp4`;
+    const finalOutput = path.isAbsolute(outputFilename)
+      ? outputFilename
+      : path.join(this.tempDir, outputFilename);
+
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .setStartTime(startTime)
+        .setDuration(duration)
+        .videoCodec("libx264")
+        .audioCodec("aac")
+        .output(finalOutput)
+        .on("end", () => {
+          logger.info(`✅ Video trimmed: ${finalOutput}`);
+          resolve(finalOutput);
+        })
+        .on("error", (err) => {
+          logger.error("Error trimming video:", err);
+          reject(err);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * Generate and burn subtitles into video
+   * @param {string} videoPath - Path to input video
+   * @param {object} transcription - Transcription data with text and chunks
+   * @param {object} style - Subtitle styling options
+   * @returns {Promise<object>} - Result with output path
+   */
+  async generateSubtitles(videoPath, transcription, style = {}) {
+    try {
+      logger.info("📝 Generating subtitles for video");
+
+      const {
+        fontSize = 22,
+        fontFamily = "Arial",
+        fontColor = "white",
+        backgroundColor = "black",
+        backgroundOpacity = 0.6,
+        position = "bottom",
+        maxCharsPerLine = 45,
+      } = style;
+
+      // Create SRT subtitle file from transcription
+      const srtPath = path.join(
+        path.dirname(videoPath),
+        `subtitles_${uuidv4()}.srt`
+      );
+
+      let srtContent = "";
+      let subtitleIndex = 1;
+
+      logger.info("📊 Transcription data structure:", {
+        hasSegments: !!transcription.segments,
+        segmentCount: transcription.segments?.length || 0,
+        hasChunks: !!transcription.chunks,
+        chunkCount: transcription.chunks?.length || 0,
+        hasText: !!transcription.text,
+        textLength: transcription.text?.length || 0,
+      });
+
+      // Priority 1: Use segments (from Whisper/AssemblyAI with word-level timestamps)
+      if (transcription.segments && transcription.segments.length > 0) {
+        logger.info("✅ Using segments with timestamps");
+
+        for (const segment of transcription.segments) {
+          const startTime = this.formatSrtTime(segment.start);
+          const endTime = this.formatSrtTime(segment.end);
+          const text = segment.text.trim();
+
+          if (text) {
+            logger.info(
+              `📝 Segment ${subtitleIndex}: ${startTime} --> ${endTime} | "${text}"`
+            );
+            srtContent += `${subtitleIndex}\n`;
+            srtContent += `${startTime} --> ${endTime}\n`;
+            srtContent += `${text}\n\n`;
+            subtitleIndex++;
+          }
+        }
+      }
+      // Priority 2: Use chunks (alternative format)
+      else if (transcription.chunks && transcription.chunks.length > 0) {
+        logger.info("✅ Using chunks with timestamps");
+
+        for (const chunk of transcription.chunks) {
+          const startTime = this.formatSrtTime(chunk.timestamp[0]);
+          const endTime = this.formatSrtTime(chunk.timestamp[1]);
+          const text = chunk.text.trim();
+
+          if (text) {
+            logger.info(
+              `📝 Chunk ${subtitleIndex}: ${startTime} --> ${endTime} | "${text}"`
+            );
+            srtContent += `${subtitleIndex}\n`;
+            srtContent += `${startTime} --> ${endTime}\n`;
+            srtContent += `${text}\n\n`;
+            subtitleIndex++;
+          }
+        }
+      }
+      // Priority 3: Fallback to text-only (no timestamps)
+      else if (transcription.text) {
+        logger.warn("⚠️ No timestamps available - using fallback timing");
+        // Fallback: split text into chunks (no timestamps available)
+        const words = transcription.text.split(" ");
+        const wordsPerSubtitle = 8;
+        const duration = 3; // 3 seconds per subtitle
+
+        for (let i = 0; i < words.length; i += wordsPerSubtitle) {
+          const chunk = words.slice(i, i + wordsPerSubtitle).join(" ");
+          const startSeconds = (i / wordsPerSubtitle) * duration;
+          const endSeconds = startSeconds + duration;
+
+          srtContent += `${subtitleIndex}\n`;
+          srtContent += `${this.formatSrtTime(
+            startSeconds
+          )} --> ${this.formatSrtTime(endSeconds)}\n`;
+          srtContent += `${chunk}\n\n`;
+          subtitleIndex++;
+        }
+      } else {
+        throw new Error("No transcription text available");
+      }
+
+      // Write SRT file
+      await fs.writeFile(srtPath, srtContent, "utf-8");
+      logger.info(`✅ SRT file created: ${srtPath}`);
+
+      // Burn subtitles into video using FFmpeg
+      const outputPath = path.join(
+        path.dirname(videoPath),
+        `subtitled_${uuidv4()}.mp4`
+      );
+
+      // Convert style parameters to FFmpeg subtitle filter
+      const positionY = position === "top" ? "20" : "h-th-20";
+      const bgAlpha = Math.round(backgroundOpacity * 255)
+        .toString(16)
+        .padStart(2, "0");
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(videoPath)
+          .outputOptions([
+            `-vf subtitles=${srtPath.replace(
+              /\\/g,
+              "/"
+            )}:force_style='FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H${this.colorToHex(
+              fontColor
+            )},BackColour=&H${bgAlpha}${this.colorToHex(
+              backgroundColor
+            )},Alignment=${position === "top" ? "2" : "2"}'`,
+          ])
+          .output(outputPath)
+          .on("end", () => {
+            logger.info("✅ Subtitles burned into video");
+            resolve();
+          })
+          .on("error", (err) => {
+            logger.error("❌ Subtitle burning failed:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Clean up SRT file
+      try {
+        await fs.unlink(srtPath);
+      } catch (err) {
+        logger.warn("⚠️ Could not delete SRT file:", err.message);
+      }
+
+      return {
+        success: true,
+        outputPath: outputPath,
+      };
+    } catch (error) {
+      logger.error("❌ Subtitle generation failed:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Format seconds to SRT timestamp format (HH:MM:SS,mmm)
+   * @param {number} seconds - Time in seconds
+   * @returns {string} - Formatted SRT timestamp
+   */
+  formatSrtTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const millis = Math.floor((seconds % 1) * 1000);
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")},${millis
+      .toString()
+      .padStart(3, "0")}`;
+  }
+
+  /**
+   * Convert color name to hex (simplified)
+   * @param {string} color - Color name
+   * @returns {string} - Hex color code (BGR format for FFmpeg)
+   */
+  colorToHex(color) {
+    const colors = {
+      white: "FFFFFF",
+      black: "000000",
+      yellow: "00FFFF",
+      red: "0000FF",
+      blue: "FF0000",
+      green: "00FF00",
+    };
+    return colors[color.toLowerCase()] || "FFFFFF";
+  }
+
+  /**
+   * Automatically detect and remove silence/dead space from video
+   * @param {string} inputPath - Path to input video
+   * @param {Object} options - Silence detection options
+   * @param {number} options.silenceThreshold - Volume threshold in dB (default: -30dB)
+   * @param {number} options.minSilenceDuration - Minimum silence duration to remove in seconds (default: 0.5s)
+   * @param {number} options.padding - Padding to keep around speech in seconds (default: 0.1s)
+   * @returns {Promise<string>} - Path to trimmed video
+   */
+  async autoTrimSilence(
+    inputPath,
+    options = {
+      silenceThreshold: -30,
+      minSilenceDuration: 0.5,
+      padding: 0.1,
+    }
+  ) {
+    const {
+      silenceThreshold = -30,
+      minSilenceDuration = 0.5,
+      padding = 0.1,
+    } = options;
+
+    logger.info(
+      `🎬 Auto-trimming silence from video with threshold: ${silenceThreshold}dB, min duration: ${minSilenceDuration}s`
+    );
+
+    try {
+      // Step 1: Detect silence periods using FFmpeg's silencedetect filter
+      const silencePeriods = await this.detectSilence(
+        inputPath,
+        silenceThreshold,
+        minSilenceDuration
+      );
+
+      if (silencePeriods.length === 0) {
+        logger.info(
+          "✅ No significant silence detected, returning original video"
+        );
+        return inputPath;
+      }
+
+      logger.info(`🔍 Detected ${silencePeriods.length} silence periods`);
+
+      // Step 2: Get video metadata
+      const metadata = await this.getVideoMetadata(inputPath);
+      const videoDuration = metadata.format.duration;
+
+      // Step 3: Calculate segments to keep (non-silent parts)
+      const keepSegments = this.calculateKeepSegments(
+        silencePeriods,
+        videoDuration,
+        padding
+      );
+
+      if (keepSegments.length === 0) {
+        logger.warn(
+          "⚠️ All segments would be removed, returning original video"
+        );
+        return inputPath;
+      }
+
+      // Check if only one segment that spans nearly the entire video
+      // Only skip processing if less than 0.5s would be trimmed total
+      if (keepSegments.length === 1 && videoDuration) {
+        const trimmedFromStart = keepSegments[0].start || 0;
+        const trimmedFromEnd = videoDuration - (keepSegments[0].end || 0);
+        const totalTrimmed = trimmedFromStart + trimmedFromEnd;
+
+        if (!isNaN(totalTrimmed) && totalTrimmed < 0.5) {
+          logger.info(
+            `✅ Only ${totalTrimmed.toFixed(
+              2
+            )}s would be trimmed, returning original video`
+          );
+          return inputPath;
+        }
+
+        if (!isNaN(totalTrimmed)) {
+          logger.info(
+            `✂️ Will trim ${totalTrimmed.toFixed(
+              2
+            )}s total (${trimmedFromStart.toFixed(
+              2
+            )}s from start, ${trimmedFromEnd.toFixed(2)}s from end)`
+          );
+        }
+      }
+
+      logger.info(`✂️ Keeping ${keepSegments.length} segments`);
+
+      // Step 4: Extract and concatenate non-silent segments
+      let outputPath;
+
+      if (keepSegments.length === 1) {
+        // Single segment - extract directly without concatenation
+        const segment = keepSegments[0];
+        const outputFilename = `auto_trimmed_${uuidv4()}.mp4`;
+        outputPath = path.join(this.outputDir, outputFilename);
+
+        logger.info(
+          `✂️ Single segment: ${segment.start.toFixed(
+            2
+          )}s - ${segment.end.toFixed(2)}s`
+        );
+
+        await this.extractSegment(
+          inputPath,
+          outputPath,
+          segment.start,
+          segment.end - segment.start
+        );
+
+        logger.info(`✅ Single segment extracted: ${outputPath}`);
+      } else {
+        // Multiple segments - extract and concatenate
+        outputPath = await this.extractAndConcatenateSegments(
+          inputPath,
+          keepSegments
+        );
+      }
+
+      logger.info(`✅ Auto-trim complete: ${outputPath}`);
+      return outputPath;
+    } catch (error) {
+      logger.error("Error auto-trimming silence:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Detect silence periods in video using FFmpeg silencedetect filter
+   * @param {string} inputPath - Path to input video
+   * @param {number} silenceThreshold - Volume threshold in dB
+   * @param {number} minDuration - Minimum silence duration
+   * @returns {Promise<Array>} - Array of silence periods {start, end}
+   */
+  async detectSilence(inputPath, silenceThreshold, minDuration) {
+    return new Promise((resolve, reject) => {
+      const silencePeriods = [];
+      let currentSilence = null;
+
+      logger.info("🔍 Detecting silence periods...");
+
+      ffmpeg(inputPath)
+        .audioFilters([
+          `silencedetect=noise=${silenceThreshold}dB:d=${minDuration}`,
+        ])
+        .outputOptions(["-f null"])
+        .output("-")
+        .on("stderr", (stderrLine) => {
+          // Parse silence_start and silence_end from FFmpeg output
+          const silenceStartMatch = stderrLine.match(/silence_start: ([\d.]+)/);
+          const silenceEndMatch = stderrLine.match(/silence_end: ([\d.]+)/);
+
+          if (silenceStartMatch) {
+            currentSilence = { start: parseFloat(silenceStartMatch[1]) };
+          }
+
+          if (silenceEndMatch && currentSilence) {
+            currentSilence.end = parseFloat(silenceEndMatch[1]);
+            silencePeriods.push(currentSilence);
+            currentSilence = null;
+          }
+        })
+        .on("end", () => {
+          // If there's an unclosed silence at the end, add it
+          if (currentSilence) {
+            // Assume it goes to the end of the video
+            currentSilence.end = currentSilence.start + minDuration;
+            silencePeriods.push(currentSilence);
+          }
+          resolve(silencePeriods);
+        })
+        .on("error", (err) => {
+          logger.error("Error detecting silence:", err);
+          reject(err);
+        })
+        .run();
+    });
+  }
+
+  /**
+   * Calculate segments to keep based on silence periods
+   * @param {Array} silencePeriods - Array of {start, end} silence periods
+   * @param {number} videoDuration - Total video duration
+   * @param {number} padding - Padding around speech
+   * @returns {Array} - Array of {start, end} segments to keep
+   */
+  calculateKeepSegments(silencePeriods, videoDuration, padding) {
+    const keepSegments = [];
+    let currentStart = 0;
+
+    // Sort silence periods by start time
+    silencePeriods.sort((a, b) => a.start - b.start);
+
+    for (const silence of silencePeriods) {
+      // Add segment before this silence (with padding)
+      const segmentEnd = Math.max(0, silence.start - padding);
+
+      if (segmentEnd > currentStart + 0.1) {
+        // Only keep segments longer than 0.1s
+        keepSegments.push({
+          start: currentStart,
+          end: segmentEnd,
+        });
+      }
+
+      // Update start for next segment (after silence ends, with padding)
+      currentStart = Math.min(videoDuration, silence.end + padding);
+    }
+
+    // Add final segment after last silence
+    if (currentStart < videoDuration - 0.1) {
+      keepSegments.push({
+        start: currentStart,
+        end: videoDuration,
+      });
+    }
+
+    return keepSegments;
+  }
+
+  /**
+   * Extract segments and concatenate them
+   * @param {string} inputPath - Path to input video
+   * @param {Array} segments - Array of {start, end} segments
+   * @returns {Promise<string>} - Path to concatenated video
+   */
+  async extractAndConcatenateSegments(inputPath, segments) {
+    const segmentPaths = [];
+    const concatListPath = path.join(this.tempDir, `concat_${uuidv4()}.txt`);
+
+    try {
+      // Extract each segment
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        const segmentPath = path.join(this.tempDir, `segment_${uuidv4()}.mp4`);
+
+        logger.info(
+          `✂️ Extracting segment ${i + 1}/${
+            segments.length
+          }: ${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s`
+        );
+
+        await this.extractSegment(
+          inputPath,
+          segmentPath,
+          segment.start,
+          segment.end - segment.start
+        );
+
+        segmentPaths.push(segmentPath);
+      }
+
+      // Create concat list file with absolute paths and proper escaping
+      const concatList = segmentPaths
+        .map((p) => {
+          // Convert to absolute path and use forward slashes for FFmpeg
+          const absolutePath = path.resolve(p).replace(/\\/g, "/");
+          // Escape single quotes in the path
+          const escapedPath = absolutePath.replace(/'/g, "'\\''");
+          return `file '${escapedPath}'`;
+        })
+        .join("\n");
+
+      logger.info(`📝 Creating concat list at: ${concatListPath}`);
+      await fs.writeFile(concatListPath, concatList, "utf8");
+
+      // Verify the file was created
+      const fileExists = await fs
+        .access(concatListPath)
+        .then(() => true)
+        .catch(() => false);
+      if (!fileExists) {
+        throw new Error(
+          `Failed to create concat list file at ${concatListPath}`
+        );
+      }
+
+      logger.info(
+        `✅ Concat list created with ${segmentPaths.length} segments`
+      );
+
+      // Concatenate all segments
+      const outputFilename = `auto_trimmed_${uuidv4()}.mp4`;
+      const outputPath = path.join(this.outputDir, outputFilename);
+
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(concatListPath)
+          .inputOptions(["-f concat", "-safe 0"])
+          .videoCodec("libx264")
+          .audioCodec("aac")
+          .outputOptions(["-movflags +faststart", "-preset fast"])
+          .output(outputPath)
+          .on("end", () => {
+            logger.info(`✅ Segments concatenated: ${outputPath}`);
+            resolve(outputPath);
+          })
+          .on("error", (err) => {
+            logger.error("Error concatenating segments:", err);
+            reject(err);
+          })
+          .run();
+      });
+
+      // Clean up temporary files
+      await fs.unlink(concatListPath).catch(() => {});
+      for (const segmentPath of segmentPaths) {
+        await fs.unlink(segmentPath).catch(() => {});
+      }
+
+      return outputPath;
+    } catch (error) {
+      // Clean up on error
+      await fs.unlink(concatListPath).catch(() => {});
+      for (const segmentPath of segmentPaths) {
+        await fs.unlink(segmentPath).catch(() => {});
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Extract a specific segment from video
+   * @param {string} inputPath - Path to input video
+   * @param {string} outputPath - Path to output segment
+   * @param {number} start - Start time in seconds
+   * @param {number} duration - Duration in seconds
+   * @returns {Promise<void>}
+   */
+  async extractSegment(inputPath, outputPath, start, duration) {
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .setStartTime(start)
+        .setDuration(duration)
+        .videoCodec("libx264")
+        .audioCodec("aac")
+        .outputOptions(["-preset fast"])
+        .output(outputPath)
+        .on("end", resolve)
+        .on("error", reject)
+        .run();
+    });
   }
 }

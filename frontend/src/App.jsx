@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./Pages/Layout";
-import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
@@ -29,7 +28,7 @@ function AppContent() {
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
   return (
@@ -52,11 +51,7 @@ function AppContent() {
       {/* Global Modal */}
       <AnimatePresence>
         {modalOpen && (
-          <Modal
-            isOpen={modalOpen}
-            onClose={() => {}}
-            {...modalProps}
-          />
+          <Modal isOpen={modalOpen} onClose={() => {}} {...modalProps} />
         )}
       </AnimatePresence>
 
@@ -92,10 +87,14 @@ function AppContent() {
               exit={{ opacity: 0, x: 300, scale: 0.5 }}
               className={`
                 max-w-sm p-4 rounded-lg shadow-lg cursor-pointer
-                ${notification.type === 'success' ? 'bg-green-500 text-white' :
-                  notification.type === 'error' ? 'bg-red-500 text-white' :
-                  notification.type === 'warning' ? 'bg-yellow-500 text-white' :
-                  'bg-blue-500 text-white'
+                ${
+                  notification.type === "success"
+                    ? "bg-green-500 text-white"
+                    : notification.type === "error"
+                    ? "bg-red-500 text-white"
+                    : notification.type === "warning"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-blue-500 text-white"
                 }
               `}
               onClick={() => removeNotification(notification.id)}
@@ -107,9 +106,7 @@ function AppContent() {
                       {notification.title}
                     </h4>
                   )}
-                  <p className="text-sm opacity-90">
-                    {notification.message}
-                  </p>
+                  <p className="text-sm opacity-90">{notification.message}</p>
                 </div>
                 <button
                   onClick={(e) => {
